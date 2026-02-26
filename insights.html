@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>APF Dashboard - Cart Analysis</title>
+    <title>APF Insight Studio</title>
 
     <!-- Google Fonts: Inter & Outfit -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -26,7 +26,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 
-<body id="page-cart">
+<body id="page-insights">
     <div class="app-container">
         <!-- Sidebar Navigation -->
         <nav class="sidebar">
@@ -36,7 +36,7 @@
             </div>
 
             <ul class="nav-links">
-                <li onclick="window.location.href='insights.html'">
+                <li class="active" onclick="window.location.href='insights.html'">
                     <i class="ph ph-rocket-launch"></i>
                     <span>Insight Studio</span>
                 </li>
@@ -52,7 +52,7 @@
                     <i class="ph ph-arrows-left-right"></i>
                     <span>Transitions</span>
                 </li>
-                <li class="active" onclick="window.location.href='cart.html'">
+                <li onclick="window.location.href='cart.html'">
                     <i class="ph ph-shopping-cart"></i>
                     <span>Cart Analysis</span>
                 </li>
@@ -64,7 +64,7 @@
         <!-- Main Content Area -->
         <main class="main-content">
             <header class="top-bar">
-                <h1 id="page-title">Cart Analysis</h1>
+                <h1 id="page-title">APF Insight Studio</h1>
                 <div class="controls">
                     <button class="btn-icon"><i class="ph ph-bell"></i></button>
                     <button class="btn-icon"><i class="ph ph-gear"></i></button>
@@ -74,7 +74,7 @@
             <div id="content-area">
                 <div id="loading-indicator" class="loading hidden">
                     <div class="spinner"></div>
-                    <p>Loading Cart Data...</p>
+                    <p>Loading Insight Data...</p>
                 </div>
             </div>
         </main>

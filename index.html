@@ -24,6 +24,11 @@
 
     <!-- Custom Styles -->
     <link rel="stylesheet" href="style.css">
+    <script>
+        if (!new URLSearchParams(window.location.search).has('overview')) {
+            window.location.replace('insights.html');
+        }
+    </script>
 </head>
 
 <body id="page-overview">
@@ -36,7 +41,11 @@
             </div>
 
             <ul class="nav-links">
-                <li class="active" onclick="window.location.href='index.html'">
+                <li onclick="window.location.href='insights.html'">
+                    <i class="ph ph-rocket-launch"></i>
+                    <span>Insight Studio</span>
+                </li>
+                <li class="active" onclick="window.location.href='index.html?overview=1'">
                     <i class="ph ph-squares-four"></i>
                     <span>Overview</span>
                 </li>
