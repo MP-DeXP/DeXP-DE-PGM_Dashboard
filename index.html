@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APF Dashboard</title>
+
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- PapaParse -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body id="page-overview">
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="logo-area">
+                <i class="ph-fill ph-chart-polar"></i>
+                <span>APF Analytics</span>
+            </div>
+
+            <ul class="nav-links">
+                <li class="active" onclick="window.location.href='index.html'">
+                    <i class="ph ph-squares-four"></i>
+                    <span>Overview</span>
+                </li>
+                <li onclick="window.location.href='products.html'">
+                    <i class="ph ph-tag"></i>
+                    <span>Products</span>
+                </li>
+                <li onclick="window.location.href='transitions.html'">
+                    <i class="ph ph-arrows-left-right"></i>
+                    <span>Transitions</span>
+                </li>
+                <li onclick="window.location.href='cart.html'">
+                    <i class="ph ph-shopping-cart"></i>
+                    <span>Cart Analysis</span>
+                </li>
+            </ul>
+
+            <div class="user-profile">
+                <!-- Placeholder for user info if needed -->
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="top-bar">
+                <h1 id="page-title">Dashboard Overview</h1>
+                <div class="controls">
+                    <button class="btn-icon"><i class="ph ph-bell"></i></button>
+                    <button class="btn-icon"><i class="ph ph-gear"></i></button>
+                </div>
+            </header>
+
+            <div id="content-area">
+                <!-- Dynamic Content Will Be Injected Here -->
+
+                <!-- Helper: Loading State -->
+                <div id="loading-indicator" class="loading hidden">
+                    <div class="spinner"></div>
+                    <p>Loading Data...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- App Logic -->
+    <script src="app.js"></script>
+</body>
+
+</html>
