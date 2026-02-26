@@ -23,24 +23,27 @@
 1. 브라우저에서 `insights.html` 파일을 직접 엽니다.
 2. 사이드바의 `데이터 업로드` 버튼을 누릅니다.
 3. 필요한 CSV를 다중 선택 업로드합니다.
-4. 필터(날짜/유입 유형/유입 상품/기준 기간)로 인사이트를 탐색합니다.
+4. 필터(스냅샷 기준일/유입 유형/유입 상품/비교 기준 기간)로 인사이트를 탐색합니다.
 
 ## 업로드 CSV 키
 파일명에 아래 키를 포함해야 자동 매칭됩니다.
 
 기존:
-- `brand_score`
-- `anchor_scored`
-- `anchor_transition`
-- `cart_anchor`
-- `cart_anchor_detail`
+- `brand_score` (`brand_score.csv`)
+- `anchor_scored` (`anchor_scored.csv`)
+- `anchor_transition` (`anchor_transition.csv`)
+- `cart_anchor` (`cart_anchor.csv`)
+- `cart_anchor_detail` (`cart_anchor_detail.csv`)
 
 신규:
-- `aa_cohort_journey`
-- `aa_transition_path`
-- `ca_profile`
-- `bii_window`
-- `apf_action_rules` (선택)
+- `aa_cohort_journey` (`_insight_aa_cohort_journey.csv`)
+- `aa_transition_path` (`_insight_aa_transition_path.csv`)
+- `ca_profile` (`_insight_ca_profile.csv`)
+- `bii_window` (`_insight_bii_window.csv`)
+- `apf_action_rules` (`_insight_apf_action_rules.csv`, 선택)
+
+추가 호환:
+- `brand_impact_windows.csv`, `brand_impact_index.csv`는 업로드 시 `bii_window` 포맷으로 자동 변환됩니다.
 
 ## 데이터 처리 전략
 - 무거운 계산: 사전 집계 CSV로 제공
@@ -49,10 +52,10 @@
 
 ## 인사이트 스튜디오 섹션
 - 인사이트 요약: 브랜드 실전 체력, 90일 대비 연간 추세, 경고 요약
+- 브랜드 체력 현황: 체력 방향/상태/즉시 액션을 먼저 확인하고, 상세는 펼쳐서 원인 분석
 - 첫구매 고객 흐름: 7/30/90일 재구매 흐름
 - 재구매 시작 전환 흐름: 상품 간 전환 경로/집중도/소요일
 - 장바구니 확장 인사이트: 확장 유형/동반구매 비율/장바구니 크기
-- 브랜드 체력 현황: 기간별 브랜드 실전 체력 + 구조 참고값
 - 실행 카드: 마케팅/MD 실행안
 
 ## 관련 문서

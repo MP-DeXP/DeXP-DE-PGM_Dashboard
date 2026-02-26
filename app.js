@@ -13,11 +13,31 @@ const REQUIRED_FILES = {
     anchorTransition: { key: 'anchor_transition', filename: 'anchor_transition.csv' },
     cartAnchor: { key: 'cart_anchor', filename: 'cart_anchor.csv' },
     cartAnchorDetail: { key: 'cart_anchor_detail', filename: 'cart_anchor_detail.csv' },
-    aaCohortJourney: { key: 'aa_cohort_journey', filename: 'aa_cohort_journey.csv' },
-    aaTransitionPath: { key: 'aa_transition_path', filename: 'aa_transition_path.csv' },
-    caProfile: { key: 'ca_profile', filename: 'ca_profile.csv' },
-    biiWindow: { key: 'bii_window', filename: 'bii_window.csv' },
-    apfActionRules: { key: 'apf_action_rules', filename: 'apf_action_rules.csv' }
+    aaCohortJourney: {
+        key: 'aa_cohort_journey',
+        filename: '_insight_aa_cohort_journey.csv',
+        aliases: ['aa_cohort_journey.csv']
+    },
+    aaTransitionPath: {
+        key: 'aa_transition_path',
+        filename: '_insight_aa_transition_path.csv',
+        aliases: ['aa_transition_path.csv']
+    },
+    caProfile: {
+        key: 'ca_profile',
+        filename: '_insight_ca_profile.csv',
+        aliases: ['ca_profile.csv']
+    },
+    biiWindow: {
+        key: 'bii_window',
+        filename: '_insight_bii_window.csv',
+        aliases: ['bii_window.csv', 'brand_impact_windows.csv', 'brand_impact_index.csv']
+    },
+    apfActionRules: {
+        key: 'apf_action_rules',
+        filename: '_insight_apf_action_rules.csv',
+        aliases: ['apf_action_rules.csv']
+    }
 };
 
 // --- App State ---
@@ -50,7 +70,8 @@ const AppState = {
             dateTo: '',
             aaType: 'ALL',
             aaProductId: 'ALL',
-            windowDays: 90
+            windowDays: 90,
+            jumpNavOpen: false
         }
     },
     charts: {},
@@ -176,20 +197,20 @@ const TERM_LABELS = {
 const AA_TYPE_LABELS = {
     BROAD: '첫구매 많음',
     QUALIFIED: '재구매 가능성 높음',
-    HEAVY: '고객 가치 높음'
+    HEAVY: '고가치 고객'
 };
 
 const PCA_TYPE_LABELS = {
     CORE: '단골의 시작점',
     DEEP: '계속 찾는 상품',
-    SCALE: '효자 상품'
+    SCALE: '매출 확장형 상품'
 };
 
 const CA_TYPE_LABELS = {
-    CORE: '장바구니 중심형',
-    PAIR: '함께 담는 조합형',
-    SET: '세트 확장형',
-    NONE: '신호 없음'
+    CORE: '장바구니 중심축',
+    PAIR: '결합형 동반상품',
+    SET: '세트 확장상품',
+    NONE: '미분류'
 };
 
 const STAGE_LABELS = {
@@ -200,6 +221,11 @@ const STAGE_LABELS = {
     WEAK: '약화',
     WEAKENING: '약화',
     RISK: '주의'
+};
+
+const FITNESS_COMPONENT_LABELS = {
+    value: '매출 기여',
+    strength: '재구매 강도'
 };
 
 const UI_TERM_REPLACEMENTS = [
@@ -224,20 +250,30 @@ const UI_TERM_REPLACEMENTS = [
     [/\bFitness\b/gi, '체력 현황']
 ];
 
+const normalizeCategoryValue = (value, fallback = '') => {
+    if (value === null || value === undefined) return fallback;
+    if (typeof value === 'number' && Number.isNaN(value)) return fallback;
+    const normalized = String(value).trim();
+    if (!normalized) return fallback;
+    const lower = normalized.toLowerCase();
+    if (lower === 'nan' || lower === 'null' || lower === 'undefined') return fallback;
+    return normalized;
+};
+
 const toAaTypeLabel = (value) => {
-    const key = String(withFallback(value, '')).trim();
-    if (!key) return '-';
+    const key = normalizeCategoryValue(value, '미분류');
+    if (!key) return '미분류';
     return AA_TYPE_LABELS[key.toUpperCase()] || key;
 };
 
 const toPcaTypeLabel = (value) => {
-    const key = String(withFallback(value, '')).trim();
+    const key = normalizeCategoryValue(value, '');
     if (!key) return '-';
     return PCA_TYPE_LABELS[key.toUpperCase()] || key;
 };
 
 const toCaTypeLabel = (value) => {
-    const key = String(withFallback(value, 'NONE')).trim();
+    const key = normalizeCategoryValue(value, 'NONE');
     if (!key) return '-';
     return CA_TYPE_LABELS[key.toUpperCase()] || key;
 };
@@ -269,6 +305,108 @@ const renderProductCell = (name, id, maxLen = 24) => {
         <span class="name-ellipsis" title="${escapeHtml(full)}">${escapeHtml(truncateText(name, maxLen))}</span>
         <div class="sub-id">${escapeHtml(id)}</div>
     `;
+};
+
+const normalizeCsvRows = (rows) => (rows || []).map((row) => {
+    const normalized = {};
+    Object.entries(row || {}).forEach(([rawKey, value]) => {
+        const key = String(rawKey ?? '').replace(/^\uFEFF/, '').trim();
+        if (!key) return;
+        normalized[key] = value;
+    });
+    return normalized;
+});
+
+const asNullableNumber = (value) => {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : null;
+};
+
+const convertBrandImpactWindowsToBiiWindow = (rows) => {
+    return normalizeCsvRows(rows).map((row) => {
+        const windowKey = String(withFallback(row.window_key, ''));
+        const matched = windowKey.match(/(\d+)/);
+        const windowDays = matched ? toNumber(matched[1], null) : null;
+        return {
+            as_of_date: withFallback(row.period_end, row.as_of_date || ''),
+            window_days: windowDays,
+            bii: asNullableNumber(row.bii_t),
+            bhi: asNullableNumber(row.bhi),
+            clv_norm: asNullableNumber(row.clv_t_norm),
+            customer_strength_norm: asNullableNumber(row.customer_strength_t_norm),
+            stage: withFallback(row.stage, '-'),
+            baseline_days: asNullableNumber(row.baseline_days),
+            confidence: withFallback(row.confidence_index || row.confidence, '-')
+        };
+    }).filter((row) => row.as_of_date && row.window_days !== null && row.bii !== null);
+};
+
+const convertBrandImpactIndexToBiiWindow = (rows) => {
+    const windowMap = [
+        { days: 1, field: 'bii_1d' },
+        { days: 7, field: 'bii_7d' },
+        { days: 30, field: 'bii_30d' },
+        { days: 90, field: 'bii_90d' },
+        { days: 365, field: 'bii_365d' }
+    ];
+
+    const normalizedRows = normalizeCsvRows(rows);
+    const result = [];
+    normalizedRows.forEach((row) => {
+        windowMap.forEach((w) => {
+            const bii = asNullableNumber(row[w.field]);
+            if (bii === null) return;
+            result.push({
+                as_of_date: withFallback(row.analysis_end_date, row.as_of_date || ''),
+                window_days: w.days,
+                bii,
+                bhi: asNullableNumber(row.bhi),
+                clv_norm: asNullableNumber(row.clv_norm),
+                customer_strength_norm: asNullableNumber(row.customer_strength_norm),
+                stage: withFallback(row.stage, '-'),
+                baseline_days: asNullableNumber(row.baseline_days),
+                confidence: withFallback(row.confidence_index || row.confidence, '-')
+            });
+        });
+    });
+
+    return result.filter((row) => row.as_of_date);
+};
+
+const getUploadFileConfig = (filename) => {
+    const lowerName = String(filename || '').toLowerCase();
+    const configs = Object.values(REQUIRED_FILES);
+    const exact = configs.find((config) => {
+        const names = [config.filename, ...(config.aliases || [])]
+            .map((name) => String(name).toLowerCase());
+        return names.includes(lowerName);
+    });
+    if (exact) return exact;
+    return configs
+        .sort((a, b) => b.key.length - a.key.length)
+        .find((config) => lowerName.includes(config.key.toLowerCase()));
+};
+
+const preprocessUploadRows = (config, filename, rows) => {
+    if (!config) return normalizeCsvRows(rows);
+    const lowerName = String(filename || '').toLowerCase();
+    if (config.key === REQUIRED_FILES.biiWindow.key && lowerName.includes('brand_impact_windows')) {
+        return convertBrandImpactWindowsToBiiWindow(rows);
+    }
+    if (config.key === REQUIRED_FILES.biiWindow.key && lowerName.includes('brand_impact_index')) {
+        return convertBrandImpactIndexToBiiWindow(rows);
+    }
+    return normalizeCsvRows(rows);
+};
+
+const getUploadPriority = (config, filename) => {
+    const lowerName = String(filename || '').toLowerCase();
+    const primaryName = String(config.filename || '').toLowerCase();
+    if (lowerName === primaryName || lowerName.includes('_insight_')) return 3;
+    if (lowerName.includes('brand_impact_index')) return 2;
+    if (lowerName.includes('brand_impact_windows')) return 1;
+    if ((config.aliases || []).map((name) => String(name).toLowerCase()).includes(lowerName)) return 2;
+    return 1;
 };
 
 function renderSearchUI(viewName, placeholder) {
@@ -322,6 +460,22 @@ function applyDateFilter(rows, key, fromValue, toValue) {
         if (toDateValue && date > toDateValue) return false;
         return true;
     });
+}
+
+function getInsightSnapshotDates() {
+    const pool = [
+        ...(AppState.data.aaCohortJourney || []).map((row) => row.cohort_date),
+        ...(AppState.data.aaTransitionPath || []).map((row) => row.cohort_date),
+        ...(AppState.data.biiWindow || []).map((row) => row.as_of_date)
+    ];
+    const uniq = new Set();
+    pool.forEach((value) => {
+        const date = toDate(value);
+        if (!date) return;
+        const normalized = date.toISOString().slice(0, 10);
+        uniq.add(normalized);
+    });
+    return Array.from(uniq).sort((a, b) => (a < b ? 1 : -1));
 }
 
 function renderMissingSection(title, desc) {
@@ -841,12 +995,21 @@ function renderCartDetailTable() {
 function buildInsightsModel() {
     const filters = AppState.viewState.insights;
 
+    const normalizedFilterAaType = normalizeCategoryValue(filters.aaType, 'ALL');
+    const isAllAaType = normalizedFilterAaType.toUpperCase() === 'ALL';
+
     const aaRowsAll = applyDateFilter(AppState.data.aaCohortJourney || [], 'cohort_date', filters.dateFrom, filters.dateTo)
-        .filter((row) => filters.aaType === 'ALL' || String(row.aa_type || '').toLowerCase() === String(filters.aaType).toLowerCase())
+        .filter((row) => {
+            if (isAllAaType) return true;
+            return normalizeCategoryValue(row.aa_type, '').toLowerCase() === normalizedFilterAaType.toLowerCase();
+        })
         .filter((row) => filters.aaProductId === 'ALL' || String(row.aa_product_id) === String(filters.aaProductId));
 
     const transitionRowsAll = applyDateFilter(AppState.data.aaTransitionPath || [], 'cohort_date', filters.dateFrom, filters.dateTo)
-        .filter((row) => filters.aaType === 'ALL' || String(row.aa_type || '').toLowerCase() === String(filters.aaType).toLowerCase())
+        .filter((row) => {
+            if (isAllAaType) return true;
+            return normalizeCategoryValue(row.aa_type, '').toLowerCase() === normalizedFilterAaType.toLowerCase();
+        })
         .filter((row) => filters.aaProductId === 'ALL' || String(row.aa_product_id) === String(filters.aaProductId));
 
     const caRows = AppState.data.caProfile || [];
@@ -869,7 +1032,7 @@ function buildInsightsModel() {
 
     const aaTypeAggMap = new Map();
     aaRowsAll.forEach((row) => {
-        const key = String(row.aa_type || '미분류');
+        const key = normalizeCategoryValue(row.aa_type, '미분류');
         if (!aaTypeAggMap.has(key)) {
             aaTypeAggMap.set(key, {
                 aa_type: key,
@@ -1014,7 +1177,7 @@ function getInsightWarnings(model) {
         warnings.push(`전이율-전이고객수 불일치 ${model.summaries.mismatchCount}건 감지`);
     }
     if ((model.summaries.pca90 || 0) < 0.2 && model.summaries.cohortCustomers > 0) {
-        warnings.push('90일 재구매 시작 도달률이 낮아 첫구매 이후 이탈 위험이 있습니다');
+        warnings.push('90일 재구매 핵심상품 구매율이 낮아 첫구매 이후 이탈 위험이 있습니다');
     }
     if ((model.metrics.ca_pair_top1_share_max || 0) > 0.7) {
         warnings.push('장바구니 조합형 집중도가 높아 특정 조합 의존 리스크가 있습니다');
@@ -1052,8 +1215,8 @@ function getBuiltInActionCards(model) {
             priority: 1,
             title: '대량 유입형 상품의 재구매 시작 연결 강화',
             action: '첫구매 후 7일 이내 단골의 시작점 상품으로 이어지도록 CRM/리타게팅을 우선 배치합니다.',
-            impact: '재구매 시작 도달률 개선 및 유입 낭비 축소',
-            evidence: `${TERM_LABELS.AA}-${AA_TYPE_LABELS.BROAD} 비중 ${formatPercent(m.aa_broad_ratio, 1)} / 90일 재구매 시작 도달률 ${formatPercent(m.pca_transition_90d_rate, 1)}`
+            impact: '재구매 핵심상품 구매율 개선 및 유입 낭비 축소',
+            evidence: `${TERM_LABELS.AA}-${AA_TYPE_LABELS.BROAD} 비중 ${formatPercent(m.aa_broad_ratio, 1)} / 90일 재구매 핵심상품 구매율 ${formatPercent(m.pca_transition_90d_rate, 1)}`
         });
     }
 
@@ -1131,6 +1294,52 @@ function getCsvActionCards(model) {
         }));
 }
 
+function getFitnessTrend(ratio) {
+    if (ratio === null || ratio === undefined || Number.isNaN(ratio)) {
+        return {
+            direction: '판단 보류',
+            status: '데이터 부족',
+            problem: '90일과 365일 체력 비교 데이터가 부족합니다.',
+            action: '기간 데이터 업로드 상태를 먼저 점검하세요.',
+            tone: 'neutral'
+        };
+    }
+    if (ratio >= 1.15) {
+        return {
+            direction: '개선',
+            status: '빠르게 개선 중',
+            problem: '최근 체력이 장기 기준보다 빠르게 좋아지고 있습니다.',
+            action: '효율이 높은 유입과 재구매 흐름에 예산과 노출을 확대하세요.',
+            tone: 'positive'
+        };
+    }
+    if (ratio >= 0.95) {
+        return {
+            direction: '유지',
+            status: '안정 유지',
+            problem: '최근 체력이 장기 기준과 유사한 안정 구간입니다.',
+            action: '현재 운영안을 유지하되 이탈 구간만 미세 조정하세요.',
+            tone: 'stable'
+        };
+    }
+    if (ratio >= 0.85) {
+        return {
+            direction: '하락',
+            status: '약화 신호',
+            problem: '최근 체력이 장기 기준 대비 약해지는 신호입니다.',
+            action: '첫구매 후 7일 이내 CRM 접점을 앞당겨 재구매 전환을 보강하세요.',
+            tone: 'warning'
+        };
+    }
+    return {
+        direction: '위험',
+        status: '즉시 대응 필요',
+        problem: '최근 체력이 장기 기준 대비 크게 약화된 상태입니다.',
+        action: '재구매 시작상품 노출과 핵심 재고 방어를 최우선으로 전환하세요.',
+        tone: 'critical'
+    };
+}
+
 function renderHeroStory(model) {
     const warnings = getInsightWarnings(model);
     const selectedWindow = toNumber(model.filters.windowDays, 90);
@@ -1142,14 +1351,7 @@ function renderHeroStory(model) {
     const confidence = (selectedWindowRow && withFallback(selectedWindowRow.confidence, null))
         || model.summaries.confidence
         || '-';
-
-    let ratioStatus = '데이터 부족';
-    if (ratio !== null) {
-        if (ratio >= 1.15) ratioStatus = '구조적 강화';
-        else if (ratio >= 0.95) ratioStatus = '안정';
-        else if (ratio >= 0.85) ratioStatus = '경고';
-        else ratioStatus = '구조 약화';
-    }
+    const trend = getFitnessTrend(ratio);
 
     return `
         <section class="insight-section card animate-fade-in">
@@ -1165,7 +1367,7 @@ function renderHeroStory(model) {
                 <div class="hero-metric">
                     <label>90일 체력 대비 연간 체력</label>
                     <strong>${ratio !== null ? formatNumber(ratio, 2) : '-'}</strong>
-                    <span>${ratioStatus}</span>
+                    <span>${trend.status}</span>
                 </div>
                 <div class="hero-metric">
                     <label>현재 단계 (${selectedWindow}일)</label>
@@ -1186,7 +1388,7 @@ function renderHeroStory(model) {
 
 function renderAAJourney(model) {
     if (!model.aaRowsAll.length) {
-        return renderMissingSection('첫구매 고객 흐름', 'aa_cohort_journey.csv 데이터가 없어 첫구매 고객 흐름을 표시할 수 없습니다.');
+        return renderMissingSection('첫구매 고객 흐름', `${REQUIRED_FILES.aaCohortJourney.filename} 데이터가 없어 첫구매 고객 흐름을 표시할 수 없습니다.`);
     }
 
     const s = model.summaries;
@@ -1233,7 +1435,7 @@ function renderAAJourney(model) {
                     <span>${formatPercent(s.repeat90, 1)}</span>
                 </div>
                 <div class="journey-kpi">
-                    <label>90일 재구매 시작 도달률</label>
+                    <label>90일 재구매 핵심상품 구매율</label>
                     <strong>${formatPercent(s.pca90, 1)}</strong>
                 </div>
                 <div class="journey-kpi">
@@ -1252,7 +1454,7 @@ function renderAAJourney(model) {
                             <th>유입 유형</th>
                             <th>대상 고객수</th>
                             <th>90일 재구매율</th>
-                            <th>90일 재구매 시작 도달률</th>
+                            <th>90일 재구매 핵심상품 구매율</th>
                             <th>90일 가치</th>
                             <th>평균 소요일</th>
                         </tr>
@@ -1266,7 +1468,7 @@ function renderAAJourney(model) {
 
 function renderAATransition(model) {
     if (!model.transitionRowsAll.length) {
-        return renderMissingSection('재구매 시작 전환 흐름', 'aa_transition_path.csv 데이터가 없어 전환 흐름을 표시할 수 없습니다.');
+        return renderMissingSection('재구매 시작 전환 흐름', `${REQUIRED_FILES.aaTransitionPath.filename} 데이터가 없어 전환 흐름을 표시할 수 없습니다.`);
     }
 
     const rows = model.topTransitionRows.map((row) => `
@@ -1317,7 +1519,7 @@ function renderAATransition(model) {
 
 function renderCASection(model) {
     if (!model.caRows.length) {
-        return renderMissingSection('장바구니 확장 인사이트', 'ca_profile.csv 데이터가 없어 장바구니 확장 흐름을 표시할 수 없습니다.');
+        return renderMissingSection('장바구니 확장 인사이트', `${REQUIRED_FILES.caProfile.filename} 데이터가 없어 장바구니 확장 흐름을 표시할 수 없습니다.`);
     }
 
     const topRows = [...model.caRows]
@@ -1384,17 +1586,19 @@ function renderBrandFitness(model) {
     const biiRows = [7, 30, 90, 365].map((window) => model.biiMap.get(window)).filter(Boolean);
 
     if (!biiRows.length) {
-        return renderMissingSection('브랜드 체력 현황', 'bii_window.csv 데이터가 없어 브랜드 체력 지표를 표시할 수 없습니다.');
+        return renderMissingSection('브랜드 체력 현황', `${REQUIRED_FILES.biiWindow.filename} 데이터가 없어 브랜드 체력 지표를 표시할 수 없습니다.`);
     }
 
     const selectedWindow = toNumber(model.filters.windowDays, 90);
     const selectedRow = model.biiMap.get(selectedWindow);
     const row90 = model.biiMap.get(90);
     const row365 = model.biiMap.get(365);
+    const selectedClvNorm = selectedRow ? toNumber(selectedRow.clv_norm, null) : null;
+    const selectedCustomerStrengthNorm = selectedRow ? toNumber(selectedRow.customer_strength_norm, null) : null;
     const selectedWindowBii = selectedRow ? toNumber(selectedRow.bii, null) : model.summaries.selectedWindowBii;
     const bii90Value = row90 ? toNumber(row90.bii, null) : model.summaries.bii90;
     const bii365Value = row365 ? toNumber(row365.bii, null) : model.summaries.bii365;
-    const stage90 = row90 ? toStageLabel(row90.stage) : '-';
+    const selectedStage = selectedRow ? toStageLabel(selectedRow.stage) : '-';
     const confidence = (selectedRow && withFallback(selectedRow.confidence, null))
         || (row90 && withFallback(row90.confidence, null))
         || (brand && withFallback(brand.Confidence_Index, null))
@@ -1403,24 +1607,70 @@ function renderBrandFitness(model) {
         ? bii90Value / bii365Value
         : null;
 
-    let ratioStatus = '데이터 부족';
-    if (ratio !== null) {
-        if (ratio >= 1.15) ratioStatus = '구조적 강화';
-        else if (ratio >= 0.95) ratioStatus = '안정';
-        else if (ratio >= 0.85) ratioStatus = '경고';
-        else ratioStatus = '구조 약화';
-    }
+    const trend = getFitnessTrend(ratio);
 
     const bhiValue = brand ? toNumber(brand.Brand_Health_Index || brand.BHI || brand.brand_health_index || brand.Brand_Health_Score, null) : null;
+    const aaBroadRatio = brand ? toNumber(brand.AA_Broad_Ratio, null) : null;
+    const aaQualifiedRatio = brand ? toNumber(brand.AA_Qualified_Ratio, null) : null;
+    const aaHeavyRatio = brand ? toNumber(brand.AA_Heavy_Ratio, null) : null;
     const as = brand ? toNumber(brand.AA_Concentration_Index, null) : null;
     const cs = brand ? toNumber(brand.Chain_Balance_Index, null) : null;
+    const vs = brand ? toNumber(
+        brand.Value_Readiness || brand.Value_Score || brand.Variety_Score || brand.Value_Ready_Index,
+        null
+    ) : null;
+    const asPct = as !== null ? Math.max(0, Math.min(100, as * 100)) : null;
+    const csPct = cs !== null ? Math.max(0, Math.min(100, cs * 100)) : null;
+    const vsPct = vs !== null ? Math.max(0, Math.min(100, vs * 100)) : null;
+    const broadPct = aaBroadRatio !== null ? Math.max(0, Math.min(100, aaBroadRatio * 100)) : null;
+    const qualifiedPct = aaQualifiedRatio !== null ? Math.max(0, Math.min(100, aaQualifiedRatio * 100)) : null;
+    const heavyPct = aaHeavyRatio !== null ? Math.max(0, Math.min(100, aaHeavyRatio * 100)) : null;
+    const qualityMixPct = (qualifiedPct !== null || heavyPct !== null)
+        ? toNumber(qualifiedPct, 0) + toNumber(heavyPct, 0)
+        : null;
+    const hasStructureData = [asPct, csPct, vsPct].some((v) => v !== null);
+    const getDriverStatus = (value, good, neutral) => {
+        if (value === null) return { label: '데이터 없음', tone: 'neutral' };
+        if (good(value)) return { label: '긍정 영향', tone: 'positive' };
+        if (neutral(value)) return { label: '중립', tone: 'neutral' };
+        return { label: '주의 영향', tone: 'warning' };
+    };
+    const qualityMixStatus = getDriverStatus(
+        qualityMixPct,
+        (v) => v >= 35,
+        (v) => v >= 20
+    );
+    const broadStatus = getDriverStatus(
+        broadPct,
+        (v) => v <= 45,
+        (v) => v <= 60
+    );
+    const concentrationStatus = getDriverStatus(
+        asPct,
+        (v) => v <= 55,
+        (v) => v <= 70
+    );
+    const chainStatus = getDriverStatus(
+        csPct,
+        (v) => v >= 70,
+        (v) => v >= 55
+    );
+    const componentBhi = selectedRow
+        ? toNumber(selectedRow.bhi, bhiValue)
+        : bhiValue;
+    const calculatedBii = (componentBhi !== null && selectedClvNorm !== null && selectedCustomerStrengthNorm !== null)
+        ? componentBhi * selectedClvNorm * selectedCustomerStrengthNorm
+        : null;
+    const componentGap = (selectedWindowBii !== null && calculatedBii !== null)
+        ? selectedWindowBii - calculatedBii
+        : null;
     const bhiReferenceText = brand
-        ? `참고 구조값: ${TERM_LABELS.BHI} ${bhiValue !== null ? formatNumber(bhiValue * 100, 2) : '-'} | 유입 집중도 ${as !== null ? formatNumber(as * 100, 1) : '-'}% | 재구매 사슬 균형 ${cs !== null ? formatNumber(cs, 2) : '-'}`
+        ? `참고 구조값: ${TERM_LABELS.BHI} ${bhiValue !== null ? formatNumber(bhiValue * 100, 2) : '-'} | 유입 구조 균형 ${asPct !== null ? formatNumber(asPct, 1) : '-'}% | 재구매 연결 균형 ${csPct !== null ? formatNumber(csPct, 1) : '-'}% | 가치 준비도 ${vsPct !== null ? formatNumber(vsPct, 1) : '-'}%`
         : '참고 구조값: brand_score.csv 미업로드';
 
     const rows = biiRows.map((row) => `
         <tr>
-            <td>${formatNumber(row.window_days, 0)}d</td>
+            <td>${formatNumber(row.window_days, 0)}일</td>
             <td>${formatNumber(row.bii, 3)}</td>
             <td>${formatNumber(row.clv_norm, 3)}</td>
             <td>${formatNumber(row.customer_strength_norm, 3)}</td>
@@ -1432,32 +1682,144 @@ function renderBrandFitness(model) {
         <section id="brand-fitness" class="insight-section card animate-fade-in">
             <div class="section-headline">
                 <h2>브랜드 체력 현황</h2>
-                <p>브랜드 실전 체력의 7/30/90/365일 흐름과 90일 대비 연간 추세를 함께 봅니다</p>
+                <p>최근 체력이 장기 흐름 대비 개선 중인지 먼저 확인하고, 필요하면 원인 상세를 펼쳐서 봅니다</p>
             </div>
-            <div class="journey-grid">
-                <div class="journey-kpi"><label>${TERM_LABELS.BII} ${selectedWindow}일</label><strong>${selectedWindowBii !== null ? formatNumber(selectedWindowBii, 3) : '-'}</strong></div>
-                <div class="journey-kpi"><label>${TERM_LABELS.BII} 90일</label><strong>${bii90Value !== null ? formatNumber(bii90Value, 3) : '-'}</strong></div>
-                <div class="journey-kpi"><label>${TERM_LABELS.BII} 365일</label><strong>${bii365Value !== null ? formatNumber(bii365Value, 3) : '-'}</strong></div>
-                <div class="journey-kpi"><label>90일 체력 대비 연간 체력</label><strong>${ratio !== null ? formatNumber(ratio, 2) : '-'}</strong><span>${ratioStatus}</span></div>
-                <div class="journey-kpi"><label>현재 단계 (90일)</label><strong>${escapeHtml(String(stage90))}</strong></div>
-                <div class="journey-kpi"><label>신뢰도</label><strong>${escapeHtml(String(confidence))}</strong></div>
+            <div class="fitness-summary-grid">
+                <div class="fitness-summary-card tone-${trend.tone}">
+                    <label>체력 방향</label>
+                    <strong>${escapeHtml(trend.direction)}</strong>
+                    <span>${escapeHtml(trend.status)}</span>
+                </div>
+                <div class="fitness-summary-card">
+                    <label>최근 기준 체력</label>
+                    <strong>${selectedWindowBii !== null ? formatNumber(selectedWindowBii, 3) : '-'}</strong>
+                    <span>${selectedWindow}일 기준 · 현재 단계 ${escapeHtml(String(selectedStage))}</span>
+                </div>
+                <div class="fitness-summary-card">
+                    <label>90일 대비 연간 흐름</label>
+                    <strong>${ratio !== null ? formatNumber(ratio, 2) : '-'}</strong>
+                    <span>${escapeHtml(trend.status)}</span>
+                </div>
+                <div class="fitness-summary-card">
+                    <label>신뢰도</label>
+                    <strong>${escapeHtml(String(confidence))}</strong>
+                    <span>현재 기준 데이터 신뢰도</span>
+                </div>
             </div>
-            <div class="card chart-card"><canvas id="biiChart"></canvas></div>
-            <div class="table-container" style="margin-top:1rem;">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>분석 기간</th>
-                            <th>${TERM_LABELS.BII}</th>
-                            <th>고객가치 보정</th>
-                            <th>고객강도 보정</th>
-                            <th>단계</th>
-                        </tr>
-                    </thead>
-                    <tbody>${rows}</tbody>
-                </table>
+            <div class="fitness-explain tone-${trend.tone}">
+                <p><strong>해석:</strong> ${escapeHtml(trend.problem)}</p>
+                <p><strong>바로 실행:</strong> ${escapeHtml(trend.action)}</p>
             </div>
-            <p class="insight-note">${escapeHtml(bhiReferenceText)}</p>
+            <div class="structure-block">
+                <h3>브랜드 구조 건강도의 3개 구조</h3>
+                ${hasStructureData ? `
+                    <div class="card chart-card structure-radar-card">
+                        <canvas
+                            id="brandStructureRadarChart"
+                            data-as="${asPct !== null ? asPct.toFixed(4) : ''}"
+                            data-cs="${csPct !== null ? csPct.toFixed(4) : ''}"
+                            data-vs="${vsPct !== null ? vsPct.toFixed(4) : ''}"
+                        ></canvas>
+                    </div>
+                ` : '<p class="chart-hint">brand_score.csv의 구조 지표가 없어 레이더 차트를 표시할 수 없습니다.</p>'}
+                <div class="structure-grid">
+                    <div class="structure-item">
+                        <label>유입 구조 균형</label>
+                        <strong>${asPct !== null ? formatNumber(asPct, 1) : '-'}${asPct !== null ? '%' : ''}</strong>
+                        <span>첫구매 유입이 한쪽에 쏠리지 않는지</span>
+                    </div>
+                    <div class="structure-item">
+                        <label>재구매 연결 균형</label>
+                        <strong>${csPct !== null ? formatNumber(csPct, 1) : '-'}${csPct !== null ? '%' : ''}</strong>
+                        <span>재구매 연결이 특정 경로에 과집중되지 않는지</span>
+                    </div>
+                    <div class="structure-item">
+                        <label>가치 준비도</label>
+                        <strong>${vsPct !== null ? formatNumber(vsPct, 1) : '-'}${vsPct !== null ? '%' : ''}</strong>
+                        <span>매출 확장 여력이 확보되어 있는지</span>
+                    </div>
+                </div>
+                <div class="value-driver-block">
+                    <h4>가치 준비도 영향 요소</h4>
+                    <div class="value-driver-grid">
+                        <div class="value-driver-item ${qualityMixStatus.tone}">
+                            <label>효율·고가치 유입 비중</label>
+                            <strong>${qualityMixPct !== null ? formatNumber(qualityMixPct, 1) : '-'}${qualityMixPct !== null ? '%' : ''}</strong>
+                            <span>${qualityMixStatus.label} · Qualified + Heavy 비중</span>
+                        </div>
+                        <div class="value-driver-item ${broadStatus.tone}">
+                            <label>확장형 유입 비중</label>
+                            <strong>${broadPct !== null ? formatNumber(broadPct, 1) : '-'}${broadPct !== null ? '%' : ''}</strong>
+                            <span>${broadStatus.label} · Broad 비중</span>
+                        </div>
+                        <div class="value-driver-item ${concentrationStatus.tone}">
+                            <label>유입 집중도</label>
+                            <strong>${asPct !== null ? formatNumber(asPct, 1) : '-'}${asPct !== null ? '%' : ''}</strong>
+                            <span>${concentrationStatus.label} · 높을수록 유입 쏠림</span>
+                        </div>
+                        <div class="value-driver-item ${chainStatus.tone}">
+                            <label>재구매 연결 균형</label>
+                            <strong>${csPct !== null ? formatNumber(csPct, 1) : '-'}${csPct !== null ? '%' : ''}</strong>
+                            <span>${chainStatus.label} · 높을수록 연결 구조 안정</span>
+                        </div>
+                    </div>
+                    <p class="chart-hint">현재 파일에서는 영향 요소를 구조 관점으로 표시합니다. VAI/VQI/VCR 세부 분해값이 제공되면 이 영역을 더 정밀하게 확장할 수 있습니다.</p>
+                </div>
+                <p class="chart-hint">3개 구조 중 약한 축이 전체 구조 건강도를 제한할 수 있습니다.</p>
+            </div>
+            <details id="brand-fitness-details" class="fitness-details">
+                <summary>원인 자세히 보기 (구성 요소/추세/기간별 수치)</summary>
+                <div class="fitness-details-body">
+                    <div class="factor-block">
+                        <h3>브랜드 실전 체력 구성 요소 (${selectedWindow}일)</h3>
+                        <p class="chart-hint">구조, ${FITNESS_COMPONENT_LABELS.value}, ${FITNESS_COMPONENT_LABELS.strength} 중 어떤 요소가 변화를 만들었는지 확인합니다.</p>
+                        <div class="factor-grid">
+                            <div class="journey-kpi">
+                                <label>브랜드 구조 건강도</label>
+                                <strong>${componentBhi !== null ? formatNumber(componentBhi, 3) : '-'}</strong>
+                            </div>
+                            <div class="journey-kpi">
+                                <label>${FITNESS_COMPONENT_LABELS.value}</label>
+                                <strong>${selectedClvNorm !== null ? formatNumber(selectedClvNorm, 3) : '-'}</strong>
+                            </div>
+                            <div class="journey-kpi">
+                                <label>${FITNESS_COMPONENT_LABELS.strength}</label>
+                                <strong>${selectedCustomerStrengthNorm !== null ? formatNumber(selectedCustomerStrengthNorm, 3) : '-'}</strong>
+                            </div>
+                            <div class="journey-kpi">
+                                <label>계산 체력(참고)</label>
+                                <strong>${calculatedBii !== null ? formatNumber(calculatedBii, 3) : '-'}</strong>
+                                <span>실제 체력 대비 차이: ${componentGap !== null ? formatNumber(componentGap, 3) : '-'}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="journey-grid">
+                        <div class="journey-kpi"><label>${TERM_LABELS.BII} ${selectedWindow}일</label><strong>${selectedWindowBii !== null ? formatNumber(selectedWindowBii, 3) : '-'}</strong></div>
+                        <div class="journey-kpi"><label>${TERM_LABELS.BII} 90일</label><strong>${bii90Value !== null ? formatNumber(bii90Value, 3) : '-'}</strong></div>
+                        <div class="journey-kpi"><label>${TERM_LABELS.BII} 365일</label><strong>${bii365Value !== null ? formatNumber(bii365Value, 3) : '-'}</strong></div>
+                        <div class="journey-kpi"><label>90일 대비 연간 흐름</label><strong>${ratio !== null ? formatNumber(ratio, 2) : '-'}</strong><span>${escapeHtml(trend.status)}</span></div>
+                    </div>
+                    <div class="card chart-card"><canvas id="biiChart"></canvas></div>
+                    <div class="table-container" style="margin-top:1rem;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>분석 기간</th>
+                                    <th>${TERM_LABELS.BII}</th>
+                                    <th>${FITNESS_COMPONENT_LABELS.value}</th>
+                                    <th>${FITNESS_COMPONENT_LABELS.strength}</th>
+                                    <th>단계</th>
+                                </tr>
+                            </thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    </div>
+                    <p class="insight-note">${escapeHtml(bhiReferenceText)}</p>
+                </div>
+            </details>
+            <div class="fitness-mobile-note">
+                <span>상세 수치는 기본 접힘 상태입니다. 필요 시 위 항목을 펼쳐 확인하세요.</span>
+            </div>
         </section>
     `;
 }
@@ -1506,8 +1868,13 @@ function renderActionCenter(model) {
 
 function renderInsightFilters(model) {
     const filters = model.filters;
+    const jumpNavOpen = Boolean(filters.jumpNavOpen);
 
-    const aaTypes = ['ALL', ...new Set((AppState.data.aaCohortJourney || []).map((row) => String(row.aa_type || '').trim()).filter(Boolean))];
+    const aaTypes = ['ALL', ...new Set(
+        (AppState.data.aaCohortJourney || [])
+            .map((row) => normalizeCategoryValue(row.aa_type, ''))
+            .filter(Boolean)
+    )];
     const aaProducts = ['ALL', ...new Set((AppState.data.aaCohortJourney || []).map((row) => String(row.aa_product_id || '').trim()).filter(Boolean))];
 
     const aaTypeOptions = aaTypes.map((type) => {
@@ -1522,48 +1889,54 @@ function renderInsightFilters(model) {
     }).join('');
 
     return `
-        <section class="insight-section card animate-fade-in">
-            <div class="filter-grid">
-                <label>
-                    <span>시작일</span>
-                    <input type="date" value="${escapeHtml(filters.dateFrom)}" onchange="updateInsightsFilter('dateFrom', this.value)">
-                </label>
-                <label>
-                    <span>종료일</span>
-                    <input type="date" value="${escapeHtml(filters.dateTo)}" onchange="updateInsightsFilter('dateTo', this.value)">
-                </label>
-                <label>
-                    <span>유입 유형</span>
-                    <select onchange="updateInsightsFilter('aaType', this.value)">${aaTypeOptions}</select>
-                </label>
-                <label>
-                    <span>유입 상품</span>
-                    <select onchange="updateInsightsFilter('aaProductId', this.value)">${aaProductOptions}</select>
-                </label>
-                <label>
-                    <span>기준 기간</span>
-                    <select onchange="updateInsightsFilter('windowDays', this.value)">
-                        <option value="7" ${toNumber(filters.windowDays) === 7 ? 'selected' : ''}>7일</option>
-                        <option value="30" ${toNumber(filters.windowDays) === 30 ? 'selected' : ''}>30일</option>
-                        <option value="90" ${toNumber(filters.windowDays) === 90 ? 'selected' : ''}>90일</option>
-                        <option value="365" ${toNumber(filters.windowDays) === 365 ? 'selected' : ''}>365일</option>
-                    </select>
-                </label>
-                <button class="btn-primary" type="button" onclick="resetInsightsFilters()">필터 초기화</button>
-            </div>
+        <section class="insight-section card insight-filters ${jumpNavOpen ? 'is-open' : 'is-collapsed'} animate-fade-in">
+            <button
+                class="btn-primary jump-toggle-btn"
+                type="button"
+                onclick="toggleJumpLinks()"
+                title="${jumpNavOpen ? '점프 링크 접기' : '점프 링크 펼치기'}"
+                aria-label="${jumpNavOpen ? '점프 링크 접기' : '점프 링크 펼치기'}"
+            >
+                <i class="ph ${jumpNavOpen ? 'ph-x' : 'ph-list'}" aria-hidden="true"></i>
+            </button>
+            ${jumpNavOpen ? `
+                <nav class="filter-jump-nav">
+                    <a href="#brand-fitness">브랜드 체력</a>
+                    <a href="#aa-journey">첫구매 고객 흐름</a>
+                    <a href="#aa-transition">재구매 시작 전환</a>
+                    <a href="#cart-ca">장바구니 확장</a>
+                    <a href="#action-center">실행 카드</a>
+                </nav>
+                <div class="filter-grid">
+                    <label class="filter-field">
+                        <span>유입 유형</span>
+                        <select onchange="updateInsightsFilter('aaType', this.value)">${aaTypeOptions}</select>
+                    </label>
+                    <label class="filter-field">
+                        <span>유입 상품</span>
+                        <select onchange="updateInsightsFilter('aaProductId', this.value)">${aaProductOptions}</select>
+                    </label>
+                    <label class="filter-field">
+                        <span>비교 기준 기간</span>
+                        <select onchange="updateInsightsFilter('windowDays', this.value)">
+                            <option value="7" ${toNumber(filters.windowDays) === 7 ? 'selected' : ''}>7일</option>
+                            <option value="30" ${toNumber(filters.windowDays) === 30 ? 'selected' : ''}>30일</option>
+                            <option value="90" ${toNumber(filters.windowDays) === 90 ? 'selected' : ''}>90일</option>
+                            <option value="365" ${toNumber(filters.windowDays) === 365 ? 'selected' : ''}>365일</option>
+                        </select>
+                    </label>
+                    <button
+                        class="btn-primary filter-reset-btn filter-reset-icon-btn"
+                        type="button"
+                        onclick="resetInsightsFilters()"
+                        title="필터 초기화"
+                        aria-label="필터 초기화"
+                    >
+                        <i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i>
+                    </button>
+                </div>
+            ` : ''}
         </section>
-    `;
-}
-
-function renderAnchorJump() {
-    return `
-        <nav class="jump-nav card animate-fade-in">
-            <a href="#aa-journey">첫구매 고객 흐름</a>
-            <a href="#aa-transition">재구매 시작 전환</a>
-            <a href="#cart-ca">장바구니 확장</a>
-            <a href="#brand-fitness">브랜드 체력</a>
-            <a href="#action-center">실행 카드</a>
-        </nav>
     `;
 }
 
@@ -1585,7 +1958,7 @@ function renderInsightsCharts(model) {
                         fill: true
                     },
                     {
-                        label: '재구매 시작 도달률',
+                        label: '재구매 핵심상품 구매율',
                         data: [toNumber(s.pca30, 0) * 100, toNumber(s.pca90, 0) * 100, toNumber(s.pca90, 0) * 100],
                         borderColor: '#ec4899',
                         backgroundColor: 'rgba(236,72,153,0.12)',
@@ -1797,21 +2170,120 @@ function renderInsightsCharts(model) {
     const biiCanvas = document.getElementById('biiChart');
     if (biiCanvas && model.biiRowsAll.length) {
         const rows = [...model.biiRowsAll].sort((a, b) => toNumber(a.window_days) - toNumber(b.window_days));
+        const biiSeries = rows.map((row) => toNumber(row.bii, NaN));
+        const clvSeries = rows.map((row) => {
+            const v = toNumber(row.clv_norm, NaN);
+            return Number.isFinite(v) ? v : null;
+        });
+        const strengthSeries = rows.map((row) => {
+            const v = toNumber(row.customer_strength_norm, NaN);
+            return Number.isFinite(v) ? v : null;
+        });
         AppState.charts.bii = new Chart(biiCanvas.getContext('2d'), {
             type: 'line',
             data: {
                 labels: rows.map((row) => `${row.window_days}일`),
-                datasets: [{
-                    label: TERM_LABELS.BII,
-                    data: rows.map((row) => toNumber(row.bii, 0)),
-                    borderColor: '#0ea5e9',
-                    backgroundColor: 'rgba(14,165,233,0.2)',
-                    fill: true,
-                    tension: 0.3
-                }]
+                datasets: [
+                    {
+                        label: TERM_LABELS.BII,
+                        data: biiSeries,
+                        borderColor: '#0ea5e9',
+                        backgroundColor: 'rgba(14,165,233,0.2)',
+                        fill: true,
+                        tension: 0.3,
+                        borderWidth: 2.2
+                    },
+                    {
+                        label: FITNESS_COMPONENT_LABELS.value,
+                        data: clvSeries,
+                        borderColor: '#14b8a6',
+                        backgroundColor: 'rgba(20,184,166,0.08)',
+                        fill: false,
+                        borderDash: [5, 4],
+                        tension: 0.25,
+                        borderWidth: 1.8
+                    },
+                    {
+                        label: FITNESS_COMPONENT_LABELS.strength,
+                        data: strengthSeries,
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245,158,11,0.08)',
+                        fill: false,
+                        borderDash: [4, 4],
+                        tension: 0.25,
+                        borderWidth: 1.8
+                    }
+                ]
             },
-            options: { responsive: true, maintainAspectRatio: false }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '브랜드 실전 체력과 구성 요소 추세',
+                        color: '#1e293b'
+                    }
+                }
+            }
         });
+    }
+
+    const structureRadarCanvas = document.getElementById('brandStructureRadarChart');
+    if (structureRadarCanvas) {
+        const asPct = toNumber(structureRadarCanvas.dataset.as, null);
+        const csPct = toNumber(structureRadarCanvas.dataset.cs, null);
+        const vsPct = toNumber(structureRadarCanvas.dataset.vs, null);
+        const hasStructureData = [asPct, csPct, vsPct].some((v) => v !== null);
+        if (hasStructureData) {
+            AppState.charts.brandStructureRadar = new Chart(structureRadarCanvas.getContext('2d'), {
+                type: 'radar',
+                data: {
+                    labels: ['유입 구조 균형', '재구매 연결 균형', '가치 준비도'],
+                    datasets: [
+                        {
+                            label: '브랜드 구조 건강도 3축',
+                            data: [
+                                asPct !== null ? asPct : 0,
+                                csPct !== null ? csPct : 0,
+                                vsPct !== null ? vsPct : 0
+                            ],
+                            borderColor: '#2563eb',
+                            backgroundColor: 'rgba(37,99,235,0.18)',
+                            pointBackgroundColor: '#1d4ed8',
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        title: {
+                            display: true,
+                            text: '브랜드 구조 건강도 레이더(%)',
+                            color: '#1e293b'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => `${ctx.label}: ${formatNumber(ctx.raw, 1)}%`
+                            }
+                        }
+                    },
+                    scales: {
+                        r: {
+                            min: 0,
+                            max: 100,
+                            ticks: {
+                                stepSize: 20,
+                                callback: (v) => `${v}%`
+                            }
+                        }
+                    }
+                }
+            });
+        }
     }
 }
 
@@ -1824,22 +2296,50 @@ function renderInsightsPage() {
     container.innerHTML = `
         <div class="insights-page">
             ${renderHeroStory(model)}
-            ${renderAnchorJump()}
             ${renderInsightFilters(model)}
+            ${renderBrandFitness(model)}
             ${renderAAJourney(model)}
             ${renderAATransition(model)}
             ${renderCASection(model)}
-            ${renderBrandFitness(model)}
             ${renderActionCenter(model)}
         </div>
     `;
 
     renderInsightsCharts(model);
+    bindInsightsInteractions();
+}
+
+function bindInsightsInteractions() {
+    const detail = document.getElementById('brand-fitness-details');
+    if (!detail) return;
+    detail.addEventListener('toggle', () => {
+        if (detail.open && AppState.charts.bii) {
+            AppState.charts.bii.resize();
+            AppState.charts.bii.update('none');
+        }
+    });
 }
 
 window.updateInsightsFilter = (key, value) => {
     if (key === 'windowDays') AppState.viewState.insights[key] = toNumber(value, 90);
     else AppState.viewState.insights[key] = value;
+    renderInsightsPage();
+};
+
+window.toggleJumpLinks = () => {
+    AppState.viewState.insights.jumpNavOpen = !Boolean(AppState.viewState.insights.jumpNavOpen);
+    renderInsightsPage();
+};
+
+window.updateInsightsSnapshot = (value) => {
+    const snapshot = String(value || '').trim();
+    if (snapshot) {
+        AppState.viewState.insights.dateFrom = snapshot;
+        AppState.viewState.insights.dateTo = snapshot;
+    } else {
+        AppState.viewState.insights.dateFrom = '';
+        AppState.viewState.insights.dateTo = '';
+    }
     renderInsightsPage();
 };
 
@@ -1849,7 +2349,8 @@ window.resetInsightsFilters = () => {
         dateTo: '',
         aaType: 'ALL',
         aaProductId: 'ALL',
-        windowDays: 90
+        windowDays: 90,
+        jumpNavOpen: false
     };
     renderInsightsPage();
 };
@@ -1862,10 +2363,11 @@ function showUploadModal() {
         <div id="uploadModal" style="position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; display:flex; align-items:center; justify-content:center;">
             <div class="card" style="width:560px; max-width:92%;">
                 <div style="display:flex; justify-content:space-between; margin-bottom:1.5rem;"><h3>CSV 업로드</h3><button onclick="document.getElementById('uploadModal').remove()" style="background:none; border:none; color:white; cursor:pointer;"><i class="ph ph-x" style="font-size:1.5rem"></i></button></div>
-                <div id="upload-status" style="margin-bottom:1rem; color:var(--text-muted)">여러 CSV를 동시에 선택할 수 있습니다. 파일명에 키를 포함하세요.</div>
+                <div id="upload-status" style="margin-bottom:1rem; color:var(--text-muted)">여러 CSV를 동시에 선택할 수 있습니다. 권장 파일명 또는 키를 포함한 파일명을 사용하세요.</div>
                 <input type="file" id="file-input" multiple accept=".csv" onchange="handleFiles(this.files)">
                 <div style="margin-top:0.8rem; color:var(--text-muted); font-size:0.82rem; line-height:1.5;">
-                    지원 키: ${Object.values(REQUIRED_FILES).map((f) => `<code>${f.key}</code>`).join(', ')}
+                    지원 키: ${Object.values(REQUIRED_FILES).map((f) => `<code>${f.key}</code>`).join(', ')}<br>
+                    권장 파일명: ${Object.values(REQUIRED_FILES).map((f) => `<code>${f.filename}</code>`).join(', ')}
                 </div>
                 <div id="file-list" style="margin-top:1rem; font-size:0.9rem;"></div>
             </div>
@@ -1879,34 +2381,49 @@ window.handleFiles = async (files) => {
 
     let count = 0;
     const matchedNames = [];
+    const skippedNames = [];
+    const savedByKey = new Map();
 
     for (const file of files) {
-        const config = Object.values(REQUIRED_FILES)
-            .sort((a, b) => b.key.length - a.key.length)
-            .find((f) => file.name.toLowerCase().includes(f.key.toLowerCase()));
+        const config = getUploadFileConfig(file.name);
 
         if (config) {
+            const priority = getUploadPriority(config, file.name);
+            const existing = savedByKey.get(config.key);
+            if (existing && existing.priority >= priority) {
+                skippedNames.push(`${file.name} (중복 키: ${config.key})`);
+                continue;
+            }
+
             await new Promise((resolve) => {
                 Papa.parse(file, {
                     header: true,
                     dynamicTyping: true,
                     skipEmptyLines: true,
                     complete: async (r) => {
-                        await DB.save(config.key, r.data);
+                        const preparedRows = preprocessUploadRows(config, file.name, r.data);
+                        await DB.save(config.key, preparedRows);
                         count += 1;
-                        matchedNames.push(`${file.name} → ${config.key}`);
+                        const replaced = savedByKey.has(config.key);
+                        matchedNames.push(`${file.name} → ${config.key}${replaced ? ' (대체 저장)' : ''}`);
+                        savedByKey.set(config.key, { priority, file: file.name });
                         resolve();
                     }
                 });
             });
+        } else {
+            skippedNames.push(file.name);
         }
     }
 
     if (count > 0) {
-        list.innerHTML = `<p style="color:var(--primary)">${count}개 파일 저장 완료. 새로고침합니다.</p><p style="margin-top:0.5rem; color:var(--text-muted)">${escapeHtml(matchedNames.join(' | '))}</p>`;
+        const skippedText = skippedNames.length
+            ? `<p style="margin-top:0.4rem; color:var(--text-muted)">미매칭 파일: ${escapeHtml(skippedNames.join(', '))}</p>`
+            : '';
+        list.innerHTML = `<p style="color:var(--primary)">${count}개 파일 저장 완료. 새로고침합니다.</p><p style="margin-top:0.5rem; color:var(--text-muted)">${escapeHtml(matchedNames.join(' | '))}</p>${skippedText}`;
         setTimeout(() => location.reload(), 1500);
     } else {
-        list.innerHTML = '<p style="color:var(--accent)">매칭되는 파일을 찾지 못했습니다. 파일명 키를 확인하세요.</p>';
+        list.innerHTML = '<p style="color:var(--accent)">매칭되는 파일을 찾지 못했습니다. 권장 파일명을 확인하세요.</p>';
     }
 };
 
