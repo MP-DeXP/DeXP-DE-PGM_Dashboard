@@ -1022,9 +1022,15 @@ function getCsvActionCards(model) {
 
 function renderHeroStory(model) {
     const warnings = getInsightWarnings(model);
+    const selectedWindow = toNumber(model.filters.windowDays, 90);
+    const selectedWindowRow = model.biiMap.get(selectedWindow);
     const ratio = (model.summaries.bii365 && model.summaries.bii90)
         ? model.summaries.bii90 / model.summaries.bii365
         : null;
+    const selectedStage = selectedWindowRow ? withFallback(selectedWindowRow.stage, '-') : '-';
+    const confidence = (selectedWindowRow && withFallback(selectedWindowRow.confidence, null))
+        || model.summaries.confidence
+        || '-';
 
     let ratioStatus = '데이터 부족';
     if (ratio !== null) {
@@ -1042,11 +1048,7 @@ function renderHeroStory(model) {
             </div>
             <div class="hero-metrics">
                 <div class="hero-metric">
-                    <label>BHI</label>
-                    <strong>${model.summaries.bhi !== null ? formatNumber(model.summaries.bhi * 100, 2) : '-'}</strong>
-                </div>
-                <div class="hero-metric">
-                    <label>BII ${model.filters.windowDays}d</label>
+                    <label>BII ${selectedWindow}d</label>
                     <strong>${model.summaries.selectedWindowBii !== null ? formatNumber(model.summaries.selectedWindowBii, 3) : '-'}</strong>
                 </div>
                 <div class="hero-metric">
@@ -1055,13 +1057,18 @@ function renderHeroStory(model) {
                     <span>${ratioStatus}</span>
                 </div>
                 <div class="hero-metric">
+                    <label>Stage (${selectedWindow}d)</label>
+                    <strong>${escapeHtml(String(selectedStage))}</strong>
+                </div>
+                <div class="hero-metric">
                     <label>Confidence</label>
-                    <strong>${escapeHtml(model.summaries.confidence || '-')}</strong>
+                    <strong>${escapeHtml(String(confidence))}</strong>
                 </div>
             </div>
             <div class="warning-list">
                 ${warnings.length ? warnings.map((w) => `<span class="warning-chip">${escapeHtml(w)}</span>`).join('') : '<span class="warning-chip neutral">경고 없음</span>'}
             </div>
+            <p class="insight-note">인사이트 메인 KPI는 BII 중심으로 표시합니다. BHI는 Brand Fitness 하단 참고값에서만 확인하세요.</p>
         </section>
     `;
 }
@@ -1265,17 +1272,40 @@ function renderBrandFitness(model) {
     const brand = model.brandRow;
     const biiRows = [7, 30, 90, 365].map((window) => model.biiMap.get(window)).filter(Boolean);
 
-    if (!brand && !biiRows.length) {
-        return renderMissingSection('Brand Fitness', 'brand_score.csv 또는 bii_window.csv가 없어 체력 지표를 표시할 수 없습니다.');
+    if (!biiRows.length) {
+        return renderMissingSection('Brand Fitness', 'bii_window.csv 데이터가 없어 체력 지표를 표시할 수 없습니다.');
+    }
+
+    const selectedWindow = toNumber(model.filters.windowDays, 90);
+    const selectedRow = model.biiMap.get(selectedWindow);
+    const row90 = model.biiMap.get(90);
+    const row365 = model.biiMap.get(365);
+    const selectedWindowBii = selectedRow ? toNumber(selectedRow.bii, null) : model.summaries.selectedWindowBii;
+    const bii90Value = row90 ? toNumber(row90.bii, null) : model.summaries.bii90;
+    const bii365Value = row365 ? toNumber(row365.bii, null) : model.summaries.bii365;
+    const stage90 = row90 ? withFallback(row90.stage, '-') : '-';
+    const confidence = (selectedRow && withFallback(selectedRow.confidence, null))
+        || (row90 && withFallback(row90.confidence, null))
+        || (brand && withFallback(brand.Confidence_Index, null))
+        || '-';
+    const ratio = (bii90Value !== null && bii365Value !== null && bii365Value !== 0)
+        ? bii90Value / bii365Value
+        : null;
+
+    let ratioStatus = '데이터 부족';
+    if (ratio !== null) {
+        if (ratio >= 1.15) ratioStatus = '구조적 강화';
+        else if (ratio >= 0.95) ratioStatus = '안정';
+        else if (ratio >= 0.85) ratioStatus = '경고';
+        else ratioStatus = '구조 약화';
     }
 
     const bhiValue = brand ? toNumber(brand.Brand_Health_Index || brand.BHI || brand.brand_health_index || brand.Brand_Health_Score, null) : null;
     const as = brand ? toNumber(brand.AA_Concentration_Index, null) : null;
     const cs = brand ? toNumber(brand.Chain_Balance_Index, null) : null;
-    const confidence = brand ? withFallback(brand.Confidence_Index, '-') : '-';
-    const ratio = (model.summaries.bii365 && model.summaries.bii90)
-        ? model.summaries.bii90 / model.summaries.bii365
-        : null;
+    const bhiReferenceText = brand
+        ? `참고 구조값: BHI ${bhiValue !== null ? formatNumber(bhiValue * 100, 2) : '-'} | AS ${as !== null ? formatNumber(as * 100, 1) : '-'}% | CS ${cs !== null ? formatNumber(cs, 2) : '-'}`
+        : '참고 구조값: brand_score.csv 미업로드';
 
     const rows = biiRows.map((row) => `
         <tr>
@@ -1291,14 +1321,15 @@ function renderBrandFitness(model) {
         <section id="brand-fitness" class="insight-section card animate-fade-in">
             <div class="section-headline">
                 <h2>Brand Fitness</h2>
-                <p>BHI 구조축과 BII 다기간 체력 추적</p>
+                <p>BII 다기간 체력(7/30/90/365)과 90/365 추세를 중심으로 관리</p>
             </div>
             <div class="journey-grid">
-                <div class="journey-kpi"><label>BHI</label><strong>${bhiValue !== null ? formatNumber(bhiValue * 100, 2) : '-'}</strong></div>
-                <div class="journey-kpi"><label>AS</label><strong>${as !== null ? formatNumber(as * 100, 1) : '-'}%</strong></div>
-                <div class="journey-kpi"><label>CS</label><strong>${cs !== null ? formatNumber(cs, 2) : '-'}</strong></div>
+                <div class="journey-kpi"><label>BII ${selectedWindow}d</label><strong>${selectedWindowBii !== null ? formatNumber(selectedWindowBii, 3) : '-'}</strong></div>
+                <div class="journey-kpi"><label>BII 90d</label><strong>${bii90Value !== null ? formatNumber(bii90Value, 3) : '-'}</strong></div>
+                <div class="journey-kpi"><label>BII 365d</label><strong>${bii365Value !== null ? formatNumber(bii365Value, 3) : '-'}</strong></div>
+                <div class="journey-kpi"><label>BII 90/365</label><strong>${ratio !== null ? formatNumber(ratio, 2) : '-'}</strong><span>${ratioStatus}</span></div>
+                <div class="journey-kpi"><label>Stage (90d)</label><strong>${escapeHtml(String(stage90))}</strong></div>
                 <div class="journey-kpi"><label>Confidence</label><strong>${escapeHtml(String(confidence))}</strong></div>
-                <div class="journey-kpi"><label>BII 90/365</label><strong>${ratio !== null ? formatNumber(ratio, 2) : '-'}</strong></div>
             </div>
             <div class="card chart-card"><canvas id="biiChart"></canvas></div>
             <div class="table-container" style="margin-top:1rem;">
@@ -1315,6 +1346,7 @@ function renderBrandFitness(model) {
                     <tbody>${rows}</tbody>
                 </table>
             </div>
+            <p class="insight-note">${escapeHtml(bhiReferenceText)}</p>
         </section>
     `;
 }
