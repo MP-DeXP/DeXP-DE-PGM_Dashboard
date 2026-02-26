@@ -165,6 +165,20 @@ const withFallback = (value, fallback = '-') => {
     return value;
 };
 
+const truncateText = (value, maxLen = 24) => {
+    const text = String(value ?? '');
+    if (text.length <= maxLen) return text;
+    return `${text.slice(0, maxLen - 1)}…`;
+};
+
+const renderProductCell = (name, id, maxLen = 24) => {
+    const full = `${name} (${id})`;
+    return `
+        <span class="name-ellipsis" title="${escapeHtml(full)}">${escapeHtml(truncateText(name, maxLen))}</span>
+        <div class="sub-id">${escapeHtml(id)}</div>
+    `;
+};
+
 function renderSearchUI(viewName, placeholder) {
     const query = AppState.viewState[viewName].searchQuery;
     return `
@@ -1111,7 +1125,7 @@ function renderAAJourney(model) {
             </div>
             <div class="insight-chart-grid">
                 <div class="card chart-card"><canvas id="aaJourneyChart"></canvas></div>
-                <div class="card chart-card"><canvas id="aaTypeChart"></canvas></div>
+                <div class="card chart-card"><canvas id="aaTopProductChart"></canvas></div>
             </div>
             <div class="table-container" style="margin-top:1rem;">
                 <table class="data-table">
@@ -1139,8 +1153,8 @@ function renderAATransition(model) {
 
     const rows = model.topTransitionRows.map((row) => `
         <tr>
-            <td>${escapeHtml(getProductName(row.aa_product_id))}<div class="sub-id">${escapeHtml(row.aa_product_id)}</div></td>
-            <td>${escapeHtml(getProductName(row.pca_product_id))}<div class="sub-id">${escapeHtml(row.pca_product_id)}</div></td>
+            <td>${renderProductCell(getProductName(row.aa_product_id), row.aa_product_id, 30)}</td>
+            <td>${renderProductCell(getProductName(row.pca_product_id), row.pca_product_id, 30)}</td>
             <td>${formatNumber(row.transition_customers)}</td>
             <td>${formatPercent(row.transition_rate, 1)}</td>
             <td>${formatNumber(row.avg_days_to_pca, 1)}일</td>
@@ -1163,6 +1177,7 @@ function renderAATransition(model) {
                     <strong>${formatPercent(model.summaries.pca90, 1)}</strong>
                 </div>
             </div>
+            <p class="chart-hint">차트 라벨은 상품명 기준이며, 마우스를 올리면 전체 상품명과 ID를 확인할 수 있습니다.</p>
             <div class="card chart-card"><canvas id="transitionChart"></canvas></div>
             <div class="table-container" style="margin-top:1rem;">
                 <table class="data-table">
@@ -1192,7 +1207,7 @@ function renderCASection(model) {
         .slice(0, 10)
         .map((row) => `
             <tr>
-                <td>${escapeHtml(getProductName(row.product_id))}<div class="sub-id">${escapeHtml(row.product_id)}</div></td>
+                <td>${renderProductCell(getProductName(row.product_id), row.product_id, 30)}</td>
                 <td>${escapeHtml(withFallback(row.ca_type, 'None'))}</td>
                 <td>${formatPercent(row.attach_rate, 1)}</td>
                 <td>${formatNumber(row.median_cart_size, 2)}</td>
@@ -1205,7 +1220,7 @@ function renderCASection(model) {
         ? `
         <div class="selected-ca-panel">
             <h4>AA 선택 상품 기준 Cart 확장</h4>
-            <p><strong>${escapeHtml(getProductName(model.selectedCa.product_id))}</strong> (${escapeHtml(model.selectedCa.product_id)})</p>
+            <p><strong title="${escapeHtml(getProductName(model.selectedCa.product_id))}">${escapeHtml(truncateText(getProductName(model.selectedCa.product_id), 42))}</strong> (${escapeHtml(model.selectedCa.product_id)})</p>
             <div class="selected-ca-grid">
                 <span>CA Type: ${escapeHtml(withFallback(model.selectedCa.ca_type, 'None'))}</span>
                 <span>Attach Rate: ${formatPercent(model.selectedCa.attach_rate, 1)}</span>
@@ -1224,8 +1239,9 @@ function renderCASection(model) {
             </div>
             <div class="insight-chart-grid">
                 <div class="card chart-card"><canvas id="caTypeChart"></canvas></div>
-                ${selectedPanel}
+                <div class="card chart-card"><canvas id="caTopChart"></canvas></div>
             </div>
+            ${selectedPanel}
             <div class="table-container" style="margin-top:1rem;">
                 <table class="data-table">
                     <thead>
@@ -1448,44 +1464,108 @@ function renderInsightsCharts(model) {
         });
     }
 
-    const typeCanvas = document.getElementById('aaTypeChart');
-    if (typeCanvas && model.aaTypeAgg.length) {
-        AppState.charts.aaType = new Chart(typeCanvas.getContext('2d'), {
+    const aaTopCanvas = document.getElementById('aaTopProductChart');
+    if (aaTopCanvas && model.aaRowsAll.length) {
+        const rows = [...model.aaRowsAll]
+            .sort((a, b) => toNumber(b.cohort_customers, 0) - toNumber(a.cohort_customers, 0))
+            .slice(0, 8)
+            .map((row) => {
+                const name = getProductName(row.aa_product_id);
+                return {
+                    shortLabel: truncateText(name, 18),
+                    fullLabel: `${name} (${row.aa_product_id})`,
+                    cohortCustomers: toNumber(row.cohort_customers, 0)
+                };
+            });
+
+        AppState.charts.aaTopProduct = new Chart(aaTopCanvas.getContext('2d'), {
             type: 'bar',
             data: {
-                labels: model.aaTypeAgg.map((row) => row.aa_type),
+                labels: rows.map((row) => row.shortLabel),
                 datasets: [{
-                    label: '90일 재구매율(%)',
-                    data: model.aaTypeAgg.map((row) => toNumber(row.repeat_90d_rate, 0) * 100),
+                    label: 'AA 유입 고객수',
+                    data: rows.map((row) => row.cohortCustomers),
                     backgroundColor: 'rgba(16,185,129,0.6)',
                     borderColor: 'rgba(16,185,129,1)',
                     borderWidth: 1
                 }]
             },
             options: {
+                indexAxis: 'y',
                 responsive: true,
                 maintainAspectRatio: false,
-                scales: { y: { beginAtZero: true, ticks: { callback: (v) => `${v}%` } } }
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            title: (items) => rows[items[0].dataIndex].fullLabel
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: { precision: 0 }
+                    },
+                    y: {
+                        ticks: {
+                            autoSkip: false
+                        }
+                    }
+                }
             }
         });
     }
 
     const transitionCanvas = document.getElementById('transitionChart');
     if (transitionCanvas && model.topTransitionRows.length) {
-        const rows = model.topTransitionRows.slice(0, 8);
+        const rows = model.topTransitionRows.slice(0, 8).map((row) => {
+            const aaName = getProductName(row.aa_product_id);
+            const pcaName = getProductName(row.pca_product_id);
+            return {
+                row,
+                shortLabel: `${truncateText(aaName, 14)} → ${truncateText(pcaName, 14)}`,
+                fullLabel: `${aaName} (${row.aa_product_id}) → ${pcaName} (${row.pca_product_id})`
+            };
+        });
         AppState.charts.transition = new Chart(transitionCanvas.getContext('2d'), {
             type: 'bar',
             data: {
-                labels: rows.map((row) => `${row.aa_product_id}→${row.pca_product_id}`),
+                labels: rows.map((x) => x.shortLabel),
                 datasets: [{
                     label: '전이 고객수',
-                    data: rows.map((row) => toNumber(row.transition_customers, 0)),
+                    data: rows.map((x) => toNumber(x.row.transition_customers, 0)),
                     backgroundColor: 'rgba(99,102,241,0.6)',
                     borderColor: 'rgba(99,102,241,1)',
                     borderWidth: 1
                 }]
             },
-            options: { responsive: true, maintainAspectRatio: false }
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            title: (items) => rows[items[0].dataIndex].fullLabel
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            autoSkip: false
+                        }
+                    }
+                }
+            }
         });
     }
 
@@ -1502,7 +1582,71 @@ function renderInsightsCharts(model) {
                     backgroundColor: ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#94a3b8']
                 }]
             },
-            options: { responsive: true, maintainAspectRatio: false }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+
+    const caTopCanvas = document.getElementById('caTopChart');
+    if (caTopCanvas && model.caRows.length) {
+        const rows = [...model.caRows]
+            .sort((a, b) => toNumber(b.attach_rate, 0) - toNumber(a.attach_rate, 0))
+            .slice(0, 8)
+            .map((row) => {
+                const name = getProductName(row.product_id);
+                return {
+                    shortLabel: truncateText(name, 18),
+                    fullLabel: `${name} (${row.product_id})`,
+                    attachRate: toNumber(row.attach_rate, 0) * 100
+                };
+            });
+
+        AppState.charts.caTop = new Chart(caTopCanvas.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: rows.map((row) => row.shortLabel),
+                datasets: [{
+                    label: 'Attach Rate(%)',
+                    data: rows.map((row) => row.attachRate),
+                    backgroundColor: 'rgba(236,72,153,0.55)',
+                    borderColor: 'rgba(236,72,153,1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            title: (items) => rows[items[0].dataIndex].fullLabel,
+                            label: (ctx) => `Attach Rate: ${formatNumber(ctx.raw, 1)}%`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: (v) => `${v}%`
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            autoSkip: false
+                        }
+                    }
+                }
+            }
         });
     }
 

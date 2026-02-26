@@ -509,6 +509,27 @@ body {
     scroll-margin-top: 88px;
 }
 
+.insights-page .data-table {
+    min-width: 760px;
+}
+
+.insights-page .data-table th {
+    font-size: 0.8rem;
+    letter-spacing: 0.01em;
+    text-transform: none;
+    padding: 0.9rem 1rem;
+}
+
+.insights-page .data-table td {
+    padding: 0.85rem 1rem;
+    line-height: 1.45;
+    vertical-align: top;
+}
+
+.insights-page .data-table tbody tr:nth-child(even) {
+    background: #fafcff;
+}
+
 .section-headline h2 {
     font-family: var(--font-heading);
     font-size: 1.45rem;
@@ -517,7 +538,8 @@ body {
 
 .section-headline p {
     color: var(--text-muted);
-    font-size: 0.95rem;
+    font-size: 0.98rem;
+    line-height: 1.5;
 }
 
 .hero-metrics {
@@ -674,11 +696,27 @@ body {
     margin-top: 0.15rem;
 }
 
+.name-ellipsis {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-weight: 500;
+}
+
+.chart-hint {
+    margin-top: 0.8rem;
+    color: var(--text-muted);
+    font-size: 0.83rem;
+}
+
 .selected-ca-panel {
     border: 1px solid var(--border-color);
     border-radius: 14px;
     padding: 1rem;
     background: #f8fbff;
+    margin-top: 0.9rem;
 }
 
 .selected-ca-panel h4 {
@@ -689,6 +727,7 @@ body {
 .selected-ca-panel p {
     color: var(--text-main);
     font-size: 0.9rem;
+    line-height: 1.5;
 }
 
 .selected-ca-grid {
