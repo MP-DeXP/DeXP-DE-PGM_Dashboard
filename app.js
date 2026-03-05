@@ -257,7 +257,7 @@ const TERM_LABELS = {
     PCA: '재구매 연결 상품',
     CA: '장바구니 확장 상품',
     BHI: '브랜드 구조 건강도',
-    BII: '브랜드 실전 체력'
+    BII: '브랜드 실전 건강도'
 };
 
 const AA_TYPE_LABELS = {
@@ -294,6 +294,12 @@ const FITNESS_COMPONENT_LABELS = {
     strength: '재구매 강도'
 };
 
+const STRUCTURE_LABELS = {
+    entry: '신규유입 안정성',
+    expansion: '재구매 안정성',
+    valueReadiness: '매출확장 준비도'
+};
+
 const BANNED_UI_TERMS = [
     /\bPGM\b/gi,
     /\bEntry\s*Gravity\b/gi,
@@ -318,7 +324,7 @@ const UI_TERM_REPLACEMENTS = [
     [/CA-Pair/gi, `${TERM_LABELS.CA}-${CA_TYPE_LABELS.PAIR}`],
     [/CA-Set/gi, `${TERM_LABELS.CA}-${CA_TYPE_LABELS.SET}`],
     [/BII\s*90\/365/gi, '90일 대비 연간 흐름'],
-    [/Brand Fitness/gi, '브랜드 체력 현황'],
+    [/Brand Fitness/gi, '브랜드 건강도'],
     [/Action Center/gi, '실행 카드'],
     [/\bBII\b/g, TERM_LABELS.BII],
     [/\bBHI\b/g, TERM_LABELS.BHI],
@@ -327,7 +333,10 @@ const UI_TERM_REPLACEMENTS = [
     [/\bCA\b/g, TERM_LABELS.CA],
     [/\bTransition\b/gi, '전환 흐름'],
     [/\bJourney\b/gi, '고객 흐름'],
-    [/\bFitness\b/gi, '체력 현황'],
+    [/\bFitness\b/gi, '건강도'],
+    [/\bEntry Balance\b/gi, STRUCTURE_LABELS.entry],
+    [/\bExpansion Balance\b/gi, STRUCTURE_LABELS.expansion],
+    [/\bValue Readiness\b/gi, STRUCTURE_LABELS.valueReadiness],
     [/\bEntry\s*Gravity\b/gi, '첫구매 유입'],
     [/\bExpansion\s*Gravity\b/gi, '재구매 연결'],
     [/\bBasket\s*Gravity\b/gi, '장바구니 확장'],
@@ -402,14 +411,33 @@ const truncateText = (value, maxLen = 24) => {
     return `${text.slice(0, maxLen - 1)}…`;
 };
 
-const renderProductCell = (name, id, maxLen = 24) => {
-    const full = `${name} (${id})`;
-    const short = truncateText(name, maxLen);
+const renderProductCell = (name, id, maxLen = 24, options = {}) => {
+    const fullName = String(name ?? '-');
+    const showId = options.showId !== false;
+    const showGroupLabel = options.showGroupLabel !== false;
+    const groupClickable = options.groupClickable !== false;
+    const groupMeta = options.groupMeta || getEntityMeta(id);
+    const isGrouped = Boolean(showGroupLabel && groupMeta && groupMeta.memberCount > 1 && groupMeta.entityId);
+    const groupLabel = isGrouped
+        ? `
+            <button
+                class="group-chip-trigger ${groupClickable ? '' : 'is-static'}"
+                type="button"
+                ${groupClickable ? `onclick="event.stopPropagation();openGroupEditorWizard({focusEntityId:'${escapeJs(groupMeta.entityId)}'})"` : 'disabled'}
+                title="${escapeHtml(groupMeta.entityName || '')}"
+            >
+                그룹 ${formatNumber(groupMeta.memberCount, 0)}개
+            </button>
+        `
+        : '';
     return `
-        <button class="name-trigger" type="button" onclick="showProductNamePopover('${escapeJs(name)}','${escapeJs(id)}')">
-            <span class="name-clamp-2">${escapeHtml(short)}</span>
-        </button>
-        <div class="sub-id">${escapeHtml(id)}</div>
+        <div class="name-inline-wrap">
+            <button class="name-trigger" type="button" onclick="event.stopPropagation();showProductNamePopover('${escapeJs(fullName)}','${escapeJs(id)}')">
+                <span class="name-clamp-2">${escapeHtml(fullName)}</span>
+            </button>
+            ${groupLabel}
+        </div>
+        ${showId && !isGrouped ? `<div class="sub-id">${escapeHtml(id)}</div>` : ''}
     `;
 };
 
@@ -766,6 +794,8 @@ function transformAnchorScoredRows(rows) {
         'p75_retention_days', 'PrimaryAnchorScore'
     ];
 
+    // 그룹핑 시 PGM 점수는 그대로 두지 않고, entity(그룹) 단위로 다시 집계됩니다.
+    // AA/PCA/PrimaryAnchorScore 등 점수형 필드는 아래 weight 기준 가중평균으로 재계산됩니다.
     src.forEach((row) => {
         const id = readProductId(row);
         if (!id) return;
@@ -1711,47 +1741,51 @@ function getQuadrantStatus(entry, expansion, centerEntry, centerExpansion) {
     if (highEntry && highExpansion) {
         return {
             key: 'hero',
-            label: '성장 견인',
+            label: '히어로 상품',
             color: '#3b82f6',
-            summary: '첫구매 유입과 재구매 연결이 모두 좋아요.',
+            summary: '메인 노출을 유지하고, 예산을 우선 배분해요.',
+            guide: '메인 노출을 유지하고, 예산을 우선 배분해요.',
             actions: [
-                '주간 예산과 노출 우선순위를 상단으로 고정하면 좋아요.',
-                '재고와 배송 가용성을 먼저 지켜서 기회를 놓치지 않게 해요.'
+                '히어로 슬롯을 고정해 유입과 재구매 모멘텀을 유지해요.',
+                '재고와 배송 가용성을 우선 보호해 성장 기회를 놓치지 않게 해요.'
             ]
         };
     }
     if (!highEntry && !highExpansion) {
         return {
             key: 'phaseout',
-            label: '개선 필요',
+            label: '정리 검토 구간',
             color: '#ef4444',
-            summary: '첫구매 유입과 재구매 연결이 모두 낮은 상태예요.',
+            summary: '재고/마진 기준으로 축소 또는 교체를 먼저 검토해요.',
+            guide: '재고/마진 기준으로 축소 또는 교체를 먼저 검토해요.',
             actions: [
-                '단독 운영보다 묶음 제안이나 대체 노출 전환을 먼저 검토해요.',
-                '예산과 재고 우선순위를 낮추고 테스트 슬롯으로 운영해요.'
+                '재고·마진 기준으로 유지 여부를 빠르게 판정해요.',
+                '단독 운영보다 대체 상품 테스트 슬롯으로 전환해요.'
             ]
         };
     }
     if (highEntry && !highExpansion) {
         return {
             key: 'entry-only',
-            label: '유입 강점',
+            label: '유입 유도',
             color: '#14b8a6',
-            summary: '첫구매 유입은 좋은데 재구매 연결이 약해요.',
+            summary: '첫 구매 유입은 강하니, 번들로 다음 구매를 연결해요.',
+            guide: '첫 구매 유입은 강하니, 번들로 다음 구매를 연결해요.',
             actions: [
-                '전환 메시지와 추천 슬롯을 재구매 연결 상품 중심으로 재배치해요.',
-                '첫 구매 후 7일 안에 CRM 시퀀스를 집중 운영하면 좋아요.'
+                '번들/세트 제안을 전면에 배치해 재구매 진입 장벽을 낮춰요.',
+                '첫 구매 후 7일 내 리마인드 CRM을 집중 운영해요.'
             ]
         };
     }
     return {
         key: 'expansion-only',
-        label: '연결 강점',
+        label: '재구매 앵커',
         color: '#8b5cf6',
-        summary: '재구매 연결은 좋지만 첫구매 유입 기여가 낮아요.',
+        summary: '재구매 전환은 강하니, 신규 유입 채널을 보강해요.',
+        guide: '재구매 전환은 강하니, 신규 유입 채널을 보강해요.',
         actions: [
-            '첫구매 유입 상품과 함께 노출되도록 묶음 구성을 강화해요.',
-            '리타게팅과 재방문 경로에서 노출 우선순위를 높이면 좋아요.'
+            '신규 유입 채널과 크리에이티브를 확장해 모수부터 키워요.',
+            '첫구매 유입 상품과의 동시 노출 구성을 강화해요.'
         ]
     };
 }
@@ -1830,7 +1864,8 @@ function buildQuadrantModel(rows, selectedId, scaleMode = 'focus') {
             const expansion = toNumber(row.PCA_Score || row.Expansion_Gravity_Score, NaN);
             if (!id || !Number.isFinite(entry) || !Number.isFinite(expansion)) return null;
             const weeklyForecast = Math.max(0, toNumber(row.product_order_cnt_1y, 0) / 52);
-            const memberCount = Math.max(1, toNumber(row.member_count, 1));
+            const entityMeta = getEntityMeta(id);
+            const memberCount = Math.max(1, toNumber(row.member_count, 1), toNumber(entityMeta.memberCount, 1));
             return {
                 id,
                 name: getProductName(id),
@@ -1838,7 +1873,8 @@ function buildQuadrantModel(rows, selectedId, scaleMode = 'focus') {
                 expansion,
                 weeklyForecast,
                 revenue90d: toNumber(row.revenue_90d, 0),
-                memberCount
+                memberCount,
+                groupEntityId: entityMeta.entityId || id
             };
         })
         .filter(Boolean)
@@ -1892,11 +1928,27 @@ function renderQuadrantPanel(model) {
     const entryLevel = getLevelText(selected.entry, model.entryP33, model.entryP66);
     const expansionLevel = getLevelText(selected.expansion, model.expansionP33, model.expansionP66);
     const memberMeta = selected.memberCount > 1 ? `그룹 상품 (${selected.memberCount}개 SKU)` : '단일 상품';
+    const groupedLabel = selected.memberCount > 1
+        ? `
+            <button class="group-chip-trigger" type="button" onclick="event.stopPropagation();openGroupEditorWizard({focusEntityId:'${escapeJs(selected.groupEntityId || selected.id)}'})">
+                그룹 ${formatNumber(selected.memberCount, 0)}개
+            </button>
+        `
+        : '';
     const hasHistory = (AppState.viewState.products.quadrant.history || []).length > 0;
+    const statusLegend = [
+        { key: 'hero', label: '히어로 상품', color: '#3b82f6', guide: '메인 노출을 유지하고, 예산을 우선 배분해요.' },
+        { key: 'phaseout', label: '정리 검토 구간', color: '#ef4444', guide: '재고/마진 기준으로 축소 또는 교체를 먼저 검토해요.' },
+        { key: 'entry-only', label: '유입 유도', color: '#14b8a6', guide: '첫 구매 유입은 강하니, 번들로 다음 구매를 연결해요.' },
+        { key: 'expansion-only', label: '재구매 앵커', color: '#8b5cf6', guide: '재구매 전환은 강하니, 신규 유입 채널을 보강해요.' }
+    ];
     return `
         <div class="pgm-side-summary">
             <span class="pgm-badge" style="background:${status.color}1f; color:${status.color}; border-color:${status.color}55;">${status.label}</span>
-            <h3 title="${escapeHtml(selected.name)}">${escapeHtml(truncateText(selected.name, 46))}</h3>
+            <div class="pgm-selected-head">
+                <h3 title="${escapeHtml(selected.name)}">${escapeHtml(selected.name)}</h3>
+                ${groupedLabel}
+            </div>
             <p class="pgm-summary">${escapeHtml(status.summary)}</p>
             <div class="pgm-metrics">
                 <div><label>첫구매 유입 점수</label><strong>${formatNumber(selected.entry, 3)}</strong><span>${entryLevel}</span></div>
@@ -1909,6 +1961,22 @@ function renderQuadrantPanel(model) {
                     <li>${escapeHtml(status.actions[0])}</li>
                     <li>${escapeHtml(status.actions[1])}</li>
                 </ul>
+            </div>
+            <div class="pgm-status-guide">
+                <h4>상태 해석 가이드</h4>
+                <p class="pgm-status-current" style="border-color:${status.color}66; background:${status.color}12;">
+                    <strong style="color:${status.color};">${status.label}</strong>
+                    <span>${escapeHtml(status.guide || status.summary)}</span>
+                </p>
+                <div class="pgm-status-legend">
+                    ${statusLegend.map((item) => `
+                        <div class="pgm-status-item ${item.key === status.key ? 'is-active' : ''}" style="border-color:${item.color}44;">
+                            <span class="dot" style="background:${item.color};"></span>
+                            <strong>${item.label}</strong>
+                            <span>${item.guide}</span>
+                        </div>
+                    `).join('')}
+                </div>
             </div>
             <div class="pgm-links">
                 <a class="btn-primary" href="transitions.html?focus=${encodeURIComponent(selected.id)}">전환 흐름 보기</a>
@@ -1926,7 +1994,7 @@ function renderProductQuadrant(model) {
             <div class="pgm-quadrant-head">
                 <div>
                     <h3>상품 상태 4분면</h3>
-                    <p>첫구매 유입 점수와 재구매 연결 점수를 한눈에 비교해요.</p>
+                    <p>첫구매 유입과 재구매 연결 상태를 한눈에 비교해요.</p>
                 </div>
                 <div class="quadrant-scale-toggle">
                     <button class="btn-primary ${scaleMode === 'focus' ? 'is-active' : ''}" type="button" onclick="setQuadrantScaleMode('focus')">집중뷰</button>
@@ -2000,7 +2068,8 @@ function renderQuadrantChart(model) {
                     callbacks: {
                         title: (items) => {
                             const item = items[0]?.raw || {};
-                            return `${item.productName} (${item.productId})`;
+                            const groupLabel = item.memberCount > 1 ? ` · 그룹 ${formatNumber(item.memberCount, 0)}개` : '';
+                            return `${item.productName}${groupLabel}`;
                         },
                         label: (ctx2) => {
                             const raw = ctx2.raw || {};
@@ -2028,18 +2097,95 @@ function renderQuadrantChart(model) {
                 x: {
                     min: range.xMin,
                     max: range.xMax,
-                    title: { display: true, text: '첫구매 유입 점수' },
-                    grid: { color: 'rgba(148,163,184,0.25)' }
+                    title: { display: true, text: '첫구매 유입' },
+                    ticks: { display: false },
+                    grid: { display: false, drawBorder: false }
                 },
                 y: {
                     min: range.yMin,
                     max: range.yMax,
-                    title: { display: true, text: '재구매 연결 점수' },
-                    grid: { color: 'rgba(148,163,184,0.25)' }
+                    title: { display: true, text: '재구매 연결' },
+                    ticks: { display: false },
+                    grid: { display: false, drawBorder: false }
                 }
             }
         },
         plugins: [{
+            id: 'quadrant-background',
+            beforeDraw: (chart) => {
+                const { ctx: chartCtx, chartArea, scales } = chart;
+                if (!chartArea) return;
+                const xCenter = scales.x.getPixelForValue(centerX);
+                const yCenter = scales.y.getPixelForValue(centerY);
+                const labels = [
+                    { text: '재구매 앵커', x: chartArea.left + 12, y: chartArea.top + 10, align: 'left' },
+                    { text: '히어로 상품', x: chartArea.right - 12, y: chartArea.top + 10, align: 'right' },
+                    { text: '정리 검토 구간', x: chartArea.left + 12, y: chartArea.bottom - 10, align: 'left' },
+                    { text: '유입 유도', x: chartArea.right - 12, y: chartArea.bottom - 10, align: 'right' }
+                ];
+                chartCtx.save();
+                chartCtx.fillStyle = 'rgba(139, 92, 246, 0.2)';
+                chartCtx.fillRect(chartArea.left, chartArea.top, Math.max(0, xCenter - chartArea.left), Math.max(0, yCenter - chartArea.top));
+                chartCtx.fillStyle = 'rgba(59, 130, 246, 0.2)';
+                chartCtx.fillRect(xCenter, chartArea.top, Math.max(0, chartArea.right - xCenter), Math.max(0, yCenter - chartArea.top));
+                chartCtx.fillStyle = 'rgba(239, 68, 68, 0.2)';
+                chartCtx.fillRect(chartArea.left, yCenter, Math.max(0, xCenter - chartArea.left), Math.max(0, chartArea.bottom - yCenter));
+                chartCtx.fillStyle = 'rgba(20, 184, 166, 0.2)';
+                chartCtx.fillRect(xCenter, yCenter, Math.max(0, chartArea.right - xCenter), Math.max(0, chartArea.bottom - yCenter));
+                chartCtx.font = '700 10px Inter, sans-serif';
+                chartCtx.fillStyle = '#334155';
+                chartCtx.textBaseline = 'middle';
+                labels.forEach((label) => {
+                    chartCtx.textAlign = label.align;
+                    chartCtx.fillText(label.text, label.x, label.y);
+                });
+                chartCtx.restore();
+            }
+        }, {
+            id: 'selected-pulse',
+            afterInit: (chart) => {
+                if (typeof requestAnimationFrame !== 'function') return;
+                const animatePulse = () => {
+                    if (!chart || chart._destroyed || !chart.canvas) return;
+                    chart.$selectedPulsePhase = ((chart.$selectedPulsePhase || 0) + 0.02) % 1;
+                    chart.draw();
+                    chart.$selectedPulseRaf = requestAnimationFrame(animatePulse);
+                };
+                chart.$selectedPulsePhase = 0;
+                chart.$selectedPulseRaf = requestAnimationFrame(animatePulse);
+            },
+            afterDatasetsDraw: (chart) => {
+                const dataset = chart.data?.datasets?.[0];
+                const meta = chart.getDatasetMeta(0);
+                if (!dataset || !meta) return;
+                const selectedIndex = (dataset.data || []).findIndex((point) => point && point.isSelected);
+                if (selectedIndex < 0) return;
+                const element = meta.data[selectedIndex];
+                if (!element) return;
+                const point = dataset.data[selectedIndex] || {};
+                const props = element.getProps(['x', 'y', 'options'], true);
+                const baseRadius = toNumber(props.options?.radius, 8);
+                const phase = chart.$selectedPulsePhase || 0;
+                const pulseRadius = baseRadius + 4 + (phase * 12);
+                const alpha = Math.max(0.08, 0.45 * (1 - phase));
+                const color = point.status?.color || '#3b82f6';
+                const { ctx: chartCtx } = chart;
+                chartCtx.save();
+                chartCtx.beginPath();
+                chartCtx.arc(props.x, props.y, pulseRadius, 0, Math.PI * 2);
+                chartCtx.strokeStyle = color;
+                chartCtx.globalAlpha = alpha;
+                chartCtx.lineWidth = 2;
+                chartCtx.stroke();
+                chartCtx.restore();
+            },
+            afterDestroy: (chart) => {
+                if (chart.$selectedPulseRaf && typeof cancelAnimationFrame === 'function') {
+                    cancelAnimationFrame(chart.$selectedPulseRaf);
+                    chart.$selectedPulseRaf = null;
+                }
+            }
+        }, {
             id: 'center-lines',
             afterDraw: (chart) => {
                 const { ctx: chartCtx, chartArea, scales } = chart;
@@ -2091,6 +2237,17 @@ function ensureGroupEditorState() {
     if (!Array.isArray(state.draftOverrides)) {
         state.draftOverrides = sanitizeProductGroupMapRows(AppState.rawData.productGroupMap || []);
     }
+    if (!Number.isInteger(state.wizardStep) || state.wizardStep < 1 || state.wizardStep > 3) state.wizardStep = 1;
+    if (!['create', 'move', 'ungroup', 'rename'].includes(state.wizardAction)) state.wizardAction = 'create';
+    if (typeof state.focusEntityId !== 'string') state.focusEntityId = '';
+    if (!state.wizardPayload || typeof state.wizardPayload !== 'object') state.wizardPayload = {};
+    if (typeof state.wizardPayload.groupName !== 'string') state.wizardPayload.groupName = '';
+    if (typeof state.wizardPayload.targetGroupId !== 'string') state.wizardPayload.targetGroupId = '';
+    if (typeof state.wizardPayload.targetGroupName !== 'string') state.wizardPayload.targetGroupName = '';
+    if (typeof state.wizardPayload.renameGroupName !== 'string') state.wizardPayload.renameGroupName = '';
+    if (typeof state.wizardPayload.keepSelection !== 'boolean') state.wizardPayload.keepSelection = true;
+    if (typeof state.isQueryComposing !== 'boolean') state.isQueryComposing = false;
+    if (typeof state.lastActionSummary !== 'string') state.lastActionSummary = '';
     return state;
 }
 
@@ -2148,7 +2305,7 @@ function buildGroupEditorRows(state) {
     });
 
     const query = String(state.query || '').trim().toLowerCase();
-    const filtered = !query ? rows : rows.filter((row) => {
+    let filtered = !query ? rows : rows.filter((row) => {
         const members = previewGrouping.entityIdToMembers.get(row.entityId) || [row.productId];
         return [
             row.productId,
@@ -2161,6 +2318,9 @@ function buildGroupEditorRows(state) {
         ].some((value) => String(value || '').toLowerCase().includes(query));
     });
 
+    const focusEntityId = String(state.focusEntityId || '').trim();
+    if (focusEntityId) filtered = filtered.filter((row) => row.entityId === focusEntityId);
+
     filtered.sort((a, b) => {
         const aGrouped = a.entityId !== a.productId ? 0 : 1;
         const bGrouped = b.entityId !== b.productId ? 0 : 1;
@@ -2172,7 +2332,8 @@ function buildGroupEditorRows(state) {
         rows: filtered,
         totalRows: rows,
         previewGrouping,
-        auto
+        auto,
+        activeFocusEntityId: focusEntityId
     };
 }
 
@@ -2204,20 +2365,124 @@ function getGroupedEntitiesForEditor(previewGrouping) {
     return entities;
 }
 
-function renderGroupEditorModal() {
-    const modal = document.getElementById('group-editor-modal');
-    if (!modal) return;
-    const state = ensureGroupEditorState();
-    const selectedIds = new Set(getSelectedGroupEditorIds(state));
-    const { rows, totalRows, previewGrouping, auto } = buildGroupEditorRows(state);
-    const groupedEntities = getGroupedEntitiesForEditor(previewGrouping);
-    const manualCount = (state.draftOverrides || []).filter((row) => row.status === 'grouped').length;
-    const ungroupedCount = (state.draftOverrides || []).filter((row) => row.status === 'ungrouped').length;
-    const invalidCount = previewGrouping?.stats?.invalidOverrideCount || 0;
-    const allFilteredSelected = rows.length > 0 && rows.every((row) => selectedIds.has(row.productId));
+function resolveGroupRenameTarget(previewGrouping, selectedIds) {
+    const groupIds = new Set();
+    selectedIds.forEach((productId) => {
+        const entityId = previewGrouping.idToEntityId.get(productId) || productId;
+        const members = previewGrouping.entityIdToMembers.get(entityId) || [];
+        if (members.length > 1) groupIds.add(entityId);
+    });
+    if (groupIds.size !== 1) {
+        return {
+            error: '같은 그룹에 속한 상품을 선택해야 그룹명을 바꿀 수 있어요.'
+        };
+    }
+    const groupId = Array.from(groupIds)[0];
+    const members = previewGrouping.entityIdToMembers.get(groupId) || [];
+    const currentName = previewGrouping.entityIdToName.get(groupId) || groupId;
+    return {
+        groupId,
+        members,
+        currentName
+    };
+}
 
-    const tableRows = rows.slice(0, 600).map((row) => {
-        const checked = selectedIds.has(row.productId) ? 'checked' : '';
+function buildWizardPlan(state, previewGrouping, groupedEntities) {
+    const selectedIds = getSelectedGroupEditorIds(state);
+    if (!selectedIds.length) {
+        return { valid: false, reason: '먼저 대상 상품을 선택하세요.' };
+    }
+    const action = state.wizardAction || 'create';
+    const payload = state.wizardPayload || {};
+
+    if (action === 'create') {
+        const groupName = normalizeGroupName(payload.groupName || '');
+        if (!groupName) {
+            return { valid: false, reason: '새 그룹명을 입력하세요.' };
+        }
+        const sortedIds = [...selectedIds].sort();
+        const groupId = buildDeterministicGroupId(`${groupName}|${sortedIds.join('|')}`);
+        return {
+            valid: true,
+            action,
+            actionLabel: '새 그룹 생성',
+            updates: sortedIds.map((productId) => buildManualGroupedRow(productId, groupId, groupName, 'manual')),
+            summary: [
+                `대상 상품: ${formatNumber(sortedIds.length)}개`,
+                `생성 그룹명: ${groupName}`,
+                `생성 그룹 ID: ${groupId}`
+            ],
+            nextFocusEntityId: groupId
+        };
+    }
+
+    if (action === 'move') {
+        const targetGroupId = String(payload.targetGroupId || '').trim();
+        const targetGroup = groupedEntities.find((group) => group.groupId === targetGroupId);
+        if (!targetGroup) {
+            return { valid: false, reason: '이동할 기존 그룹을 선택하세요.' };
+        }
+        return {
+            valid: true,
+            action,
+            actionLabel: '기존 그룹으로 이동',
+            updates: selectedIds.map((productId) => buildManualGroupedRow(productId, targetGroup.groupId, targetGroup.groupName, 'manual')),
+            summary: [
+                `대상 상품: ${formatNumber(selectedIds.length)}개`,
+                `이동 그룹명: ${targetGroup.groupName}`,
+                `이동 그룹 ID: ${targetGroup.groupId}`
+            ],
+            nextFocusEntityId: targetGroup.groupId
+        };
+    }
+
+    if (action === 'ungroup') {
+        return {
+            valid: true,
+            action,
+            actionLabel: '그룹 해제',
+            updates: selectedIds.map((productId) => ({
+                product_id: productId,
+                status: 'ungrouped',
+                group_id: '',
+                group_name: '',
+                rule: 'manual',
+                updated_at: nowIso()
+            })),
+            summary: [
+                `대상 상품: ${formatNumber(selectedIds.length)}개`,
+                '선택한 상품을 그룹에서 해제해요.'
+            ],
+            nextFocusEntityId: ''
+        };
+    }
+
+    const renameTarget = resolveGroupRenameTarget(previewGrouping, selectedIds);
+    if (renameTarget.error) {
+        return { valid: false, reason: renameTarget.error };
+    }
+    const nextName = normalizeGroupName(payload.renameGroupName || '');
+    if (!nextName) {
+        return { valid: false, reason: '변경할 그룹명을 입력하세요.' };
+    }
+    return {
+        valid: true,
+        action,
+        actionLabel: '그룹명 변경',
+        updates: renameTarget.members.map((productId) => buildManualGroupedRow(productId, renameTarget.groupId, nextName, 'manual')),
+        summary: [
+            `대상 그룹 ID: ${renameTarget.groupId}`,
+            `변경 전 그룹명: ${renameTarget.currentName}`,
+            `변경 후 그룹명: ${nextName}`,
+            `적용 상품 수: ${formatNumber(renameTarget.members.length)}개`
+        ],
+        nextFocusEntityId: renameTarget.groupId
+    };
+}
+
+function renderGroupEditorStep1TableRows(rows, selectedIdsSet) {
+    return (rows || []).slice(0, 600).map((row) => {
+        const checked = selectedIdsSet.has(row.productId) ? 'checked' : '';
         const groupText = row.groupId
             ? `${row.groupName || row.groupId} (${row.groupId})`
             : '-';
@@ -2232,7 +2497,7 @@ function renderGroupEditorModal() {
                     <div class="sub">${escapeHtml(skuHint)}</div>
                 </td>
                 <td>
-                    <div class="name" title="${escapeHtml(row.rawName)}">${escapeHtml(truncateText(row.rawName, 42))}</div>
+                    <div class="name" title="${escapeHtml(row.rawName)}">${escapeHtml(row.rawName)}</div>
                     <div class="sub">${escapeHtml(row.normName || '-')}</div>
                 </td>
                 <td>
@@ -2243,11 +2508,243 @@ function renderGroupEditorModal() {
             </tr>
         `;
     }).join('');
+}
+
+function refreshGroupEditorStep1Results(state) {
+    const modal = document.getElementById('group-editor-modal');
+    if (!modal) return;
+    if ((state.wizardStep || 1) !== 1) return;
+
+    let context = buildGroupEditorRows(state);
+    if (context.activeFocusEntityId && !context.totalRows.some((row) => row.entityId === context.activeFocusEntityId)) {
+        state.focusEntityId = '';
+        context = buildGroupEditorRows(state);
+    }
+    const selectedIdsSet = new Set(getSelectedGroupEditorIds(state));
+    const allFilteredSelected = context.rows.length > 0 && context.rows.every((row) => selectedIdsSet.has(row.productId));
+
+    const metaEl = modal.querySelector('#group-editor-meta');
+    if (metaEl) {
+        metaEl.textContent = `표시 ${formatNumber(context.rows.length)} / 전체 ${formatNumber(context.totalRows.length)} · 선택 ${formatNumber(selectedIdsSet.size)}`;
+    }
+
+    const tbody = modal.querySelector('#group-editor-table-body');
+    if (tbody) {
+        const rowsHtml = renderGroupEditorStep1TableRows(context.rows, selectedIdsSet);
+        tbody.innerHTML = rowsHtml || '<tr><td colspan="6" style="text-align:center;color:var(--text-muted)">검색 결과가 없습니다.</td></tr>';
+    }
+
+    const selectAll = modal.querySelector('#group-editor-select-all');
+    if (selectAll) selectAll.checked = allFilteredSelected;
+}
+
+function renderGroupWizardStep(state, context) {
+    const selectedIds = getSelectedGroupEditorIds(state);
+    const selectedIdsSet = context.selectedIdsSet;
+    const allFilteredSelected = context.rows.length > 0 && context.rows.every((row) => selectedIdsSet.has(row.productId));
+    const step = state.wizardStep;
+    const action = state.wizardAction || 'create';
+    const payload = state.wizardPayload || {};
+    const focusInfo = context.activeFocusEntityId
+        ? {
+            name: context.previewGrouping.entityIdToName.get(context.activeFocusEntityId) || context.activeFocusEntityId,
+            count: (context.previewGrouping.entityIdToMembers.get(context.activeFocusEntityId) || []).length
+        }
+        : null;
+
+    const stepHeader = `
+        <div class="group-wizard-steps">
+            <button class="group-step ${step === 1 ? 'active' : ''}" type="button" onclick="setGroupWizardStep(1)">1. 대상 선택</button>
+            <button class="group-step ${step === 2 ? 'active' : ''}" type="button" onclick="setGroupWizardStep(2)">2. 작업 선택</button>
+            <button class="group-step ${step === 3 ? 'active' : ''}" type="button" onclick="setGroupWizardStep(3)">3. 검토/저장</button>
+        </div>
+    `;
+
+    if (step === 1) {
+        const tableRows = renderGroupEditorStep1TableRows(context.rows, selectedIdsSet);
+        return `
+            ${stepHeader}
+            <div class="pgm-group-toolbar">
+                <div class="search-wrapper">
+                    <i class="ph ph-magnifying-glass"></i>
+                    <input
+                        id="group-editor-query-input"
+                        type="text"
+                        class="search-input"
+                        placeholder="상품ID / 상품명 / 그룹명 검색"
+                        value="${escapeHtml(state.query || '')}"
+                        oncompositionstart="setGroupEditorQueryComposing(true)"
+                        oncompositionend="handleGroupEditorQueryCompositionEnd(this)"
+                        oninput="updateGroupEditorQuery(this.value)"
+                    >
+                </div>
+                <div class="pgm-group-meta" id="group-editor-meta">표시 ${formatNumber(context.rows.length)} / 전체 ${formatNumber(context.totalRows.length)} · 선택 ${formatNumber(selectedIds.length)}</div>
+            </div>
+            ${focusInfo ? `
+                <div class="group-focus-banner">
+                    <span>현재 그룹 보기: ${escapeHtml(focusInfo.name)} · ${formatNumber(focusInfo.count)}개 SKU</span>
+                    <button class="btn-primary" type="button" onclick="clearGroupEditorFocus()">전체 보기</button>
+                </div>
+            ` : ''}
+            <label class="group-keep-selection">
+                <input
+                    type="checkbox"
+                    ${payload.keepSelection ? 'checked' : ''}
+                    onchange="updateGroupWizardPayload('keepSelection', this.checked ? 'true' : 'false')"
+                >
+                다음 단계에서도 현재 선택을 유지해요.
+            </label>
+            <div class="table-container group-editor-table-wrap">
+                <table class="data-table group-editor-table">
+                    <thead>
+                        <tr>
+                            <th><input id="group-editor-select-all" type="checkbox" ${allFilteredSelected ? 'checked' : ''} onchange="toggleGroupEditorSelectAll(this.checked)"></th>
+                            <th>상품 ID</th>
+                            <th>상품명</th>
+                            <th>적용 상태</th>
+                            <th>현재 그룹</th>
+                            <th>규칙</th>
+                        </tr>
+                    </thead>
+                    <tbody id="group-editor-table-body">${tableRows || '<tr><td colspan="6" style="text-align:center;color:var(--text-muted)">검색 결과가 없습니다.</td></tr>'}</tbody>
+                </table>
+            </div>
+            ${context.groupedEntities.length ? `
+                <div class="pgm-group-entity-list">
+                    <h4>현재 그룹 목록</h4>
+                    <div class="group-pills">
+                        ${context.groupedEntities.slice(0, 24).map((group) => `
+                            <button class="group-pill" type="button" title="${escapeHtml(group.groupId)}" onclick="openGroupEditorWizard({focusEntityId:'${escapeJs(group.groupId)}'})">
+                                ${escapeHtml(group.groupName)} · ${formatNumber(group.memberCount)}개
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
+            <div class="group-wizard-nav">
+                <span class="chart-hint">대상 상품을 선택한 뒤 다음 단계에서 작업을 고르세요.</span>
+                <button class="btn-primary" type="button" onclick="setGroupWizardStep(2)">다음 단계</button>
+            </div>
+        `;
+    }
+
+    if (step === 2) {
+        const planPreview = buildWizardPlan(state, context.previewGrouping, context.groupedEntities);
+        const renameTarget = resolveGroupRenameTarget(context.previewGrouping, selectedIds);
+        const selectedPreview = selectedIds.slice(0, 6).map((id) => getProductName(id)).join(', ');
+        return `
+            ${stepHeader}
+            <div class="group-selected-preview">
+                <strong>선택 상품 ${formatNumber(selectedIds.length)}개</strong>
+                <span>${escapeHtml(selectedPreview || '-')}</span>
+            </div>
+            <div class="group-action-grid">
+                ${[
+                    ['create', '새 그룹 생성', '선택 상품으로 새 그룹을 만들어요.'],
+                    ['move', '기존 그룹으로 이동', '이미 있는 그룹으로 이동해요.'],
+                    ['ungroup', '그룹 해제', '선택 상품을 그룹에서 해제해요.'],
+                    ['rename', '그룹명 변경', '같은 그룹을 선택한 경우 이름만 바꿔요.']
+                ].map(([key, label, desc]) => `
+                    <button
+                        class="group-action-card ${action === key ? 'active' : ''}"
+                        type="button"
+                        onclick="setGroupWizardAction('${key}')"
+                    >
+                        <strong>${label}</strong>
+                        <span>${desc}</span>
+                    </button>
+                `).join('')}
+            </div>
+            <div class="group-action-form">
+                ${action === 'create' ? `
+                    <label>
+                        새 그룹명
+                        <input
+                            type="text"
+                            value="${escapeHtml(payload.groupName || '')}"
+                            placeholder="예: 에센스 라인"
+                            oninput="updateGroupWizardPayload('groupName', this.value)"
+                        >
+                    </label>
+                ` : ''}
+                ${action === 'move' ? `
+                    <label>
+                        이동할 기존 그룹
+                        <select onchange="updateGroupWizardPayload('targetGroupId', this.value)">
+                            <option value="">그룹을 선택하세요</option>
+                            ${context.groupedEntities.map((group) => `
+                                <option value="${escapeHtml(group.groupId)}" ${payload.targetGroupId === group.groupId ? 'selected' : ''}>
+                                    ${escapeHtml(group.groupName)} (${escapeHtml(group.groupId)}) · ${formatNumber(group.memberCount)}개
+                                </option>
+                            `).join('')}
+                        </select>
+                    </label>
+                ` : ''}
+                ${action === 'rename' ? `
+                    <div class="group-rename-hint">
+                        <span>대상 그룹: ${renameTarget.error ? '-' : escapeHtml(renameTarget.currentName)}</span>
+                        <span>대상 그룹 ID: ${renameTarget.error ? '-' : escapeHtml(renameTarget.groupId)}</span>
+                    </div>
+                    <label>
+                        변경할 그룹명
+                        <input
+                            type="text"
+                            value="${escapeHtml(payload.renameGroupName || '')}"
+                            placeholder="새 그룹명"
+                            oninput="updateGroupWizardPayload('renameGroupName', this.value)"
+                        >
+                    </label>
+                ` : ''}
+                ${planPreview.valid ? '' : `<p class="group-plan-warning">${escapeHtml(planPreview.reason || '')}</p>`}
+            </div>
+            <div class="group-wizard-nav">
+                <button class="btn-primary" type="button" onclick="setGroupWizardStep(1)">이전 단계</button>
+                <button class="btn-primary" type="button" onclick="setGroupWizardStep(3)">다음 단계</button>
+            </div>
+        `;
+    }
+
+    const plan = buildWizardPlan(state, context.previewGrouping, context.groupedEntities);
+    return `
+        ${stepHeader}
+        <div class="group-review-card ${plan.valid ? '' : 'is-invalid'}">
+            <h4>변경안 검토</h4>
+            ${plan.valid ? `
+                <p><strong>작업:</strong> ${escapeHtml(plan.actionLabel)}</p>
+                <ul>
+                    ${plan.summary.map((line) => `<li>${escapeHtml(line)}</li>`).join('')}
+                </ul>
+            ` : `
+                <p>${escapeHtml(plan.reason || '검토할 변경안이 없습니다.')}</p>
+            `}
+        </div>
+        ${state.lastActionSummary ? `<p class="chart-hint">${escapeHtml(state.lastActionSummary)}</p>` : ''}
+        <div class="group-wizard-nav">
+            <button class="btn-primary" type="button" onclick="setGroupWizardStep(2)">이전 단계</button>
+            <button class="btn-primary" type="button" onclick="applyGroupWizardDraft()" ${plan.valid ? '' : 'disabled'}>변경안 적용</button>
+        </div>
+    `;
+}
+
+function renderGroupEditorModal() {
+    const modal = document.getElementById('group-editor-modal');
+    if (!modal) return;
+    const state = ensureGroupEditorState();
+    let { rows, totalRows, previewGrouping, auto, activeFocusEntityId } = buildGroupEditorRows(state);
+    if (activeFocusEntityId && !totalRows.some((row) => row.entityId === activeFocusEntityId)) {
+        state.focusEntityId = '';
+        ({ rows, totalRows, previewGrouping, auto, activeFocusEntityId } = buildGroupEditorRows(state));
+    }
+    const selectedIds = new Set(getSelectedGroupEditorIds(state));
+    const groupedEntities = getGroupedEntitiesForEditor(previewGrouping);
+    const manualCount = (state.draftOverrides || []).filter((row) => row.status === 'grouped').length;
+    const ungroupedCount = (state.draftOverrides || []).filter((row) => row.status === 'ungrouped').length;
+    const invalidCount = previewGrouping?.stats?.invalidOverrideCount || 0;
 
     modal.innerHTML = `
         <div class="modal-card pgm-modal pgm-group-modal">
             <div class="modal-header">
-                <h3>상품 그룹 편집</h3>
+                <h3>상품 그룹 조회/편집 마법사</h3>
                 <button class="modal-close" type="button" onclick="closeGroupEditorModal()">&times;</button>
             </div>
             <div class="modal-body">
@@ -2257,54 +2754,22 @@ function renderGroupEditorModal() {
                     <span class="chip">수동 해제 ${formatNumber(ungroupedCount)}건</span>
                     ${invalidCount > 0 ? `<span class="chip warning">무효 매핑 ${formatNumber(invalidCount)}건</span>` : ''}
                 </div>
-                <div class="pgm-group-toolbar">
-                    <div class="search-wrapper">
-                        <i class="ph ph-magnifying-glass"></i>
-                        <input
-                            type="text"
-                            class="search-input"
-                            placeholder="상품ID / 상품명 / 그룹명 검색"
-                            value="${escapeHtml(state.query || '')}"
-                            oninput="updateGroupEditorQuery(this.value)"
-                        >
-                    </div>
-                    <div class="pgm-group-meta">표시 ${formatNumber(rows.length)} / 전체 ${formatNumber(totalRows.length)} · 선택 ${formatNumber(selectedIds.size)}</div>
-                </div>
                 <div class="pgm-group-actions">
-                    <button class="btn-primary" type="button" onclick="groupEditorCreateGroup()">선택 묶기(새 그룹)</button>
-                    <button class="btn-primary" type="button" onclick="groupEditorMoveGroup()">선택 그룹 변경</button>
-                    <button class="btn-primary" type="button" onclick="groupEditorUngroup()">선택 그룹 해제</button>
-                    <button class="btn-primary" type="button" onclick="groupEditorRenameGroup()">그룹명 변경</button>
                     <button class="btn-primary" type="button" onclick="triggerGroupMapImport()">CSV 불러오기</button>
                     <button class="btn-primary" type="button" onclick="exportGroupMapCsv()">CSV 내보내기</button>
                     <input id="group-map-import-input" type="file" accept=".csv" style="display:none" onchange="importGroupMapCsv(this.files)">
                 </div>
-                <div class="table-container group-editor-table-wrap">
-                    <table class="data-table group-editor-table">
-                        <thead>
-                            <tr>
-                                <th><input type="checkbox" ${allFilteredSelected ? 'checked' : ''} onchange="toggleGroupEditorSelectAll(this.checked)"></th>
-                                <th>상품 ID</th>
-                                <th>상품명</th>
-                                <th>적용 상태</th>
-                                <th>현재 그룹</th>
-                                <th>규칙</th>
-                            </tr>
-                        </thead>
-                        <tbody>${tableRows || '<tr><td colspan="6" style="text-align:center;color:var(--text-muted)">검색 결과가 없습니다.</td></tr>'}</tbody>
-                    </table>
+                <div class="group-wizard-body">
+                    ${renderGroupWizardStep(state, {
+                        rows,
+                        totalRows,
+                        previewGrouping,
+                        groupedEntities,
+                        selectedIdsSet: selectedIds,
+                        activeFocusEntityId
+                    })}
                 </div>
                 <p class="chart-hint">그룹 지정은 분석용 논리 통합입니다. 원본 상품ID는 유지되며, 저장 후 Products/Transitions/Cart/Insights 집계에 즉시 반영됩니다.</p>
-                ${groupedEntities.length ? `
-                    <div class="pgm-group-entity-list">
-                        <h4>현재 그룹 목록</h4>
-                        <div class="group-pills">
-                            ${groupedEntities.slice(0, 24).map((group) => `
-                                <span class="group-pill" title="${escapeHtml(group.groupId)}">${escapeHtml(group.groupName)} · ${formatNumber(group.memberCount)}개</span>
-                            `).join('')}
-                        </div>
-                    </div>
-                ` : ''}
             </div>
             <div class="pgm-group-footer">
                 <button class="btn-primary" type="button" onclick="closeGroupEditorModal()">닫기</button>
@@ -2332,13 +2797,49 @@ function buildManualGroupedRow(productId, groupId, groupName, rule = 'manual') {
 }
 
 window.showGroupEditorModal = () => {
+    window.openGroupEditorWizard({ resetDraft: true });
+};
+
+window.openGroupEditorWizard = (params = {}) => {
+    const options = params && typeof params === 'object' ? params : {};
+    const state = ensureGroupEditorState();
+    const applyFocusSelection = () => {
+        const focusEntityId = String(state.focusEntityId || '').trim();
+        if (!focusEntityId) return;
+        const preview = buildGroupingState(AppState.rawData.anchorScored || [], state.draftOverrides || []);
+        const members = preview.entityIdToMembers.get(focusEntityId) || [];
+        if (members.length) state.selectedIds = [...members];
+    };
     if (document.getElementById('group-editor-modal')) {
+        if (options.resetDraft) {
+            state.draftOverrides = sanitizeProductGroupMapRows(AppState.rawData.productGroupMap || []);
+            state.selectedIds = [];
+            state.query = '';
+            if (typeof options.focusEntityId !== 'string') state.focusEntityId = '';
+        }
+        if (typeof options.focusEntityId === 'string') {
+            state.focusEntityId = options.focusEntityId;
+            state.query = '';
+        }
+        applyFocusSelection();
+        state.wizardStep = 1;
+        state.lastActionSummary = '';
         renderGroupEditorModal();
         return;
     }
-    const state = ensureGroupEditorState();
-    state.draftOverrides = sanitizeProductGroupMapRows(AppState.rawData.productGroupMap || []);
-    state.selectedIds = [];
+    if (options.resetDraft) {
+        state.draftOverrides = sanitizeProductGroupMapRows(AppState.rawData.productGroupMap || []);
+        state.selectedIds = [];
+        state.query = '';
+        if (typeof options.focusEntityId !== 'string') state.focusEntityId = '';
+    }
+    if (typeof options.focusEntityId === 'string') {
+        state.focusEntityId = options.focusEntityId;
+        state.query = '';
+    }
+    applyFocusSelection();
+    state.wizardStep = 1;
+    state.lastActionSummary = '';
     AppState.viewState.products.quadrant.groupingEditorOpen = true;
 
     const modal = document.createElement('div');
@@ -2360,6 +2861,30 @@ window.closeGroupEditorModal = () => {
 window.updateGroupEditorQuery = (query) => {
     const state = ensureGroupEditorState();
     state.query = String(query || '');
+    if (state.isQueryComposing) return;
+    const modal = document.getElementById('group-editor-modal');
+    if (modal && (state.wizardStep || 1) === 1) {
+        refreshGroupEditorStep1Results(state);
+        return;
+    }
+    renderGroupEditorModal();
+};
+
+window.setGroupEditorQueryComposing = (isComposing) => {
+    const state = ensureGroupEditorState();
+    state.isQueryComposing = Boolean(isComposing);
+};
+
+window.handleGroupEditorQueryCompositionEnd = (inputEl) => {
+    const state = ensureGroupEditorState();
+    state.isQueryComposing = false;
+    const value = String(inputEl?.value || '');
+    window.updateGroupEditorQuery(value);
+};
+
+window.clearGroupEditorFocus = () => {
+    const state = ensureGroupEditorState();
+    state.focusEntityId = '';
     renderGroupEditorModal();
 };
 
@@ -2386,96 +2911,61 @@ window.toggleGroupEditorSelectAll = (checked) => {
     renderGroupEditorModal();
 };
 
-window.groupEditorCreateGroup = () => {
+window.setGroupWizardAction = (action) => {
     const state = ensureGroupEditorState();
-    const selectedIds = getSelectedGroupEditorIds(state);
-    if (selectedIds.length === 0) {
-        alert('먼저 그룹으로 묶을 상품을 선택하세요.');
-        return;
-    }
-    const defaultName = normalizeGroupName(getProductName(selectedIds[0])) || getProductName(selectedIds[0]) || selectedIds[0];
-    const input = window.prompt('새 그룹명을 입력하세요.', defaultName);
-    const groupName = normalizeGroupName(input || '');
-    if (!groupName) return;
-    const sortedIds = [...selectedIds].sort();
-    const groupId = buildDeterministicGroupId(`${groupName}|${sortedIds.join('|')}`);
-    const updates = sortedIds.map((productId) => buildManualGroupedRow(productId, groupId, groupName, 'manual'));
-    upsertDraftOverrides(state, updates);
+    const next = ['create', 'move', 'ungroup', 'rename'].includes(action) ? action : 'create';
+    state.wizardAction = next;
     renderGroupEditorModal();
 };
 
-window.groupEditorMoveGroup = () => {
+window.updateGroupWizardPayload = (key, value) => {
     const state = ensureGroupEditorState();
-    const selectedIds = getSelectedGroupEditorIds(state);
-    if (selectedIds.length === 0) {
-        alert('먼저 이동할 상품을 선택하세요.');
-        return;
+    if (!state.wizardPayload || typeof state.wizardPayload !== 'object') state.wizardPayload = {};
+    if (key === 'keepSelection') {
+        state.wizardPayload.keepSelection = String(value) === 'true';
+    } else {
+        state.wizardPayload[key] = String(value || '');
     }
+    renderGroupEditorModal();
+};
+
+window.setGroupWizardStep = (step) => {
+    const state = ensureGroupEditorState();
+    const nextStep = Math.max(1, Math.min(3, toNumber(step, 1)));
+    const selectedIds = getSelectedGroupEditorIds(state);
     const { previewGrouping } = buildGroupEditorRows(state);
-    const entities = getGroupedEntitiesForEditor(previewGrouping);
-    const previewText = entities.slice(0, 12)
-        .map((group) => `${group.groupName} [${group.groupId}]`)
-        .join('\n');
-    const hint = previewText
-        ? `이동할 그룹명 또는 그룹ID를 입력하세요.\n\n현재 그룹 예시:\n${previewText}`
-        : '이동할 그룹명을 입력하세요.';
-    const input = window.prompt(hint, entities[0]?.groupName || '');
-    const normalizedInput = String(input || '').trim();
-    if (!normalizedInput) return;
-
-    const matched = entities.find((group) => group.groupId === normalizedInput || group.groupName === normalizedInput);
-    const groupName = matched ? matched.groupName : normalizeGroupName(normalizedInput);
-    const groupId = matched ? matched.groupId : buildDeterministicGroupId(groupName);
-    const updates = selectedIds.map((productId) => buildManualGroupedRow(productId, groupId, groupName, 'manual'));
-    upsertDraftOverrides(state, updates);
+    const groupedEntities = getGroupedEntitiesForEditor(previewGrouping);
+    if (nextStep >= 2 && !selectedIds.length) {
+        alert('먼저 대상 상품을 선택하세요.');
+        return;
+    }
+    if (nextStep === 3) {
+        const plan = buildWizardPlan(state, previewGrouping, groupedEntities);
+        if (!plan.valid) {
+            alert(plan.reason || '작업 조건을 확인하세요.');
+            return;
+        }
+    }
+    state.wizardStep = nextStep;
     renderGroupEditorModal();
 };
 
-window.groupEditorUngroup = () => {
+window.applyGroupWizardDraft = () => {
     const state = ensureGroupEditorState();
-    const selectedIds = getSelectedGroupEditorIds(state);
-    if (selectedIds.length === 0) {
-        alert('먼저 해제할 상품을 선택하세요.');
-        return;
-    }
-    const updates = selectedIds.map((productId) => ({
-        product_id: productId,
-        status: 'ungrouped',
-        group_id: '',
-        group_name: '',
-        rule: 'manual',
-        updated_at: nowIso()
-    }));
-    upsertDraftOverrides(state, updates);
-    renderGroupEditorModal();
-};
-
-window.groupEditorRenameGroup = () => {
-    const state = ensureGroupEditorState();
-    const selectedIds = getSelectedGroupEditorIds(state);
-    if (selectedIds.length === 0) {
-        alert('먼저 그룹명을 변경할 상품을 선택하세요.');
-        return;
-    }
     const { previewGrouping } = buildGroupEditorRows(state);
-    const groupIds = new Set();
-    selectedIds.forEach((productId) => {
-        const entityId = previewGrouping.idToEntityId.get(productId) || productId;
-        const members = previewGrouping.entityIdToMembers.get(entityId) || [];
-        if (members.length > 1) groupIds.add(entityId);
-    });
-    if (groupIds.size !== 1) {
-        alert('같은 그룹에 속한 상품을 선택한 뒤 다시 시도하세요.');
+    const groupedEntities = getGroupedEntitiesForEditor(previewGrouping);
+    const plan = buildWizardPlan(state, previewGrouping, groupedEntities);
+    if (!plan.valid) {
+        alert(plan.reason || '변경안을 만들 수 없습니다.');
         return;
     }
-    const targetGroupId = Array.from(groupIds)[0];
-    const currentName = previewGrouping.entityIdToName.get(targetGroupId) || targetGroupId;
-    const input = window.prompt('새 그룹명을 입력하세요.', currentName);
-    const nextName = normalizeGroupName(input || '');
-    if (!nextName) return;
-    const members = previewGrouping.entityIdToMembers.get(targetGroupId) || [];
-    const updates = members.map((productId) => buildManualGroupedRow(productId, targetGroupId, nextName, 'manual'));
-    upsertDraftOverrides(state, updates);
+    upsertDraftOverrides(state, plan.updates);
+    if (!state.wizardPayload.keepSelection) {
+        state.selectedIds = [];
+    }
+    state.focusEntityId = plan.nextFocusEntityId || state.focusEntityId;
+    state.wizardStep = 1;
+    state.lastActionSummary = `${plan.actionLabel} 변경안을 적용했어요. 아래 "저장 후 반영"을 누르면 전체 화면에 반영돼요.`;
     renderGroupEditorModal();
 };
 
@@ -2538,6 +3028,7 @@ window.saveGroupEdits = async () => {
     await DB.save(REQUIRED_FILES.productGroupMap.key, sanitized);
     AppState.rawData.productGroupMap = sanitized;
     AppState.data.productGroupMap = sanitized;
+    // 그룹 설정 저장 직후 파생 데이터를 다시 만들면서 PGM 점수/집계가 그룹 기준으로 즉시 갱신됩니다.
     rebuildDerivedData();
     AppState.helpers.productNameMap = buildProductNameMap();
 
@@ -2596,9 +3087,14 @@ function renderProducts() {
 
     const rows = displayData.map((row) => {
         const isFocused = focusEntityId && String(row.product_id) === focusEntityId;
-        return `
-        <tr class="clickable ${isFocused ? 'row-focused' : ''}" onclick="showRelatedProducts('${escapeHtml(row.product_id)}')">
-            <td>
+        const meta = getEntityMeta(row.product_id);
+        const groupedIdCell = meta.memberCount > 1
+            ? `
+                <button class="group-chip-trigger" type="button" onclick="event.stopPropagation();openGroupEditorWizard({focusEntityId:'${escapeJs(meta.entityId)}'})">
+                    그룹 ${formatNumber(meta.memberCount, 0)}개
+                </button>
+            `
+            : `
                 <div style="display:flex; align-items:center; gap:0.5rem;">
                     <span>${escapeHtml(row.product_id)}</span>
                     <button class="btn-icon" style="width:24px; height:24px; font-size:0.8rem; border:none; background:var(--primary-light); color:var(--primary);" 
@@ -2606,6 +3102,11 @@ function renderProducts() {
                         <i class="ph ph-copy"></i>
                     </button>
                 </div>
+            `;
+        return `
+        <tr class="clickable ${isFocused ? 'row-focused' : ''}" onclick="showRelatedProducts('${escapeHtml(row.product_id)}')">
+            <td>
+                ${groupedIdCell}
             </td>
             <td>${renderProductCell(row.product_name_latest || '-', row.product_id, 32)}</td>
             <td>${formatNumber(row.revenue_90d)}</td>
@@ -2766,8 +3267,8 @@ function renderTransitions() {
 
     const rows = displayData.map((row) => `
         <tr class="${focusEntityId && (String(row.aa_product_id) === focusEntityId || String(row.pca_product_id) === focusEntityId) ? 'row-focused' : ''}">
-            <td><div>${escapeHtml(getName(row.aa_product_id))}</div><div style="font-size:0.8em;color:var(--text-muted);cursor:pointer;" onclick="copyToClipboard('${escapeHtml(row.aa_product_id)}')">${escapeHtml(row.aa_product_id)} <i class="ph ph-copy"></i></div></td>
-            <td><div>${escapeHtml(getName(row.pca_product_id))}</div><div style="font-size:0.8em;color:var(--text-muted);cursor:pointer;" onclick="copyToClipboard('${escapeHtml(row.pca_product_id)}')">${escapeHtml(row.pca_product_id)} <i class="ph ph-copy"></i></div></td>
+            <td>${renderProductCell(getName(row.aa_product_id), row.aa_product_id, 44)}</td>
+            <td>${renderProductCell(getName(row.pca_product_id), row.pca_product_id, 44)}</td>
             <td>${formatNumber(row.transition_customer_cnt)}</td>
             <td>${formatNumber(row.avg_days_to_pca, 1)}</td>
             <td>${formatPercent(row.transition_rate, 2)}</td>
@@ -2916,8 +3417,8 @@ function renderCartDetailTable() {
 
     const rows = pData.map((row) => `
         <tr class="${focusEntityId && (String(row.i) === focusEntityId || String(row.j) === focusEntityId) ? 'row-focused' : ''}">
-            <td><div>${escapeHtml(getName(row.i))}</div><div style="font-size:0.8em;color:var(--text-muted);cursor:pointer;" onclick="copyToClipboard('${escapeHtml(row.i)}')">${escapeHtml(row.i)} <i class="ph ph-copy"></i></div></td>
-            <td><div>${escapeHtml(getName(row.j))}</div><div style="font-size:0.8em;color:var(--text-muted);cursor:pointer;" onclick="copyToClipboard('${escapeHtml(row.j)}')">${escapeHtml(row.j)} <i class="ph ph-copy"></i></div></td>
+            <td>${renderProductCell(getName(row.i), row.i, 44)}</td>
+            <td>${renderProductCell(getName(row.j), row.j, 44)}</td>
             <td>${formatNumber(row.co_order_cnt)}</td>
         </tr>
     `).join('');
@@ -3040,20 +3541,6 @@ function buildInsightsModel() {
     const top3Transitions = sumBy(transitionRowsSorted.slice(0, 3), 'transition_customers');
     const top3TransitionShare = totalTransitions > 0 ? top3Transitions / totalTransitions : null;
 
-    const aaCohortMap = new Map();
-    aaRowsAll.forEach((row) => {
-        aaCohortMap.set(`${row.cohort_date}::${row.aa_product_id}`, toNumber(row.cohort_customers, 0));
-    });
-    let mismatchCount = 0;
-    transitionRowsAll.forEach((row) => {
-        const cohort = aaCohortMap.get(`${row.cohort_date}::${row.aa_product_id}`);
-        if (cohort && cohort > 0) {
-            const expected = toNumber(row.transition_customers, 0) / cohort;
-            const actual = toNumber(row.transition_rate, expected);
-            if (Math.abs(expected - actual) > 0.02) mismatchCount += 1;
-        }
-    });
-
     const monotonicBreakCount = aaRowsAll.filter((row) =>
         toNumber(row.repeat_7d_rate, 0) > toNumber(row.repeat_30d_rate, 0) + 0.0001 ||
         toNumber(row.repeat_30d_rate, 0) > toNumber(row.repeat_90d_rate, 0) + 0.0001
@@ -3122,7 +3609,6 @@ function buildInsightsModel() {
             avgDaysToPca,
             avgRevenue90d,
             top3TransitionShare,
-            mismatchCount,
             monotonicBreakCount,
             bii365: bii365 ? toNumber(bii365.bii, null) : null,
             bii90: bii90 ? toNumber(bii90.bii, null) : null,
@@ -3139,9 +3625,6 @@ function getInsightWarnings(model) {
     const warnings = [];
     if (model.summaries.monotonicBreakCount > 0) {
         warnings.push(`재구매율 구간 역전 데이터 ${model.summaries.monotonicBreakCount}건 감지`);
-    }
-    if (model.summaries.mismatchCount > 0) {
-        warnings.push(`전이율-전이고객수 불일치 ${model.summaries.mismatchCount}건 감지`);
     }
     if ((model.summaries.pca90 || 0) < 0.2 && model.summaries.cohortCustomers > 0) {
         warnings.push('90일 재구매 연결 도달률이 낮아 첫구매 유입 이후 이탈 위험이 있습니다');
@@ -3266,7 +3749,7 @@ function getFitnessTrend(ratio) {
         return {
             direction: '판단 보류',
             status: '데이터 부족',
-            problem: '90일과 365일 체력 비교 데이터가 부족합니다.',
+            problem: '90일과 365일 건강도 비교 데이터가 부족합니다.',
             action: '기간 데이터 업로드 상태를 먼저 점검하세요.',
             tone: 'neutral'
         };
@@ -3275,7 +3758,7 @@ function getFitnessTrend(ratio) {
         return {
             direction: '개선',
             status: '빠르게 개선 중',
-            problem: '최근 체력이 장기 기준보다 빠르게 좋아지고 있습니다.',
+            problem: '최근 건강도가 장기 기준보다 빠르게 좋아지고 있습니다.',
             action: '효율이 높은 유입과 재구매 흐름에 예산과 노출을 확대하세요.',
             tone: 'positive'
         };
@@ -3284,7 +3767,7 @@ function getFitnessTrend(ratio) {
         return {
             direction: '유지',
             status: '안정 유지',
-            problem: '최근 체력이 장기 기준과 유사한 안정 구간입니다.',
+            problem: '최근 건강도가 장기 기준과 유사한 안정 구간입니다.',
             action: '현재 운영안을 유지하되 이탈 구간만 미세 조정하세요.',
             tone: 'stable'
         };
@@ -3293,7 +3776,7 @@ function getFitnessTrend(ratio) {
         return {
             direction: '하락',
             status: '약화 신호',
-            problem: '최근 체력이 장기 기준 대비 약해지는 신호입니다.',
+            problem: '최근 건강도가 장기 기준 대비 약해지는 신호입니다.',
             action: '첫구매 유입 후 7일 이내 CRM 접점을 앞당겨 재구매 전환을 보강하세요.',
             tone: 'warning'
         };
@@ -3301,7 +3784,7 @@ function getFitnessTrend(ratio) {
     return {
         direction: '위험',
         status: '즉시 대응 필요',
-        problem: '최근 체력이 장기 기준 대비 크게 약화된 상태입니다.',
+        problem: '최근 건강도가 장기 기준 대비 크게 약화된 상태입니다.',
         action: '재구매 연결 상품 노출과 핵심 재고 방어를 최우선으로 전환하세요.',
         tone: 'critical'
     };
@@ -3332,7 +3815,7 @@ function renderHeroStory(model) {
                     <strong>${model.summaries.selectedWindowBii !== null ? formatNumber(model.summaries.selectedWindowBii, 3) : '-'}</strong>
                 </div>
                 <div class="hero-metric">
-                    <label>90일 체력 대비 연간 체력</label>
+                    <label>90일 건강도 대비 연간 건강도</label>
                     <strong>${ratio !== null ? formatNumber(ratio, 2) : '-'}</strong>
                     <span>${trend.status}</span>
                 </div>
@@ -3553,7 +4036,7 @@ function renderBrandFitness(model) {
     const biiRows = [7, 30, 90, 365].map((window) => model.biiMap.get(window)).filter(Boolean);
 
     if (!biiRows.length) {
-        return renderMissingSection('Brand Fitness', `${REQUIRED_FILES.biiWindow.filename} 데이터가 없어 브랜드 체력 지표를 표시할 수 없습니다.`);
+        return renderMissingSection('브랜드 건강도', `${REQUIRED_FILES.biiWindow.filename} 데이터가 없어 브랜드 건강도 지표를 표시할 수 없습니다.`);
     }
 
     const selectedWindow = toNumber(model.filters.windowDays, 90);
@@ -3632,7 +4115,7 @@ function renderBrandFitness(model) {
         ? selectedWindowBii - calculatedBii
         : null;
     const bhiReferenceText = brand
-        ? `참고 구조값: ${TERM_LABELS.BHI} ${bhiValue !== null ? formatNumber(bhiValue * 100, 2) : '-'} | Entry Balance ${asPct !== null ? formatNumber(asPct, 1) : '-'}% | Expansion Balance ${csPct !== null ? formatNumber(csPct, 1) : '-'}% | Value Readiness ${vsPct !== null ? formatNumber(vsPct, 1) : '-'}%`
+        ? `참고 구조값: ${TERM_LABELS.BHI} ${bhiValue !== null ? formatNumber(bhiValue * 100, 2) : '-'} | ${STRUCTURE_LABELS.entry} ${asPct !== null ? formatNumber(asPct, 1) : '-'}% | ${STRUCTURE_LABELS.expansion} ${csPct !== null ? formatNumber(csPct, 1) : '-'}% | ${STRUCTURE_LABELS.valueReadiness} ${vsPct !== null ? formatNumber(vsPct, 1) : '-'}%`
         : '참고 구조값: brand_score.csv 미업로드';
 
     const rows = biiRows.map((row) => `
@@ -3648,17 +4131,17 @@ function renderBrandFitness(model) {
     return `
         <section id="brand-fitness" class="insight-section card animate-fade-in">
             <div class="section-headline">
-                <h2>Brand Fitness</h2>
-                <p>최근 체력이 장기 흐름 대비 개선 중인지 먼저 확인하고, 필요하면 원인 상세를 펼쳐서 봅니다</p>
+                <h2>브랜드 건강도</h2>
+                <p>최근 건강도가 장기 흐름 대비 개선 중인지 먼저 확인하고, 필요하면 원인 상세를 펼쳐서 봅니다</p>
             </div>
             <div class="fitness-summary-grid">
                 <div class="fitness-summary-card tone-${trend.tone}">
-                    <label>체력 방향</label>
+                    <label>건강도 방향</label>
                     <strong>${escapeHtml(trend.direction)}</strong>
                     <span>${escapeHtml(trend.status)}</span>
                 </div>
                 <div class="fitness-summary-card">
-                    <label>최근 기준 체력</label>
+                    <label>최근 기준 건강도</label>
                     <strong>${selectedWindowBii !== null ? formatNumber(selectedWindowBii, 3) : '-'}</strong>
                     <span>${selectedWindow}일 기준 · 현재 단계 ${escapeHtml(String(selectedStage))}</span>
                 </div>
@@ -3691,43 +4174,43 @@ function renderBrandFitness(model) {
                 ` : '<p class="chart-hint">brand_score.csv의 구조 지표가 없어 레이더 차트를 표시할 수 없습니다.</p>'}
                 <div class="structure-grid">
                     <div class="structure-item">
-                        <label>Entry Balance</label>
+                        <label>${STRUCTURE_LABELS.entry}</label>
                         <strong>${asPct !== null ? formatNumber(asPct, 1) : '-'}${asPct !== null ? '%' : ''}</strong>
-                        <span>Entry 유입이 한쪽에 쏠리지 않는지</span>
+                        <span>신규 유입이 한쪽에 쏠리지 않는지</span>
                     </div>
                     <div class="structure-item">
-                        <label>Expansion Balance</label>
+                        <label>${STRUCTURE_LABELS.expansion}</label>
                         <strong>${csPct !== null ? formatNumber(csPct, 1) : '-'}${csPct !== null ? '%' : ''}</strong>
                         <span>재구매 연결이 특정 경로에 과집중되지 않는지</span>
                     </div>
                     <div class="structure-item">
-                        <label>Value Readiness</label>
+                        <label>${STRUCTURE_LABELS.valueReadiness}</label>
                         <strong>${vsPct !== null ? formatNumber(vsPct, 1) : '-'}${vsPct !== null ? '%' : ''}</strong>
                         <span>매출 확장 여력이 확보되어 있는지</span>
                     </div>
                 </div>
                 <div class="value-driver-block">
-                    <h4>Value Readiness 영향 요소</h4>
+                    <h4>${STRUCTURE_LABELS.valueReadiness} 영향 요소</h4>
                     <div class="value-driver-grid">
                         <div class="value-driver-item ${qualityMixStatus.tone}">
                             <label>효율·고가치 유입 비중</label>
                             <strong>${qualityMixPct !== null ? formatNumber(qualityMixPct, 1) : '-'}${qualityMixPct !== null ? '%' : ''}</strong>
-                        <span>${qualityMixStatus.label} · Qualified + Heavy mix</span>
+                        <span>${qualityMixStatus.label} · 고가치 유입 비중</span>
                         </div>
                         <div class="value-driver-item ${broadStatus.tone}">
                             <label>확장형 유입 비중</label>
                             <strong>${broadPct !== null ? formatNumber(broadPct, 1) : '-'}${broadPct !== null ? '%' : ''}</strong>
-                        <span>${broadStatus.label} · Broad mix</span>
+                        <span>${broadStatus.label} · 확장형 유입 비중</span>
                         </div>
                         <div class="value-driver-item ${concentrationStatus.tone}">
                             <label>유입 집중도</label>
                             <strong>${asPct !== null ? formatNumber(asPct, 1) : '-'}${asPct !== null ? '%' : ''}</strong>
-                        <span>${concentrationStatus.label} · 높을수록 Entry 쏠림</span>
+                        <span>${concentrationStatus.label} · 높을수록 신규유입 쏠림</span>
                         </div>
                         <div class="value-driver-item ${chainStatus.tone}">
-                            <label>Expansion Balance</label>
+                            <label>${STRUCTURE_LABELS.expansion}</label>
                             <strong>${csPct !== null ? formatNumber(csPct, 1) : '-'}${csPct !== null ? '%' : ''}</strong>
-                        <span>${chainStatus.label} · 높을수록 Expansion 연결 안정</span>
+                        <span>${chainStatus.label} · 높을수록 재구매 연결 안정</span>
                         </div>
                     </div>
                     <p class="chart-hint">현재 파일에서는 영향 요소를 구조 관점으로 표시합니다. VAI/VQI/VCR 세부 분해값이 제공되면 이 영역을 더 정밀하게 확장할 수 있습니다.</p>
@@ -3738,7 +4221,7 @@ function renderBrandFitness(model) {
                 <summary>원인 자세히 보기 (구성 요소/추세/기간별 수치)</summary>
                 <div class="fitness-details-body">
                     <div class="factor-block">
-                        <h3>브랜드 실전 체력 구성 요소 (${selectedWindow}일)</h3>
+                        <h3>브랜드 실전 건강도 구성 요소 (${selectedWindow}일)</h3>
                         <p class="chart-hint">구조, ${FITNESS_COMPONENT_LABELS.value}, ${FITNESS_COMPONENT_LABELS.strength} 중 어떤 요소가 변화를 만들었는지 확인합니다.</p>
                         <div class="factor-grid">
                             <div class="journey-kpi">
@@ -3754,9 +4237,9 @@ function renderBrandFitness(model) {
                                 <strong>${selectedCustomerStrengthNorm !== null ? formatNumber(selectedCustomerStrengthNorm, 3) : '-'}</strong>
                             </div>
                             <div class="journey-kpi">
-                                <label>계산 체력(참고)</label>
+                                <label>계산 건강도(참고)</label>
                                 <strong>${calculatedBii !== null ? formatNumber(calculatedBii, 3) : '-'}</strong>
-                                <span>실제 체력 대비 차이: ${componentGap !== null ? formatNumber(componentGap, 3) : '-'}</span>
+                                <span>실제 건강도 대비 차이: ${componentGap !== null ? formatNumber(componentGap, 3) : '-'}</span>
                             </div>
                         </div>
                     </div>
@@ -3868,7 +4351,7 @@ function renderInsightFilters(model) {
             </button>
             ${jumpNavOpen ? `
                 <nav class="filter-jump-nav">
-                    <a href="#brand-fitness">브랜드 체력</a>
+                    <a href="#brand-fitness">브랜드 건강도</a>
                     <a href="#aa-journey">첫구매 유입 고객 흐름</a>
                     <a href="#aa-transition">재구매 연결 전환</a>
                     <a href="#cart-ca">장바구니 확장</a>
@@ -4188,7 +4671,7 @@ function renderInsightsCharts(model) {
                 plugins: {
                     title: {
                         display: true,
-                        text: '브랜드 실전 체력 구성 요소 추세',
+                        text: '브랜드 실전 건강도 구성 요소 추세',
                         color: '#1e293b'
                     }
                 }
@@ -4206,7 +4689,7 @@ function renderInsightsCharts(model) {
             AppState.charts.brandStructureRadar = new Chart(structureRadarCanvas.getContext('2d'), {
                 type: 'radar',
                 data: {
-                    labels: ['Entry Balance', 'Expansion Balance', 'Value Readiness'],
+                    labels: [STRUCTURE_LABELS.entry, STRUCTURE_LABELS.expansion, STRUCTURE_LABELS.valueReadiness],
                     datasets: [
                         {
                             label: '브랜드 구조 건강도 3축',
