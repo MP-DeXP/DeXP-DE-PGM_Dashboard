@@ -1,8 +1,8 @@
-// APF Dashboard App Logic
+// PGM Dashboard App Logic
 
 // --- Configurations ---
 const DB_CONFIG = {
-    name: 'APF_Dashboard_DB',
+    name: 'PGM_Dashboard_DB',
     version: 1,
     store: 'csv_files'
 };
@@ -205,30 +205,30 @@ const withFallback = (value, fallback = '-') => {
 };
 
 const TERM_LABELS = {
-    AA: '첫구매 유입상품',
-    PCA: '재구매 시작상품',
-    CA: '장바구니 확장상품',
-    BHI: '브랜드 구조 건강도',
-    BII: '브랜드 실전 체력'
+    AA: 'Entry Gravity',
+    PCA: 'Expansion Gravity',
+    CA: 'Basket Gravity',
+    BHI: 'Brand Health Index',
+    BII: 'Brand Impact Index'
 };
 
 const AA_TYPE_LABELS = {
-    BROAD: '첫구매 많음',
-    QUALIFIED: '재구매 가능성 높음',
-    HEAVY: '고가치 고객'
+    BROAD: 'Broad',
+    QUALIFIED: 'Qualified',
+    HEAVY: 'Heavy'
 };
 
 const PCA_TYPE_LABELS = {
-    CORE: '단골의 시작점',
-    DEEP: '계속 찾는 상품',
-    SCALE: '매출 확장형 상품'
+    CORE: 'Core',
+    DEEP: 'Deep',
+    SCALE: 'Scale'
 };
 
 const CA_TYPE_LABELS = {
-    CORE: '장바구니 중심축',
-    PAIR: '결합형 동반상품',
-    SET: '세트 확장상품',
-    NONE: '미분류'
+    CORE: 'Core',
+    PAIR: 'Pair',
+    SET: 'Set',
+    NONE: 'None'
 };
 
 const STAGE_LABELS = {
@@ -256,7 +256,7 @@ const UI_TERM_REPLACEMENTS = [
     [/CA-Pair/gi, `${TERM_LABELS.CA}-${CA_TYPE_LABELS.PAIR}`],
     [/CA-Set/gi, `${TERM_LABELS.CA}-${CA_TYPE_LABELS.SET}`],
     [/BII\s*90\/365/gi, '90일 체력 대비 연간 체력'],
-    [/Brand Fitness/gi, '브랜드 체력 현황'],
+    [/Brand Fitness/gi, 'Brand Fitness'],
     [/Action Center/gi, '실행 카드'],
     [/\bBII\b/g, TERM_LABELS.BII],
     [/\bBHI\b/g, TERM_LABELS.BHI],
@@ -709,14 +709,14 @@ function renderOverview() {
     container.innerHTML = `
         <div class="animate-fade-in" style="margin-bottom: 2rem;">
             <div class="card" style="text-align: center; background: linear-gradient(135deg, white 0%, var(--primary-light) 100%); border: 1px solid var(--primary); border-width: 2px;">
-                <h3 style="color: var(--primary); font-size: 1rem; margin-bottom: 0.5rem; font-weight: 700;">브랜드 구조 건강도</h3>
+                <h3 style="color: var(--primary); font-size: 1rem; margin-bottom: 0.5rem; font-weight: 700;">Brand Health Index</h3>
                 <div class="value" style="font-size: 4.5rem; color: var(--primary);">${bhi}</div>
             </div>
         </div>
 
         <div class="stats-grid animate-fade-in">
             <div class="card">
-                <h3>축 1: 첫구매 유입 집중도</h3>
+                <h3>축 1: Entry Gravity 집중도</h3>
                 <div class="value">${concentration}</div>
             </div>
             <div class="card">
@@ -732,7 +732,7 @@ function renderOverview() {
         <div class="card animate-fade-in" style="margin-top: 2rem; border-left: 4px solid var(--primary);">
             <h3 style="color: var(--primary); text-transform: none; letter-spacing: normal; font-size: 1.1rem;">화면 해석 가이드</h3>
             <p style="color: var(--text-muted); margin-top: 1rem; line-height: 1.6; font-size: 0.95rem;">
-                브랜드 구조 건강도는 유입-재구매-가치의 균형을 요약합니다. 매출 규모보다 구조 균형이 유지되는지 먼저 확인하세요.
+                Brand Health Index는 Entry-Expansion-Value 균형을 요약합니다. 매출 규모보다 구조 균형이 유지되는지 먼저 확인하세요.
             </p>
         </div>
     `;
@@ -773,11 +773,11 @@ function renderProducts() {
         product_id: '상품 ID',
         product_name_latest: '상품명',
         revenue_90d: '90일 매출',
-        first_customer_cnt: '첫구매 고객수',
-        AA_Score: '첫구매 유입점수',
-        AA_Primary_Type: '첫구매 유입유형',
-        PCA_Score: '재구매 시작점수',
-        PCA_Primary_Type: '재구매 시작유형'
+        first_customer_cnt: 'Entry Gravity 고객수',
+        AA_Score: 'Entry Gravity 점수',
+        AA_Primary_Type: 'Entry Gravity 유형',
+        PCA_Score: 'Expansion Gravity 점수',
+        PCA_Primary_Type: 'Expansion Gravity 유형'
     };
     const sortLabel = sortLabelMap[sortCol] || sortCol;
 
@@ -812,11 +812,11 @@ function renderProducts() {
                         <th onclick="handleProductSort('product_id')">ID${getSortIndicator('product_id')}</th>
                         <th onclick="handleProductSort('product_name_latest')">상품명${getSortIndicator('product_name_latest')}</th>
                         <th onclick="handleProductSort('revenue_90d')">90일 매출${getSortIndicator('revenue_90d')}</th>
-                        <th onclick="handleProductSort('first_customer_cnt')">첫구매 고객수${getSortIndicator('first_customer_cnt')}</th>
-                        <th onclick="handleProductSort('AA_Score')">첫구매 유입점수${getSortIndicator('AA_Score')}</th>
-                        <th onclick="handleProductSort('AA_Primary_Type')">첫구매 유입유형${getSortIndicator('AA_Primary_Type')}</th>
-                        <th onclick="handleProductSort('PCA_Score')">재구매 시작점수${getSortIndicator('PCA_Score')}</th>
-                        <th onclick="handleProductSort('PCA_Primary_Type')">재구매 시작유형${getSortIndicator('PCA_Primary_Type')}</th>
+                        <th onclick="handleProductSort('first_customer_cnt')">Entry Gravity 고객수${getSortIndicator('first_customer_cnt')}</th>
+                        <th onclick="handleProductSort('AA_Score')">Entry Gravity 점수${getSortIndicator('AA_Score')}</th>
+                        <th onclick="handleProductSort('AA_Primary_Type')">Entry Gravity 유형${getSortIndicator('AA_Primary_Type')}</th>
+                        <th onclick="handleProductSort('PCA_Score')">Expansion Gravity 점수${getSortIndicator('PCA_Score')}</th>
+                        <th onclick="handleProductSort('PCA_Primary_Type')">Expansion Gravity 유형${getSortIndicator('PCA_Primary_Type')}</th>
                     </tr></thead>
                     <tbody>${rows}</tbody>
                 </table>
@@ -895,8 +895,8 @@ function renderTransitions() {
     const displayData = sortedData.slice(0, 200);
     const getSortIndicator = (col) => sortCol === col ? (sortDesc ? ' ▼' : ' ▲') : '';
     const sortLabelMap = {
-        aa_product_id: '유입 상품',
-        pca_product_id: '재구매 시작 상품',
+        aa_product_id: 'Entry 상품',
+        pca_product_id: 'Expansion Gravity 상품',
         transition_customer_cnt: '전환 고객수',
         avg_days_to_pca: '평균 전환 소요일',
         transition_rate: '전환율'
@@ -914,13 +914,13 @@ function renderTransitions() {
     `).join('');
 
     container.innerHTML = `
-        ${renderSearchUI('transitions', '첫구매 유입상품 기준 검색')}
+        ${renderSearchUI('transitions', 'Entry Gravity 상품 기준 검색')}
         <div class="card animate-fade-in"><h3>상위 100개 전환 흐름 (정렬 기준: ${escapeHtml(sortLabel)})</h3>
             <div class="table-container">
                 <table class="data-table">
                     <thead><tr>
-                        <th onclick="handleTransitionSort('aa_product_id')">유입 상품${getSortIndicator('aa_product_id')}</th>
-                        <th onclick="handleTransitionSort('pca_product_id')">재구매 시작 상품${getSortIndicator('pca_product_id')}</th>
+                        <th onclick="handleTransitionSort('aa_product_id')">Entry 상품${getSortIndicator('aa_product_id')}</th>
+                        <th onclick="handleTransitionSort('pca_product_id')">Expansion Gravity 상품${getSortIndicator('pca_product_id')}</th>
                         <th onclick="handleTransitionSort('transition_customer_cnt')">전환 고객수${getSortIndicator('transition_customer_cnt')}</th>
                         <th onclick="handleTransitionSort('avg_days_to_pca')">평균 전환 소요일${getSortIndicator('avg_days_to_pca')}</th>
                         <th onclick="handleTransitionSort('transition_rate')">전환율${getSortIndicator('transition_rate')}</th>
@@ -1279,7 +1279,7 @@ function getInsightWarnings(model) {
         warnings.push(`전이율-전이고객수 불일치 ${model.summaries.mismatchCount}건 감지`);
     }
     if ((model.summaries.pca90 || 0) < 0.2 && model.summaries.cohortCustomers > 0) {
-        warnings.push('90일 재구매 핵심상품 구매율이 낮아 첫구매 이후 이탈 위험이 있습니다');
+        warnings.push('90일 Expansion Gravity 도달률이 낮아 Entry Gravity 이후 이탈 위험이 있습니다');
     }
     if ((model.metrics.ca_pair_top1_share_max || 0) > 0.7) {
         warnings.push('장바구니 조합형 집중도가 높아 특정 조합 의존 리스크가 있습니다');
@@ -1315,10 +1315,10 @@ function getBuiltInActionCards(model) {
         cards.push({
             domain: 'marketing',
             priority: 1,
-            title: '대량 유입형 상품의 재구매 시작 연결 강화',
-            action: '첫구매 후 7일 이내 단골의 시작점 상품으로 이어지도록 CRM/리타게팅을 우선 배치합니다.',
-            impact: '재구매 핵심상품 구매율 개선 및 유입 낭비 축소',
-            evidence: `${TERM_LABELS.AA}-${AA_TYPE_LABELS.BROAD} 비중 ${formatPercent(m.aa_broad_ratio, 1)} / 90일 재구매 핵심상품 구매율 ${formatPercent(m.pca_transition_90d_rate, 1)}`
+            title: '대량 유입형 상품의 Expansion Gravity 연결 강화',
+            action: 'Entry Gravity 후 7일 이내 단골의 시작점 상품으로 이어지도록 CRM/리타게팅을 우선 배치합니다.',
+            impact: 'Expansion Gravity 도달률 개선 및 유입 낭비 축소',
+            evidence: `${TERM_LABELS.AA}-${AA_TYPE_LABELS.BROAD} 비중 ${formatPercent(m.aa_broad_ratio, 1)} / 90일 Expansion Gravity 도달률 ${formatPercent(m.pca_transition_90d_rate, 1)}`
         });
     }
 
@@ -1327,7 +1327,7 @@ function getBuiltInActionCards(model) {
             domain: 'marketing',
             priority: 2,
             title: '전이 경로 과집중 완화 실험',
-            action: '상위 재구매 시작상품 편중 경로를 유지하되 대체 상품 노출 A/B 테스트를 병행합니다.',
+            action: '상위 Expansion Gravity 상품 편중 경로를 유지하되 대체 상품 노출 A/B 테스트를 병행합니다.',
             impact: '경로 리스크 분산 및 안정적 확장',
             evidence: `전이 상위 3경로 비중 ${formatPercent(m.transition_top3_share, 1)}`
         });
@@ -1337,8 +1337,8 @@ function getBuiltInActionCards(model) {
         cards.push({
             domain: 'marketing',
             priority: 1,
-            title: '재구매 시작 도달 속도 개선',
-            action: '첫구매 후 메시지 발화 시점을 앞당기고, 3~7일 구간 혜택을 강화합니다.',
+            title: 'Expansion Gravity 도달 속도 개선',
+            action: 'Entry Gravity 후 메시지 발화 시점을 앞당기고, 3~7일 구간 혜택을 강화합니다.',
             impact: '평균 전이 소요일 단축',
             evidence: `평균 days_to_pca ${formatNumber(m.avg_days_to_pca, 1)}일`
         });
@@ -1350,7 +1350,7 @@ function getBuiltInActionCards(model) {
             priority: 1,
             title: '장바구니 조합형 고정 번들 운영',
             action: '상위 조합 상품을 고정 번들로 구성하고 교차추천 슬롯을 상단에 고정합니다.',
-            impact: '장바구니 확장률 향상',
+            impact: 'Basket Gravity 확장률 향상',
             evidence: `최대 top1_share ${formatPercent(m.ca_pair_top1_share_max, 1)}`
         });
     }
@@ -1429,7 +1429,7 @@ function getFitnessTrend(ratio) {
             direction: '하락',
             status: '약화 신호',
             problem: '최근 체력이 장기 기준 대비 약해지는 신호입니다.',
-            action: '첫구매 후 7일 이내 CRM 접점을 앞당겨 재구매 전환을 보강하세요.',
+            action: 'Entry Gravity 후 7일 이내 CRM 접점을 앞당겨 재구매 전환을 보강하세요.',
             tone: 'warning'
         };
     }
@@ -1437,7 +1437,7 @@ function getFitnessTrend(ratio) {
         direction: '위험',
         status: '즉시 대응 필요',
         problem: '최근 체력이 장기 기준 대비 크게 약화된 상태입니다.',
-        action: '재구매 시작상품 노출과 핵심 재고 방어를 최우선으로 전환하세요.',
+        action: 'Expansion Gravity 상품 노출과 핵심 재고 방어를 최우선으로 전환하세요.',
         tone: 'critical'
     };
 }
@@ -1459,7 +1459,7 @@ function renderHeroStory(model) {
         <section class="insight-section card animate-fade-in">
             <div class="section-headline">
                 <h2>인사이트 스튜디오</h2>
-                <p>첫구매 유입 이후 90일 전환 최적화를 한 화면에서 확인합니다</p>
+                <p>Entry Gravity 이후 90일 전환 최적화를 한 화면에서 확인합니다</p>
             </div>
             <div class="hero-metrics">
                 <div class="hero-metric">
@@ -1490,7 +1490,7 @@ function renderHeroStory(model) {
 
 function renderAAJourney(model) {
     if (!model.aaRowsAll.length) {
-        return renderMissingSection('첫구매 고객 흐름', `${REQUIRED_FILES.aaCohortJourney.filename} 데이터가 없어 첫구매 고객 흐름을 표시할 수 없습니다.`);
+        return renderMissingSection('Entry Gravity 고객 흐름', `${REQUIRED_FILES.aaCohortJourney.filename} 데이터가 없어 Entry Gravity 고객 흐름을 표시할 수 없습니다.`);
     }
 
     const s = model.summaries;
@@ -1513,12 +1513,12 @@ function renderAAJourney(model) {
     return `
         <section id="aa-journey" class="insight-section card animate-fade-in">
             <div class="section-headline">
-                <h2>첫구매 고객 흐름</h2>
-                <p>첫구매 이후 7/30/90일 행동과 전환 속도</p>
+                <h2>Entry Gravity 고객 흐름</h2>
+                <p>Entry Gravity 이후 7/30/90일 행동과 전환 속도</p>
             </div>
             <div class="journey-grid">
                 <div class="journey-kpi">
-                    <label>첫구매 고객수</label>
+                    <label>Entry Gravity 고객수</label>
                     <strong>${formatNumber(first)}</strong>
                 </div>
                 <div class="journey-kpi">
@@ -1537,11 +1537,11 @@ function renderAAJourney(model) {
                     <span>${formatPercent(s.repeat90, 1)}</span>
                 </div>
                 <div class="journey-kpi">
-                    <label>90일 재구매 핵심상품 구매율</label>
+                    <label>90일 Expansion Gravity 도달률</label>
                     <strong>${formatPercent(s.pca90, 1)}</strong>
                 </div>
                 <div class="journey-kpi">
-                    <label>재구매 시작까지 평균 일수</label>
+                    <label>Expansion Gravity까지 평균 일수</label>
                     <strong>${formatNumber(s.avgDaysToPca, 1)}일</strong>
                 </div>
             </div>
@@ -1553,10 +1553,10 @@ function renderAAJourney(model) {
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>유입 유형</th>
+                            <th>Entry 유형</th>
                             <th>대상 고객수</th>
                             <th>90일 재구매율</th>
-                            <th>90일 재구매 핵심상품 구매율</th>
+                            <th>90일 Expansion Gravity 도달률</th>
                             <th>90일 가치</th>
                             <th>평균 소요일</th>
                         </tr>
@@ -1570,7 +1570,7 @@ function renderAAJourney(model) {
 
 function renderAATransition(model) {
     if (!model.transitionRowsAll.length) {
-        return renderMissingSection('재구매 시작 전환 흐름', `${REQUIRED_FILES.aaTransitionPath.filename} 데이터가 없어 전환 흐름을 표시할 수 없습니다.`);
+        return renderMissingSection('Expansion Gravity 전환 흐름', `${REQUIRED_FILES.aaTransitionPath.filename} 데이터가 없어 전환 흐름을 표시할 수 없습니다.`);
     }
 
     const rows = model.topTransitionRows.map((row) => `
@@ -1586,8 +1586,8 @@ function renderAATransition(model) {
     return `
         <section id="aa-transition" class="insight-section card animate-fade-in">
             <div class="section-headline">
-                <h2>재구매 시작 전환 흐름</h2>
-                <p>첫구매 유입상품별 재구매 시작상품 도달 구조와 속도</p>
+                <h2>Expansion Gravity 전환 흐름</h2>
+                <p>Entry Gravity 상품별 Expansion Gravity 상품 도달 구조와 속도</p>
             </div>
             <div class="journey-grid">
                 <div class="journey-kpi">
@@ -1605,8 +1605,8 @@ function renderAATransition(model) {
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>첫구매 유입상품</th>
-                            <th>재구매 시작상품</th>
+                            <th>Entry Gravity 상품</th>
+                            <th>Expansion Gravity 상품</th>
                             <th>전이 고객수</th>
                             <th>전이율</th>
                             <th>평균 소요일</th>
@@ -1621,7 +1621,7 @@ function renderAATransition(model) {
 
 function renderCASection(model) {
     if (!model.caRows.length) {
-        return renderMissingSection('장바구니 확장 인사이트', `${REQUIRED_FILES.caProfile.filename} 데이터가 없어 장바구니 확장 흐름을 표시할 수 없습니다.`);
+        return renderMissingSection('Basket Gravity 인사이트', `${REQUIRED_FILES.caProfile.filename} 데이터가 없어 Basket Gravity 흐름을 표시할 수 없습니다.`);
     }
 
     const topRows = [...model.caRows]
@@ -1641,7 +1641,7 @@ function renderCASection(model) {
     const selectedPanel = model.selectedCa
         ? `
         <div class="selected-ca-panel">
-            <h4>선택한 유입상품 기준 장바구니 확장</h4>
+            <h4>선택한 Entry Gravity 상품 기준 Basket Gravity</h4>
             <p><strong title="${escapeHtml(getProductName(model.selectedCa.product_id))}">${escapeHtml(truncateText(getProductName(model.selectedCa.product_id), 42))}</strong> (${escapeHtml(model.selectedCa.product_id)})</p>
             <div class="selected-ca-grid">
                 <span>확장 유형: ${escapeHtml(toCaTypeLabel(withFallback(model.selectedCa.ca_type, 'None')))}</span>
@@ -1651,12 +1651,12 @@ function renderCASection(model) {
             </div>
         </div>
         `
-        : '<div class="selected-ca-panel"><h4>선택한 유입상품 기준 장바구니 확장</h4><p>유입상품 필터를 선택하면 해당 상품의 장바구니 확장 신호를 표시합니다.</p></div>';
+        : '<div class="selected-ca-panel"><h4>선택한 Entry Gravity 상품 기준 Basket Gravity</h4><p>Entry Gravity 상품 필터를 선택하면 해당 상품의 Basket Gravity 신호를 표시합니다.</p></div>';
 
     return `
         <section id="cart-ca" class="insight-section card animate-fade-in">
             <div class="section-headline">
-                <h2>장바구니 확장 인사이트</h2>
+                <h2>Basket Gravity 인사이트</h2>
                 <p>장바구니 결합력과 동반구매 구조</p>
             </div>
             <div class="insight-chart-grid">
@@ -1688,7 +1688,7 @@ function renderBrandFitness(model) {
     const biiRows = [7, 30, 90, 365].map((window) => model.biiMap.get(window)).filter(Boolean);
 
     if (!biiRows.length) {
-        return renderMissingSection('브랜드 체력 현황', `${REQUIRED_FILES.biiWindow.filename} 데이터가 없어 브랜드 체력 지표를 표시할 수 없습니다.`);
+        return renderMissingSection('Brand Fitness', `${REQUIRED_FILES.biiWindow.filename} 데이터가 없어 브랜드 체력 지표를 표시할 수 없습니다.`);
     }
 
     const selectedWindow = toNumber(model.filters.windowDays, 90);
@@ -1767,7 +1767,7 @@ function renderBrandFitness(model) {
         ? selectedWindowBii - calculatedBii
         : null;
     const bhiReferenceText = brand
-        ? `참고 구조값: ${TERM_LABELS.BHI} ${bhiValue !== null ? formatNumber(bhiValue * 100, 2) : '-'} | 유입 구조 균형 ${asPct !== null ? formatNumber(asPct, 1) : '-'}% | 재구매 연결 균형 ${csPct !== null ? formatNumber(csPct, 1) : '-'}% | 가치 준비도 ${vsPct !== null ? formatNumber(vsPct, 1) : '-'}%`
+        ? `참고 구조값: ${TERM_LABELS.BHI} ${bhiValue !== null ? formatNumber(bhiValue * 100, 2) : '-'} | Entry Balance ${asPct !== null ? formatNumber(asPct, 1) : '-'}% | Expansion Balance ${csPct !== null ? formatNumber(csPct, 1) : '-'}% | Value Readiness ${vsPct !== null ? formatNumber(vsPct, 1) : '-'}%`
         : '참고 구조값: brand_score.csv 미업로드';
 
     const rows = biiRows.map((row) => `
@@ -1783,7 +1783,7 @@ function renderBrandFitness(model) {
     return `
         <section id="brand-fitness" class="insight-section card animate-fade-in">
             <div class="section-headline">
-                <h2>브랜드 체력 현황</h2>
+                <h2>Brand Fitness</h2>
                 <p>최근 체력이 장기 흐름 대비 개선 중인지 먼저 확인하고, 필요하면 원인 상세를 펼쳐서 봅니다</p>
             </div>
             <div class="fitness-summary-grid">
@@ -1813,7 +1813,7 @@ function renderBrandFitness(model) {
                 <p><strong>바로 실행:</strong> ${escapeHtml(trend.action)}</p>
             </div>
             <div class="structure-block">
-                <h3>브랜드 구조 건강도의 3개 구조</h3>
+                <h3>Brand Health Index의 3개 구조</h3>
                 ${hasStructureData ? `
                     <div class="card chart-card structure-radar-card">
                         <canvas
@@ -1826,43 +1826,43 @@ function renderBrandFitness(model) {
                 ` : '<p class="chart-hint">brand_score.csv의 구조 지표가 없어 레이더 차트를 표시할 수 없습니다.</p>'}
                 <div class="structure-grid">
                     <div class="structure-item">
-                        <label>유입 구조 균형</label>
+                        <label>Entry Balance</label>
                         <strong>${asPct !== null ? formatNumber(asPct, 1) : '-'}${asPct !== null ? '%' : ''}</strong>
-                        <span>첫구매 유입이 한쪽에 쏠리지 않는지</span>
+                        <span>Entry 유입이 한쪽에 쏠리지 않는지</span>
                     </div>
                     <div class="structure-item">
-                        <label>재구매 연결 균형</label>
+                        <label>Expansion Balance</label>
                         <strong>${csPct !== null ? formatNumber(csPct, 1) : '-'}${csPct !== null ? '%' : ''}</strong>
                         <span>재구매 연결이 특정 경로에 과집중되지 않는지</span>
                     </div>
                     <div class="structure-item">
-                        <label>가치 준비도</label>
+                        <label>Value Readiness</label>
                         <strong>${vsPct !== null ? formatNumber(vsPct, 1) : '-'}${vsPct !== null ? '%' : ''}</strong>
                         <span>매출 확장 여력이 확보되어 있는지</span>
                     </div>
                 </div>
                 <div class="value-driver-block">
-                    <h4>가치 준비도 영향 요소</h4>
+                    <h4>Value Readiness 영향 요소</h4>
                     <div class="value-driver-grid">
                         <div class="value-driver-item ${qualityMixStatus.tone}">
                             <label>효율·고가치 유입 비중</label>
                             <strong>${qualityMixPct !== null ? formatNumber(qualityMixPct, 1) : '-'}${qualityMixPct !== null ? '%' : ''}</strong>
-                            <span>${qualityMixStatus.label} · Qualified + Heavy 비중</span>
+                        <span>${qualityMixStatus.label} · Qualified + Heavy mix</span>
                         </div>
                         <div class="value-driver-item ${broadStatus.tone}">
                             <label>확장형 유입 비중</label>
                             <strong>${broadPct !== null ? formatNumber(broadPct, 1) : '-'}${broadPct !== null ? '%' : ''}</strong>
-                            <span>${broadStatus.label} · Broad 비중</span>
+                        <span>${broadStatus.label} · Broad mix</span>
                         </div>
                         <div class="value-driver-item ${concentrationStatus.tone}">
                             <label>유입 집중도</label>
                             <strong>${asPct !== null ? formatNumber(asPct, 1) : '-'}${asPct !== null ? '%' : ''}</strong>
-                            <span>${concentrationStatus.label} · 높을수록 유입 쏠림</span>
+                        <span>${concentrationStatus.label} · 높을수록 Entry 쏠림</span>
                         </div>
                         <div class="value-driver-item ${chainStatus.tone}">
-                            <label>재구매 연결 균형</label>
+                            <label>Expansion Balance</label>
                             <strong>${csPct !== null ? formatNumber(csPct, 1) : '-'}${csPct !== null ? '%' : ''}</strong>
-                            <span>${chainStatus.label} · 높을수록 연결 구조 안정</span>
+                        <span>${chainStatus.label} · 높을수록 Expansion 연결 안정</span>
                         </div>
                     </div>
                     <p class="chart-hint">현재 파일에서는 영향 요소를 구조 관점으로 표시합니다. VAI/VQI/VCR 세부 분해값이 제공되면 이 영역을 더 정밀하게 확장할 수 있습니다.</p>
@@ -1873,11 +1873,11 @@ function renderBrandFitness(model) {
                 <summary>원인 자세히 보기 (구성 요소/추세/기간별 수치)</summary>
                 <div class="fitness-details-body">
                     <div class="factor-block">
-                        <h3>브랜드 실전 체력 구성 요소 (${selectedWindow}일)</h3>
+                        <h3>Brand Impact Index 구성 요소 (${selectedWindow}일)</h3>
                         <p class="chart-hint">구조, ${FITNESS_COMPONENT_LABELS.value}, ${FITNESS_COMPONENT_LABELS.strength} 중 어떤 요소가 변화를 만들었는지 확인합니다.</p>
                         <div class="factor-grid">
                             <div class="journey-kpi">
-                                <label>브랜드 구조 건강도</label>
+                                <label>Brand Health Index</label>
                                 <strong>${componentBhi !== null ? formatNumber(componentBhi, 3) : '-'}</strong>
                             </div>
                             <div class="journey-kpi">
@@ -1981,12 +1981,12 @@ function renderInsightFilters(model) {
 
     const aaTypeOptions = aaTypes.map((type) => {
         const selected = String(filters.aaType) === type ? 'selected' : '';
-        return `<option value="${escapeHtml(type)}" ${selected}>${escapeHtml(type === 'ALL' ? '전체 유입 유형' : toAaTypeLabel(type))}</option>`;
+        return `<option value="${escapeHtml(type)}" ${selected}>${escapeHtml(type === 'ALL' ? '전체 Entry 유형' : toAaTypeLabel(type))}</option>`;
     }).join('');
 
     const aaProductOptions = aaProducts.map((id) => {
         const selected = String(filters.aaProductId) === id ? 'selected' : '';
-        const label = id === 'ALL' ? '전체 유입 상품' : `${getProductName(id)} (${id})`;
+        const label = id === 'ALL' ? '전체 Entry 상품' : `${getProductName(id)} (${id})`;
         return `<option value="${escapeHtml(id)}" ${selected}>${escapeHtml(label)}</option>`;
     }).join('');
 
@@ -2004,18 +2004,18 @@ function renderInsightFilters(model) {
             ${jumpNavOpen ? `
                 <nav class="filter-jump-nav">
                     <a href="#brand-fitness">브랜드 체력</a>
-                    <a href="#aa-journey">첫구매 고객 흐름</a>
-                    <a href="#aa-transition">재구매 시작 전환</a>
-                    <a href="#cart-ca">장바구니 확장</a>
+                    <a href="#aa-journey">Entry Gravity 고객 흐름</a>
+                    <a href="#aa-transition">Expansion Gravity 전환</a>
+                    <a href="#cart-ca">Basket Gravity</a>
                     <a href="#action-center">실행 카드</a>
                 </nav>
                 <div class="filter-grid">
                     <label class="filter-field">
-                        <span>유입 유형</span>
+                        <span>Entry 유형</span>
                         <select onchange="updateInsightsFilter('aaType', this.value)">${aaTypeOptions}</select>
                     </label>
                     <label class="filter-field">
-                        <span>유입 상품</span>
+                        <span>Entry 상품</span>
                         <select onchange="updateInsightsFilter('aaProductId', this.value)">${aaProductOptions}</select>
                     </label>
                     <label class="filter-field">
@@ -2060,7 +2060,7 @@ function renderInsightsCharts(model) {
                         fill: true
                     },
                     {
-                        label: '재구매 핵심상품 구매율',
+                        label: 'Expansion Gravity 도달률',
                         data: [toNumber(s.pca30, 0) * 100, toNumber(s.pca90, 0) * 100, toNumber(s.pca90, 0) * 100],
                         borderColor: '#ec4899',
                         backgroundColor: 'rgba(236,72,153,0.12)',
@@ -2101,7 +2101,7 @@ function renderInsightsCharts(model) {
             data: {
                 labels: rows.map((row) => row.shortLabel),
                 datasets: [{
-                    label: '첫구매 유입 고객수',
+                    label: 'Entry Gravity 고객수',
                     data: rows.map((row) => row.cohortCustomers),
                     backgroundColor: 'rgba(16,185,129,0.6)',
                     borderColor: 'rgba(16,185,129,1)',
@@ -2323,7 +2323,7 @@ function renderInsightsCharts(model) {
                 plugins: {
                     title: {
                         display: true,
-                        text: '브랜드 실전 체력과 구성 요소 추세',
+                        text: 'Brand Impact Index 구성 요소 추세',
                         color: '#1e293b'
                     }
                 }
@@ -2341,10 +2341,10 @@ function renderInsightsCharts(model) {
             AppState.charts.brandStructureRadar = new Chart(structureRadarCanvas.getContext('2d'), {
                 type: 'radar',
                 data: {
-                    labels: ['유입 구조 균형', '재구매 연결 균형', '가치 준비도'],
+                    labels: ['Entry Balance', 'Expansion Balance', 'Value Readiness'],
                     datasets: [
                         {
-                            label: '브랜드 구조 건강도 3축',
+                            label: 'Brand Health Index 3축',
                             data: [
                                 asPct !== null ? asPct : 0,
                                 csPct !== null ? csPct : 0,
@@ -2364,7 +2364,7 @@ function renderInsightsCharts(model) {
                         legend: { display: false },
                         title: {
                             display: true,
-                            text: '브랜드 구조 건강도 레이더(%)',
+                            text: 'Brand Health Index 레이더(%)',
                             color: '#1e293b'
                         },
                         tooltip: {
@@ -2467,10 +2467,6 @@ function showUploadModal() {
                 <div style="display:flex; justify-content:space-between; margin-bottom:1.5rem;"><h3>CSV 업로드</h3><button onclick="document.getElementById('uploadModal').remove()" style="background:none; border:none; color:white; cursor:pointer;"><i class="ph ph-x" style="font-size:1.5rem"></i></button></div>
                 <div id="upload-status" style="margin-bottom:1rem; color:var(--text-muted)">여러 CSV를 동시에 선택할 수 있습니다. 권장 파일명 또는 키를 포함한 파일명을 사용하세요.</div>
                 <input type="file" id="file-input" multiple accept=".csv" onchange="handleFiles(this.files)">
-                <div style="margin-top:0.8rem; color:var(--text-muted); font-size:0.82rem; line-height:1.5;">
-                    지원 키: ${Object.values(REQUIRED_FILES).map((f) => `<code>${f.key}</code>`).join(', ')}<br>
-                    권장 파일명: ${Object.values(REQUIRED_FILES).map((f) => `<code>${f.filename}</code>`).join(', ')}
-                </div>
                 <div id="file-list" style="margin-top:1rem; font-size:0.9rem;"></div>
             </div>
         </div>
@@ -2569,7 +2565,7 @@ async function init() {
         const bootstrap = await syncDataFromLocalCsv(keys);
         if (bootstrap.loadedCount > 0) {
             console.info(
-                '[APF] 로컬 CSV 동기화 완료:',
+                '[PGM] 로컬 CSV 동기화 완료:',
                 bootstrap.loaded.map((item) => `${item.key} <= ${item.source} (${item.rows} rows, ${item.mode})`).join(', ')
             );
         }

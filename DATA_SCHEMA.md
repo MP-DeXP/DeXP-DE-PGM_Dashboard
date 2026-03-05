@@ -1,4 +1,4 @@
-# APF Dashboard Data Schema
+# PGM Dashboard Data Schema
 
 `app.js`에서 사용되는 CSV 스키마 정의입니다.
 
@@ -70,7 +70,7 @@
 ---
 
 ## 6) `aa_cohort_journey` (신규)
-용도: Insight Studio - AA Cohort Journey
+용도: Insight Studio - Entry Gravity Cohort Journey
 
 필수 컬럼:
 - `cohort_date`
@@ -86,7 +86,7 @@
 - `avg_revenue_90d`
 
 ## 7) `aa_transition_path` (신규)
-용도: Insight Studio - AA → PCA 전이 분석
+용도: Insight Studio - Entry Gravity → Expansion Gravity 전이 분석
 
 필수 컬럼:
 - `cohort_date`
@@ -98,7 +98,7 @@
 - `avg_days_to_pca`
 
 ## 8) `ca_profile` (신규)
-용도: Insight Studio - Cart/CA Insight
+용도: Insight Studio - Basket Gravity Insight
 
 필수 컬럼:
 - `product_id`
@@ -163,4 +163,3 @@
 - `ca_profile`
 - `bii_window`
 - `apf_action_rules`
-

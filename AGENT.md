@@ -1,9 +1,9 @@
-# APF Dashboard 에이전트 컨텍스트
+# PGM Dashboard 에이전트 컨텍스트
 
 ## 1) 프로젝트 목적
 - 이 프로젝트는 내부 테스트/시연을 위한 브라우저 기반 분석 대시보드입니다.
 - 운영(프로덕션) 목적은 아닙니다.
-- 핵심 목표는 CSV 데이터를 빠르게 올리고, APF 주요 지표를 시각적으로 확인하는 것입니다.
+- 핵심 목표는 CSV 데이터를 빠르게 올리고, PGM 주요 지표를 시각적으로 확인하는 것입니다.
 
 ## 2) 기술/구조
 - 프런트엔드 단독 구조(백엔드 없음, 빌드 단계 없음).
@@ -22,9 +22,9 @@
   - Google Fonts
 
 ## 3) 데이터 로딩 방식
-- 데이터 소스: 사용자가 Upload 모달에서 선택한 로컬 CSV 파일
+- 데이터 소스: `data/` 경로 CSV 자동 로드 + Upload 모달 수동 업로드 fallback
 - 파싱: PapaParse (`header: true`, `dynamicTyping: true`)
-- 저장: IndexedDB (`APF_Dashboard_DB`, store: `csv_files`)
+- 저장: IndexedDB (`PGM_Dashboard_DB`, store: `csv_files`)
 - 필수 데이터셋 키:
   - `brand_score`
   - `anchor_scored`
@@ -40,8 +40,9 @@
 
 ## 4) 실행 방법
 1. 브라우저에서 `insights.html`을 직접 엽니다.
-2. 사이드바의 **Upload Data** 버튼으로 CSV 파일을 업로드합니다.
-3. 좌측 메뉴에서 페이지를 이동하며 확인합니다.
+2. 앱이 `data/` 경로 CSV를 자동 로드해 IndexedDB를 동기화합니다.
+3. 누락 파일만 사이드바의 **Upload Data** 버튼으로 업로드합니다.
+4. 좌측 메뉴에서 페이지를 이동하며 확인합니다.
 
 ## 5) 현재 동작 메모
 - IndexedDB 데이터가 없으면 업로드 안내 화면이 표시됩니다.
