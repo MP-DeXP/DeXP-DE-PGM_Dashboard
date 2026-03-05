@@ -9,24 +9,40 @@ const DB_CONFIG = {
 
 const REQUIRED_FILES = {
     brandScore: { key: 'brand_score', filename: 'brand_score.csv' },
-    anchorScored: { key: 'anchor_scored', filename: 'anchor_scored.csv' },
-    anchorTransition: { key: 'anchor_transition', filename: 'anchor_transition.csv' },
-    cartAnchor: { key: 'cart_anchor', filename: 'cart_anchor.csv' },
-    cartAnchorDetail: { key: 'cart_anchor_detail', filename: 'cart_anchor_detail.csv' },
+    anchorScored: {
+        key: 'anchor_scored',
+        filename: 'pgm_scored.csv',
+        aliases: ['anchor_scored.csv']
+    },
+    anchorTransition: {
+        key: 'anchor_transition',
+        filename: 'pgm_entry_to_expansion_transition.csv',
+        aliases: ['anchor_transition.csv']
+    },
+    cartAnchor: {
+        key: 'cart_anchor',
+        filename: 'pgm_basket_gravity.csv',
+        aliases: ['cart_anchor.csv']
+    },
+    cartAnchorDetail: {
+        key: 'cart_anchor_detail',
+        filename: 'pgm_basket_gravity_detail.csv',
+        aliases: ['cart_anchor_detail.csv']
+    },
     aaCohortJourney: {
         key: 'aa_cohort_journey',
-        filename: '_insight_aa_cohort_journey.csv',
-        aliases: ['aa_cohort_journey.csv']
+        filename: '_insight_entry_cohort_journey.csv',
+        aliases: ['_insight_aa_cohort_journey.csv', 'aa_cohort_journey.csv']
     },
     aaTransitionPath: {
         key: 'aa_transition_path',
-        filename: '_insight_aa_transition_path.csv',
-        aliases: ['aa_transition_path.csv']
+        filename: '_insight_entry_transition_path.csv',
+        aliases: ['_insight_aa_transition_path.csv', 'aa_transition_path.csv']
     },
     caProfile: {
         key: 'ca_profile',
-        filename: '_insight_ca_profile.csv',
-        aliases: ['ca_profile.csv']
+        filename: '_insight_basket_gravity_profile.csv',
+        aliases: ['_insight_ca_profile.csv', 'ca_profile.csv']
     },
     biiWindow: {
         key: 'bii_window',
@@ -35,10 +51,12 @@ const REQUIRED_FILES = {
     },
     apfActionRules: {
         key: 'apf_action_rules',
-        filename: '_insight_apf_action_rules.csv',
-        aliases: ['apf_action_rules.csv']
+        filename: '_insight_pgm_action_rules.csv',
+        aliases: ['_insight_apf_action_rules.csv', 'apf_action_rules.csv']
     }
 };
+
+const AUTOLOAD_DIRECTORIES = ['data', ''];
 
 // --- App State ---
 const AppState = {
@@ -382,6 +400,13 @@ const getUploadFileConfig = (filename) => {
         return names.includes(lowerName);
     });
     if (exact) return exact;
+    const byNameStem = configs.find((config) => {
+        const stems = [config.filename, ...(config.aliases || [])]
+            .map((name) => String(name).toLowerCase().replace(/\.csv$/i, ''))
+            .filter(Boolean);
+        return stems.some((stem) => lowerName.includes(stem));
+    });
+    if (byNameStem) return byNameStem;
     return configs
         .sort((a, b) => b.key.length - a.key.length)
         .find((config) => lowerName.includes(config.key.toLowerCase()));
@@ -399,10 +424,87 @@ const preprocessUploadRows = (config, filename, rows) => {
     return normalizeCsvRows(rows);
 };
 
+const listAutoLoadCandidates = (config) => {
+    const names = [config.filename, ...(config.aliases || []), `${config.key}.csv`]
+        .map((name) => String(name || '').trim())
+        .filter(Boolean);
+    return Array.from(new Set(names));
+};
+
+const parseCsvText = (text) => {
+    return new Promise((resolve, reject) => {
+        Papa.parse(text, {
+            header: true,
+            dynamicTyping: true,
+            skipEmptyLines: true,
+            complete: (result) => resolve(result.data || []),
+            error: reject
+        });
+    });
+};
+
+const fetchCsvRowsForConfig = async (config, directories = AUTOLOAD_DIRECTORIES) => {
+    const candidates = listAutoLoadCandidates(config);
+    for (const dir of directories) {
+        for (const name of candidates) {
+            const path = dir ? `${dir}/${name}` : name;
+            try {
+                const response = await fetch(path, { cache: 'no-store' });
+                if (!response.ok) continue;
+                const text = await response.text();
+                const parsedRows = await parseCsvText(text);
+                const rows = preprocessUploadRows(config, name, parsedRows);
+                return { rows, source: path };
+            } catch (_) {
+                // file:// 보안 제한 또는 미존재 파일은 다음 후보로 진행
+            }
+        }
+    }
+    return null;
+};
+
+const syncDataFromLocalCsv = async (existingKeys = []) => {
+    const existingSet = new Set(existingKeys || []);
+    const loaded = [];
+
+    // 1) data 폴더는 항상 우선 반영(기존 데이터 덮어쓰기)
+    for (const config of Object.values(REQUIRED_FILES)) {
+        const found = await fetchCsvRowsForConfig(config, ['data']);
+        if (!found) continue;
+        const mode = existingSet.has(config.key) ? 'reloaded' : 'loaded';
+        await DB.save(config.key, found.rows);
+        existingSet.add(config.key);
+        loaded.push({
+            key: config.key,
+            source: found.source,
+            rows: found.rows.length,
+            mode
+        });
+    }
+
+    // 2) data에 없는 키는 루트에서 보충
+    const missingConfigs = Object.values(REQUIRED_FILES).filter((config) => !existingSet.has(config.key));
+    for (const config of missingConfigs) {
+        const found = await fetchCsvRowsForConfig(config, ['']);
+        if (!found) continue;
+        await DB.save(config.key, found.rows);
+        existingSet.add(config.key);
+        loaded.push({
+            key: config.key,
+            source: found.source,
+            rows: found.rows.length,
+            mode: 'loaded'
+        });
+    }
+
+    return { loadedCount: loaded.length, loaded };
+};
+
 const getUploadPriority = (config, filename) => {
     const lowerName = String(filename || '').toLowerCase();
     const primaryName = String(config.filename || '').toLowerCase();
-    if (lowerName === primaryName || lowerName.includes('_insight_')) return 3;
+    const primaryStem = primaryName.replace(/\.csv$/i, '');
+    if (lowerName === primaryName || (primaryStem && lowerName.includes(primaryStem)) || lowerName.includes('_insight_')) return 3;
     if (lowerName.includes('brand_impact_index')) return 2;
     if (lowerName.includes('brand_impact_windows')) return 1;
     if ((config.aliases || []).map((name) => String(name).toLowerCase()).includes(lowerName)) return 2;
@@ -2463,9 +2565,25 @@ async function init() {
     if (sidebar) sidebar.innerHTML = '<button class="btn-primary" style="width:100%" onclick="showUploadModal()"><i class="ph ph-upload-simple"></i> 데이터 업로드</button>';
 
     try {
-        const keys = await DB.getAllKeys();
+        let keys = await DB.getAllKeys();
+        const bootstrap = await syncDataFromLocalCsv(keys);
+        if (bootstrap.loadedCount > 0) {
+            console.info(
+                '[APF] 로컬 CSV 동기화 완료:',
+                bootstrap.loaded.map((item) => `${item.key} <= ${item.source} (${item.rows} rows, ${item.mode})`).join(', ')
+            );
+        }
+        keys = await DB.getAllKeys();
         if (keys.length === 0) {
-            document.getElementById('content-area').innerHTML = '<div class="card animate-fade-in" style="text-align:center; padding:4rem;"><i class="ph ph-database" style="font-size:4rem; color:var(--text-muted); margin-bottom:1rem;"></i><h3>데이터 없음</h3><p style="color:var(--text-muted); margin-bottom:2rem;">CSV 파일을 업로드해 시작하세요.</p><button class="btn-primary" onclick="showUploadModal()">지금 업로드</button></div>';
+            document.getElementById('content-area').innerHTML = `
+                <div class="card animate-fade-in" style="text-align:center; padding:4rem;">
+                    <i class="ph ph-database" style="font-size:4rem; color:var(--text-muted); margin-bottom:1rem;"></i>
+                    <h3>데이터 없음</h3>
+                    <p style="color:var(--text-muted); margin-bottom:0.6rem;">기본 CSV 자동 로드를 시도했지만 불러오지 못했습니다.</p>
+                    <p style="color:var(--text-muted); margin-bottom:2rem;"><code>data/</code> 경로에 CSV를 두거나 수동 업로드를 진행해 주세요.</p>
+                    <button class="btn-primary" onclick="showUploadModal()">지금 업로드</button>
+                </div>
+            `;
             return;
         }
 

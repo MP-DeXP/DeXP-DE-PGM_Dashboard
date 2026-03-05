@@ -1,0 +1,5 @@
+Generated with aggregated source files only (no raw member-order logs).
+cohort_date/as_of_date set to generation date.
+aa_cohort_journey repeat_7d/repeat_30d inferred from repeat_90d scaling factors.
+bii_window derived using heuristic short/mid/long factors; treat as demo baseline.
+apf_action_rules is default template and can be edited by business users.

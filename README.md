@@ -21,28 +21,31 @@
 
 ## 실행 방법
 1. 브라우저에서 `insights.html` 파일을 직접 엽니다.
-2. 사이드바의 `데이터 업로드` 버튼을 누릅니다.
-3. 필요한 CSV를 다중 선택 업로드합니다.
-4. 필터(스냅샷 기준일/유입 유형/유입 상품/비교 기준 기간)로 인사이트를 탐색합니다.
+2. 앱이 시작될 때 `data/` CSV를 최우선으로 다시 읽어 IndexedDB 값을 덮어씁니다.
+3. `data/`에 없는 파일은 루트 경로 CSV를 자동 탐색해 보충 로드합니다.
+4. 자동 로드에서 누락된 파일만 사이드바 `데이터 업로드`로 추가 업로드합니다.
+5. 필터(유입 유형/유입 상품/비교 기준 기간)로 인사이트를 탐색합니다.
 
 ## 업로드 CSV 키
 파일명에 아래 키를 포함해야 자동 매칭됩니다.
 
-기존:
+PGM canonical 파일명:
 - `brand_score` (`brand_score.csv`)
-- `anchor_scored` (`anchor_scored.csv`)
-- `anchor_transition` (`anchor_transition.csv`)
-- `cart_anchor` (`cart_anchor.csv`)
-- `cart_anchor_detail` (`cart_anchor_detail.csv`)
+- `anchor_scored` (`pgm_scored.csv`)
+- `anchor_transition` (`pgm_entry_to_expansion_transition.csv`)
+- `cart_anchor` (`pgm_basket_gravity.csv`)
+- `cart_anchor_detail` (`pgm_basket_gravity_detail.csv`)
 
-신규:
-- `aa_cohort_journey` (`_insight_aa_cohort_journey.csv`)
-- `aa_transition_path` (`_insight_aa_transition_path.csv`)
-- `ca_profile` (`_insight_ca_profile.csv`)
+인사이트 canonical 파일명:
+- `aa_cohort_journey` (`_insight_entry_cohort_journey.csv`)
+- `aa_transition_path` (`_insight_entry_transition_path.csv`)
+- `ca_profile` (`_insight_basket_gravity_profile.csv`)
 - `bii_window` (`_insight_bii_window.csv`)
-- `apf_action_rules` (`_insight_apf_action_rules.csv`, 선택)
+- `apf_action_rules` (`_insight_pgm_action_rules.csv`, 선택)
 
-추가 호환:
+Legacy alias 호환(업로드 가능):
+- `anchor_scored.csv`, `anchor_transition.csv`, `cart_anchor.csv`, `cart_anchor_detail.csv`
+- `_insight_aa_cohort_journey.csv`, `_insight_aa_transition_path.csv`, `_insight_ca_profile.csv`, `_insight_apf_action_rules.csv`
 - `brand_impact_windows.csv`, `brand_impact_index.csv`는 업로드 시 `bii_window` 포맷으로 자동 변환됩니다.
 
 ## 데이터 처리 전략

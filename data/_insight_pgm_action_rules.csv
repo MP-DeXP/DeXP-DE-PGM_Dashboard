@@ -1,0 +1,7 @@
+﻿rule_id,domain,condition_expr,priority,title_ko,action_ko,impact_ko
+mk_aa_broad_low_transition,marketing,aa_broad_ratio > 0.5 && pca_transition_90d_rate < 0.25,1,Entry Gravity 유입 후 Expansion Gravity 전환 강화,첫구매 7일 내 Expansion Gravity-Core 유도 CRM/리타게팅 캠페인을 우선 실행합니다.,유입 낭비 축소 및 90일 전이율 개선
+mk_transition_concentration,marketing,transition_top3_share > 0.65,2,전이 경로 과집중 완화,상위 경로를 유지하면서 대체 Expansion Gravity 노출 A/B 테스트를 병행합니다.,경로 리스크 분산
+mk_slow_pca,marketing,avg_days_to_expansion > 18,1,Expansion Gravity 도달 속도 개선,CRM 발화 시점을 앞당기고 3~7일 구간 혜택을 강화합니다.,평균 전이 소요일 단축
+md_pair_focus,md,ca_pair_top1_share_max > 0.7,1,Basket Gravity-Pair 고정 번들 운영,상위 Pair 상품의 고정 번들/교차추천 슬롯을 우선 운영합니다.,장바구니 확장률 향상
+md_set_landing,md,ca_set_breadth_lift_avg > 1.5,2,Basket Gravity-Set 세트 랜딩 강화,세트형 상품군 랜딩을 분리하고 구성 SKU 재고를 선제 관리합니다.,AOV 상승 및 이탈 감소
+md_scale_inventory,md,pca_scale_concentration > 0.55,1,Expansion Gravity-Scale 재고 방어,Scale 상위 SKU의 안전재고 기준을 상향하고 품절 대응 룰을 적용합니다.,사슬 붕괴 리스크 완화
