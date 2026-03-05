@@ -152,6 +152,38 @@
 
 ---
 
+## 11) `product_group_map` (신규, 선택)
+용도: 동일 상품군 수동 그룹 매핑/해제(전 페이지 집계 반영)
+
+권장 파일명:
+- `pgm_product_group_map.csv`
+
+alias:
+- `product_group_map.csv`
+- `_meta_product_group_map.csv`
+
+필수 컬럼:
+- `product_id`
+- `status` (`grouped` | `ungrouped`)
+
+조건부 필수 컬럼 (`status=grouped`일 때):
+- `group_id`
+- `group_name`
+
+권장 컬럼:
+- `rule` (`exact_name` | `normalized_prefix` | `manual`)
+- `updated_at` (ISO datetime)
+
+동작 규칙:
+- `grouped`: 지정 그룹으로 강제 매핑
+- `ungrouped`: 자동 제안에서 제외하고 독립 유지
+- 저장 우선순위:
+  1. `data/pgm_product_group_map.csv`
+  2. IndexedDB 저장값
+  3. 자동 제안(동일 상품명 + 접두어 `[ ... ]` 제거 정규화)
+
+---
+
 ## 업로드 키 목록 (파일명 매칭 기준)
 - `brand_score`
 - `anchor_scored`
@@ -163,3 +195,4 @@
 - `ca_profile`
 - `bii_window`
 - `apf_action_rules`
+- `product_group_map`

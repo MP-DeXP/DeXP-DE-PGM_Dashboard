@@ -1,72 +1,66 @@
-# PGM Dashboard
+# 마케팅 분석 대시보드
 
-내부 테스트/시연용 PGM 분석 대시보드입니다.  
-마케터/MD가 바로 이해할 수 있도록 화면 용어를 PGM 표준으로 정리했습니다.
+내부 테스트/시연용 브라우저 대시보드입니다.
+복잡한 내부 용어 대신, 마케터/MD가 바로 이해할 수 있는 쉬운 문장으로 구성했습니다.
 
 ## 핵심 목적
-- 마케팅 담당자와 MD가 한 화면에서 함께 의사결정
-- Entry Gravity 유입 이후 90일 전환 최적화
-- Brand Health Index/Brand Impact Index/Basket Gravity 신호를 실행 카드로 연결
+- 첫구매 이후 90일 흐름을 빠르게 확인해 의사결정하기
+- 상품/전환/장바구니/브랜드 체력을 한 화면 흐름으로 보기
+- 지표를 실행 카드로 바로 연결하기
 
 ## 페이지 구성
 - `insights.html`: 인사이트 스튜디오 (기본 진입)
 - `index.html?overview=1`: 요약 현황
-- `products.html`: 상품 분석
+- `products.html`: 상품 분석 (상품 상태 4분면 포함)
 - `transitions.html`: 전환 흐름
-- `cart.html`: Basket Gravity
+- `cart.html`: 장바구니 분석
 
 참고:
 - `index.html`을 직접 열면 `insights.html`로 자동 이동합니다.
-- 요약 현황은 `index.html?overview=1`로 접근합니다.
 
 ## 실행 방법
 1. 브라우저에서 `insights.html` 파일을 직접 엽니다.
-2. 앱이 시작될 때 `data/` CSV를 최우선으로 다시 읽어 IndexedDB 값을 덮어씁니다.
-3. `data/`에 없는 파일은 루트 경로 CSV를 자동 탐색해 보충 로드합니다.
-4. 자동 로드에서 누락된 파일만 사이드바 `데이터 업로드`로 추가 업로드합니다.
-5. 필터(Entry 유형/Entry 상품/비교 기준 기간)로 인사이트를 탐색합니다.
+2. 앱 시작 시 `data/` 폴더 CSV를 자동으로 다시 읽습니다.
+3. 누락 파일이 있으면 사이드바 하단 `설정 > 데이터 관리 > CSV 업로드`로 추가합니다.
+
+## 설정 메뉴
+사이드바 하단 `설정`에서 아래 기능을 제공합니다.
+- 상품 그룹 관리
+- 데이터 관리(CSV 업로드 / 로컬 파일 다시 불러오기 / 저장 데이터 초기화)
+
+## 4분면 보기
+- 기본 모드: `집중뷰` (p5~p95 구간 중심)
+- 전환 모드: `원본 보기` (전체 범위)
+- 사분면 판정은 항상 원본 중앙값 기준으로 동일합니다.
+- 버블 크기: `product_order_cnt_1y / 52` (주간 예상 판매량)
+
+## 상품 그룹 매핑
+- 선택 파일 키: `product_group_map`
+- 권장 파일명: `pgm_product_group_map.csv`
+- alias: `product_group_map.csv`, `_meta_product_group_map.csv`
+- 우선순위:
+  1. `data/pgm_product_group_map.csv`
+  2. IndexedDB 저장값
+  3. 자동 제안(동일명 + 접두어 제거)
 
 ## 업로드 CSV 키
-파일명에 아래 키를 포함해야 자동 매칭됩니다.
+- `brand_score`
+- `anchor_scored`
+- `anchor_transition`
+- `cart_anchor`
+- `cart_anchor_detail`
+- `aa_cohort_journey`
+- `aa_transition_path`
+- `ca_profile`
+- `bii_window`
+- `apf_action_rules` (선택)
+- `product_group_map` (선택)
 
-PGM canonical 파일명:
-- `brand_score` (`brand_score.csv`)
-- `anchor_scored` (`pgm_scored.csv`)
-- `anchor_transition` (`pgm_entry_to_expansion_transition.csv`)
-- `cart_anchor` (`pgm_basket_gravity.csv`)
-- `cart_anchor_detail` (`pgm_basket_gravity_detail.csv`)
+## 딥링크 포커스
+- `products.html?focus=<id>`
+- `transitions.html?focus=<id>`
+- `cart.html?focus=<id>`
 
-인사이트 canonical 파일명:
-- `aa_cohort_journey` (`_insight_entry_cohort_journey.csv`)
-- `aa_transition_path` (`_insight_entry_transition_path.csv`)
-- `ca_profile` (`_insight_basket_gravity_profile.csv`)
-- `bii_window` (`_insight_bii_window.csv`)
-- `apf_action_rules` (`_insight_pgm_action_rules.csv`, 선택)
-
-Legacy alias 호환(업로드 가능):
-- `anchor_scored.csv`, `anchor_transition.csv`, `cart_anchor.csv`, `cart_anchor_detail.csv`
-- `_insight_aa_cohort_journey.csv`, `_insight_aa_transition_path.csv`, `_insight_ca_profile.csv`, `_insight_apf_action_rules.csv`
-- `brand_impact_windows.csv`, `brand_impact_index.csv`는 업로드 시 `bii_window` 포맷으로 자동 변환됩니다.
-
-## 데이터 처리 전략
-- 무거운 계산: 사전 집계 CSV로 제공
-- 가벼운 파생 계산: 브라우저에서 실시간 계산
-- 저장소: IndexedDB (`PGM_Dashboard_DB` / `csv_files`)
-
-## 인사이트 스튜디오 섹션
-- 인사이트 요약: Brand Impact Index, 90일 대비 연간 추세, 경고 요약
-- 브랜드 체력 현황: 체력 방향/상태/즉시 액션을 먼저 확인하고, 상세는 펼쳐서 원인 분석
-- Entry Gravity 고객 흐름: 7/30/90일 재구매 흐름
-- Expansion Gravity 전환 흐름: 상품 간 전환 경로/집중도/소요일
-- Basket Gravity 인사이트: 확장 유형/동반구매 비율/장바구니 크기
-- 실행 카드: 마케팅/MD 실행안
-
-## 관련 문서
-- 에이전트 컨텍스트: `AGENT.md`
-- 데이터 스키마: `DATA_SCHEMA.md`
-- 마케터 용어 가이드: `docs/마케터_용어_가이드.md`
-
-## 용어/호환성 참고
-- 화면에는 PGM 표준 용어(`Entry/Expansion/Basket Gravity`)를 사용합니다.
-- CSV 파일명/컬럼명/코드 내부 데이터 키는 기존 명칭을 유지합니다.
-- 일부 CSV가 없어도 섹션 단위 안내 메시지와 함께 렌더됩니다.
+## 용어/호환성
+- UI/툴팁에서는 내부 약어와 어려운 용어를 사용하지 않습니다.
+- CSV 파일명/컬럼명/코드 내부 데이터 키는 기존 호환성을 유지합니다.

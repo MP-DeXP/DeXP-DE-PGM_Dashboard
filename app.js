@@ -53,6 +53,11 @@ const REQUIRED_FILES = {
         key: 'apf_action_rules',
         filename: '_insight_pgm_action_rules.csv',
         aliases: ['_insight_apf_action_rules.csv', 'apf_action_rules.csv']
+    },
+    productGroupMap: {
+        key: 'product_group_map',
+        filename: 'pgm_product_group_map.csv',
+        aliases: ['product_group_map.csv', '_meta_product_group_map.csv']
     }
 };
 
@@ -70,7 +75,21 @@ const AppState = {
         aaTransitionPath: [],
         caProfile: [],
         biiWindow: [],
-        apfActionRules: []
+        apfActionRules: [],
+        productGroupMap: []
+    },
+    rawData: {
+        brandScore: null,
+        anchorScored: null,
+        anchorTransition: null,
+        cartAnchor: null,
+        cartAnchorDetail: [],
+        aaCohortJourney: [],
+        aaTransitionPath: [],
+        caProfile: [],
+        biiWindow: [],
+        apfActionRules: [],
+        productGroupMap: []
     },
     pagination: {
         cartDetail: {
@@ -80,9 +99,23 @@ const AppState = {
         }
     },
     viewState: {
-        products: { sortCol: 'revenue_90d', sortDesc: true, searchQuery: '' },
+        products: {
+            sortCol: 'revenue_90d',
+            sortDesc: true,
+            searchQuery: '',
+            quadrant: {
+                selectedId: '',
+                history: [],
+                filters: {},
+                groupingEditorOpen: false,
+                scaleMode: 'focus'
+            }
+        },
         transitions: { sortCol: 'transition_customer_cnt', sortDesc: true, searchQuery: '' },
         cart: { sortCol: 'co_order_cnt', sortDesc: true, searchQuery: '' },
+        settings: {
+            activeTab: 'grouping'
+        },
         insights: {
             dateFrom: '',
             dateTo: '',
@@ -132,6 +165,15 @@ const DB = {
             const request = db.transaction(DB_CONFIG.store, 'readonly').objectStore(DB_CONFIG.store).getAllKeys();
             request.onsuccess = () => resolve(request.result);
             request.onerror = (e) => reject(e.target.error);
+        });
+    },
+    clearAll: async () => {
+        const db = await DB.open();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(DB_CONFIG.store, 'readwrite');
+            tx.objectStore(DB_CONFIG.store).clear();
+            tx.oncomplete = () => resolve();
+            tx.onerror = (e) => reject(e.target.error);
         });
     }
 };
@@ -199,36 +241,42 @@ const escapeHtml = (value) => String(value ?? '')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
 
+const escapeJs = (value) => String(value ?? '')
+    .replaceAll('\\', '\\\\')
+    .replaceAll("'", "\\'")
+    .replaceAll('\n', '\\n')
+    .replaceAll('\r', '\\r');
+
 const withFallback = (value, fallback = '-') => {
     if (value === null || value === undefined || value === '') return fallback;
     return value;
 };
 
 const TERM_LABELS = {
-    AA: 'Entry Gravity',
-    PCA: 'Expansion Gravity',
-    CA: 'Basket Gravity',
-    BHI: 'Brand Health Index',
-    BII: 'Brand Impact Index'
+    AA: '첫구매 유입 상품',
+    PCA: '재구매 연결 상품',
+    CA: '장바구니 확장 상품',
+    BHI: '브랜드 구조 건강도',
+    BII: '브랜드 실전 체력'
 };
 
 const AA_TYPE_LABELS = {
-    BROAD: 'Broad',
-    QUALIFIED: 'Qualified',
-    HEAVY: 'Heavy'
+    BROAD: '첫구매 많음',
+    QUALIFIED: '재구매 가능성 높음',
+    HEAVY: '고객 가치 높음'
 };
 
 const PCA_TYPE_LABELS = {
-    CORE: 'Core',
-    DEEP: 'Deep',
-    SCALE: 'Scale'
+    CORE: '단골의 시작점',
+    DEEP: '계속 찾는 상품',
+    SCALE: '효자 상품'
 };
 
 const CA_TYPE_LABELS = {
-    CORE: 'Core',
-    PAIR: 'Pair',
-    SET: 'Set',
-    NONE: 'None'
+    CORE: '기본 확장형',
+    PAIR: '함께 담김형',
+    SET: '세트형',
+    NONE: '독립형'
 };
 
 const STAGE_LABELS = {
@@ -246,6 +294,20 @@ const FITNESS_COMPONENT_LABELS = {
     strength: '재구매 강도'
 };
 
+const BANNED_UI_TERMS = [
+    /\bPGM\b/gi,
+    /\bEntry\s*Gravity\b/gi,
+    /\bExpansion\s*Gravity\b/gi,
+    /\bBasket\s*Gravity\b/gi,
+    /\bBrand\s*Health\s*Index\b/gi,
+    /\bBrand\s*Impact\s*Index\b/gi,
+    /\bAA\b/g,
+    /\bPCA\b/g,
+    /\bCA\b/g,
+    /\bBHI\b/g,
+    /\bBII\b/g
+];
+
 const UI_TERM_REPLACEMENTS = [
     [/AA-Broad/gi, `${TERM_LABELS.AA}-${AA_TYPE_LABELS.BROAD}`],
     [/AA-Qualified/gi, `${TERM_LABELS.AA}-${AA_TYPE_LABELS.QUALIFIED}`],
@@ -255,8 +317,8 @@ const UI_TERM_REPLACEMENTS = [
     [/PCA-Scale/gi, `${TERM_LABELS.PCA}-${PCA_TYPE_LABELS.SCALE}`],
     [/CA-Pair/gi, `${TERM_LABELS.CA}-${CA_TYPE_LABELS.PAIR}`],
     [/CA-Set/gi, `${TERM_LABELS.CA}-${CA_TYPE_LABELS.SET}`],
-    [/BII\s*90\/365/gi, '90일 체력 대비 연간 체력'],
-    [/Brand Fitness/gi, 'Brand Fitness'],
+    [/BII\s*90\/365/gi, '90일 대비 연간 흐름'],
+    [/Brand Fitness/gi, '브랜드 체력 현황'],
     [/Action Center/gi, '실행 카드'],
     [/\bBII\b/g, TERM_LABELS.BII],
     [/\bBHI\b/g, TERM_LABELS.BHI],
@@ -265,7 +327,11 @@ const UI_TERM_REPLACEMENTS = [
     [/\bCA\b/g, TERM_LABELS.CA],
     [/\bTransition\b/gi, '전환 흐름'],
     [/\bJourney\b/gi, '고객 흐름'],
-    [/\bFitness\b/gi, '체력 현황']
+    [/\bFitness\b/gi, '체력 현황'],
+    [/\bEntry\s*Gravity\b/gi, '첫구매 유입'],
+    [/\bExpansion\s*Gravity\b/gi, '재구매 연결'],
+    [/\bBasket\s*Gravity\b/gi, '장바구니 확장'],
+    [/\bPGM\b/gi, '마케팅']
 ];
 
 const normalizeCategoryValue = (value, fallback = '') => {
@@ -308,7 +374,26 @@ const replaceUiTerm = (value) => {
     UI_TERM_REPLACEMENTS.forEach(([pattern, replacement]) => {
         text = text.replace(pattern, replacement);
     });
-    return text;
+    return text.replace(/\s{2,}/g, ' ');
+};
+
+const softenTone = (value) => String(value || '')
+    .replaceAll('합니다.', '해요.')
+    .replaceAll('합니다', '해요')
+    .replaceAll('됩니다.', '돼요.')
+    .replaceAll('됩니다', '돼요')
+    .replaceAll('없습니다.', '없어요.')
+    .replaceAll('없습니다', '없어요');
+
+const toFriendlyText = (value) => softenTone(replaceUiTerm(value));
+
+const validateUiHardRule = (value, context = 'ui') => {
+    const text = String(value || '');
+    BANNED_UI_TERMS.forEach((rule) => {
+        if (rule.test(text)) {
+            console.warn(`[Hard-rule 위반][${context}]`, text);
+        }
+    });
 };
 
 const truncateText = (value, maxLen = 24) => {
@@ -319,8 +404,11 @@ const truncateText = (value, maxLen = 24) => {
 
 const renderProductCell = (name, id, maxLen = 24) => {
     const full = `${name} (${id})`;
+    const short = truncateText(name, maxLen);
     return `
-        <span class="name-ellipsis" title="${escapeHtml(full)}">${escapeHtml(truncateText(name, maxLen))}</span>
+        <button class="name-trigger" type="button" onclick="showProductNamePopover('${escapeJs(name)}','${escapeJs(id)}')">
+            <span class="name-clamp-2">${escapeHtml(short)}</span>
+        </button>
         <div class="sub-id">${escapeHtml(id)}</div>
     `;
 };
@@ -334,6 +422,784 @@ const normalizeCsvRows = (rows) => (rows || []).map((row) => {
     });
     return normalized;
 });
+
+function readProductId(row) {
+    return String(
+        row?.product_id ||
+        row?.Product_ID ||
+        row?.entry_product_id ||
+        row?.aa_product_id ||
+        row?.pca_product_id ||
+        row?.i ||
+        row?.j ||
+        ''
+    ).trim();
+}
+
+function readProductName(row) {
+    return String(row?.product_name_latest || row?.Product_Name || row?.product_name || '').trim();
+}
+
+function normalizeGroupName(name) {
+    const raw = String(name || '').trim();
+    if (!raw) return '';
+    const removedPrefix = raw.replace(/^(\s*\[[^\]]+\]\s*)+/g, '');
+    return removedPrefix.replace(/\s+/g, ' ').trim();
+}
+
+function slugify(value) {
+    return String(value || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9가-힣]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 40);
+}
+
+function hashString(value) {
+    const s = String(value || '');
+    let hash = 2166136261;
+    for (let i = 0; i < s.length; i += 1) {
+        hash ^= s.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+    }
+    return (hash >>> 0).toString(16).padStart(8, '0');
+}
+
+function buildDeterministicGroupId(seed) {
+    const base = slugify(seed) || 'group';
+    return `grp_${base}_${hashString(seed)}`;
+}
+
+function nowIso() {
+    return new Date().toISOString();
+}
+
+function sanitizeProductGroupMapRows(rows) {
+    const normalizedRows = normalizeCsvRows(rows);
+    const dedup = new Map();
+    normalizedRows.forEach((row) => {
+        const productId = String(row.product_id || '').trim();
+        if (!productId) return;
+        const status = String(row.status || '').trim().toLowerCase();
+        if (status !== 'grouped' && status !== 'ungrouped') return;
+        let groupId = String(row.group_id || '').trim();
+        let groupName = String(row.group_name || '').trim();
+        if (status === 'grouped') {
+            if (!groupId && groupName) groupId = buildDeterministicGroupId(groupName);
+            if (!groupName && groupId) groupName = groupId;
+            if (!groupId || !groupName) return;
+        } else {
+            groupId = '';
+            groupName = '';
+        }
+        const rule = String(row.rule || (status === 'grouped' ? 'manual' : 'manual')).trim() || 'manual';
+        dedup.set(productId, {
+            product_id: productId,
+            status,
+            group_id: groupId,
+            group_name: groupName,
+            rule,
+            updated_at: String(row.updated_at || nowIso()).trim()
+        });
+    });
+    return Array.from(dedup.values());
+}
+
+function buildAutoGroups(anchorRows) {
+    const rows = anchorRows || [];
+    const productMeta = new Map();
+    const idsByExactName = new Map();
+    const idsByNormalizedName = new Map();
+    const knownIds = new Set();
+
+    rows.forEach((row) => {
+        const id = readProductId(row);
+        const rawName = readProductName(row);
+        if (!id || !rawName) return;
+        knownIds.add(id);
+        const normName = normalizeGroupName(rawName);
+        const revenue = toNumber(row.revenue_90d, 0);
+        productMeta.set(id, { id, rawName, normName, revenue });
+
+        if (!idsByExactName.has(rawName)) idsByExactName.set(rawName, new Set());
+        idsByExactName.get(rawName).add(id);
+
+        if (normName) {
+            if (!idsByNormalizedName.has(normName)) idsByNormalizedName.set(normName, new Set());
+            idsByNormalizedName.get(normName).add(id);
+        }
+    });
+
+    const parent = new Map();
+    const ensureNode = (id) => {
+        if (!parent.has(id)) parent.set(id, id);
+    };
+    const find = (id) => {
+        ensureNode(id);
+        let cur = id;
+        while (parent.get(cur) !== cur) {
+            cur = parent.get(cur);
+        }
+        let walk = id;
+        while (parent.get(walk) !== walk) {
+            const next = parent.get(walk);
+            parent.set(walk, cur);
+            walk = next;
+        }
+        return cur;
+    };
+    const union = (a, b) => {
+        const ra = find(a);
+        const rb = find(b);
+        if (ra !== rb) parent.set(rb, ra);
+    };
+    const unionAll = (idSet) => {
+        const ids = Array.from(idSet || []);
+        if (ids.length < 2) return;
+        ids.forEach((id) => ensureNode(id));
+        const [head, ...rest] = ids;
+        rest.forEach((id) => union(head, id));
+    };
+
+    let exactCandidateCount = 0;
+    idsByExactName.forEach((idSet) => {
+        if (idSet.size > 1) {
+            exactCandidateCount += 1;
+            unionAll(idSet);
+        }
+    });
+
+    let normalizedCandidateCount = 0;
+    idsByNormalizedName.forEach((idSet) => {
+        if (idSet.size > 1) {
+            normalizedCandidateCount += 1;
+            unionAll(idSet);
+        }
+    });
+
+    const components = new Map();
+    knownIds.forEach((id) => {
+        ensureNode(id);
+        const root = find(id);
+        if (!components.has(root)) components.set(root, []);
+        components.get(root).push(id);
+    });
+
+    const idToGroupId = new Map();
+    const groupIdToName = new Map();
+    const groupIdToRule = new Map();
+
+    components.forEach((members) => {
+        if (members.length < 2) return;
+        const sortedMembers = [...members].sort();
+        const metas = sortedMembers.map((id) => productMeta.get(id)).filter(Boolean);
+        metas.sort((a, b) => b.revenue - a.revenue);
+        const best = metas[0];
+        const exactNames = new Set(metas.map((m) => m.rawName));
+        const normalizedNames = new Set(metas.map((m) => m.normName).filter(Boolean));
+        const displayName = best?.normName || best?.rawName || sortedMembers[0];
+        const seed = `${displayName}|${sortedMembers.join('|')}`;
+        const groupId = buildDeterministicGroupId(seed);
+        const rule = exactNames.size === 1 ? 'exact_name' : (normalizedNames.size <= 1 ? 'normalized_prefix' : 'normalized_prefix');
+
+        sortedMembers.forEach((id) => idToGroupId.set(id, groupId));
+        groupIdToName.set(groupId, displayName);
+        groupIdToRule.set(groupId, rule);
+    });
+
+    return {
+        knownIds,
+        productMeta,
+        idToGroupId,
+        groupIdToName,
+        groupIdToRule,
+        exactCandidateCount,
+        normalizedCandidateCount
+    };
+}
+
+function buildGroupingState(anchorRows, productGroupRows) {
+    const auto = buildAutoGroups(anchorRows || []);
+    const overrides = sanitizeProductGroupMapRows(productGroupRows || []);
+    const idToGroupId = new Map(auto.idToGroupId);
+    const groupIdToName = new Map(auto.groupIdToName);
+    const groupIdToRule = new Map(auto.groupIdToRule);
+    const ungroupedOverrides = new Set();
+    let invalidOverrideCount = 0;
+
+    overrides.forEach((row) => {
+        const id = String(row.product_id || '').trim();
+        if (!auto.knownIds.has(id)) {
+            invalidOverrideCount += 1;
+            return;
+        }
+        if (row.status === 'ungrouped') {
+            idToGroupId.delete(id);
+            ungroupedOverrides.add(id);
+            return;
+        }
+        ungroupedOverrides.delete(id);
+        idToGroupId.set(id, row.group_id);
+        groupIdToName.set(row.group_id, row.group_name);
+        groupIdToRule.set(row.group_id, row.rule || 'manual');
+    });
+
+    ungroupedOverrides.forEach((id) => idToGroupId.delete(id));
+
+    const idToEntityId = new Map();
+    const entityIdToMembers = new Map();
+    auto.knownIds.forEach((id) => {
+        const entityId = idToGroupId.get(id) || id;
+        idToEntityId.set(id, entityId);
+        if (!entityIdToMembers.has(entityId)) entityIdToMembers.set(entityId, []);
+        entityIdToMembers.get(entityId).push(id);
+    });
+
+    const entityIdToName = new Map();
+    entityIdToMembers.forEach((members, entityId) => {
+        const directName = groupIdToName.get(entityId);
+        if (directName) {
+            entityIdToName.set(entityId, directName);
+            return;
+        }
+        const metas = members.map((id) => auto.productMeta.get(id)).filter(Boolean);
+        metas.sort((a, b) => b.revenue - a.revenue);
+        const fallback = metas[0]?.normName || metas[0]?.rawName || entityId;
+        entityIdToName.set(entityId, fallback);
+    });
+
+    const rawNameById = new Map();
+    auto.productMeta.forEach((meta, id) => rawNameById.set(id, meta.rawName || id));
+
+    return {
+        idToEntityId,
+        idToGroupId,
+        entityIdToName,
+        entityIdToMembers,
+        rawNameById,
+        groupIdToRule,
+        ungroupedOverrides,
+        overrideRows: overrides,
+        stats: {
+            exactCandidateCount: auto.exactCandidateCount,
+            normalizedCandidateCount: auto.normalizedCandidateCount,
+            groupedEntityCount: Array.from(entityIdToMembers.keys()).filter((id) => entityIdToMembers.get(id).length > 1).length,
+            invalidOverrideCount
+        }
+    };
+}
+
+function resolveEntityId(productId) {
+    const id = String(productId || '').trim();
+    if (!id) return '';
+    const grouping = AppState.helpers.grouping;
+    if (!grouping || !grouping.idToEntityId) return id;
+    return grouping.idToEntityId.get(id) || id;
+}
+
+function getEntityMeta(productId) {
+    const raw = String(productId || '').trim();
+    const entityId = resolveEntityId(raw);
+    const grouping = AppState.helpers.grouping;
+    if (!grouping) {
+        return {
+            rawId: raw,
+            entityId: raw,
+            entityName: getProductName(raw),
+            members: [raw],
+            memberCount: raw ? 1 : 0
+        };
+    }
+    const members = grouping.entityIdToMembers?.get(entityId) || [raw];
+    const entityName = grouping.entityIdToName?.get(entityId) || grouping.rawNameById?.get(raw) || raw;
+    return {
+        rawId: raw,
+        entityId,
+        entityName,
+        members,
+        memberCount: members.length
+    };
+}
+
+function sumFields(acc, row, fields) {
+    fields.forEach((field) => {
+        acc[field] = toNumber(acc[field], 0) + toNumber(row[field], 0);
+    });
+}
+
+function weightedFieldAssign(acc, row, fields, weight) {
+    fields.forEach((field) => {
+        if (!acc._weighted[field]) acc._weighted[field] = { num: 0, den: 0 };
+        const value = toNumber(row[field], NaN);
+        if (!Number.isFinite(value)) return;
+        acc._weighted[field].num += value * weight;
+        acc._weighted[field].den += weight;
+    });
+}
+
+function finalizeWeightedFields(acc, fields) {
+    fields.forEach((field) => {
+        const holder = acc._weighted[field];
+        acc[field] = holder && holder.den > 0 ? holder.num / holder.den : null;
+    });
+}
+
+function determinePrimaryType(typeScores, fallback = '-') {
+    const entries = Object.entries(typeScores || {});
+    if (!entries.length) return fallback;
+    entries.sort((a, b) => toNumber(b[1], 0) - toNumber(a[1], 0));
+    if (toNumber(entries[0][1], 0) <= 0) return fallback;
+    return entries[0][0];
+}
+
+function transformAnchorScoredRows(rows) {
+    const src = rows || [];
+    const groupMap = new Map();
+    const sumFieldsList = [
+        'first_customer_cnt', 'product_order_cnt_1y', 'product_unit_qty_1y',
+        'revenue_90d', 'AA_Broad', 'AA_Heavy', 'AA_Qualified', 'PCA_Core', 'PCA_Deep', 'PCA_Scale'
+    ];
+    const weightedFields = [
+        'AA_Score', 'PCA_Score', 'Entry_Gravity_Score', 'Expansion_Gravity_Score',
+        'repurchase_rate_90d', 'first_customer_ratio', 'p50_addl_order_cnt_90d',
+        'p75_addl_order_cnt_90d', 'p90_addl_order_cnt_90d', 'addl_order_rate_90d',
+        'p75_retention_days', 'PrimaryAnchorScore'
+    ];
+
+    src.forEach((row) => {
+        const id = readProductId(row);
+        if (!id) return;
+        const entityId = resolveEntityId(id);
+        if (!groupMap.has(entityId)) {
+            groupMap.set(entityId, {
+                product_id: entityId,
+                product_name_latest: getEntityMeta(entityId).entityName,
+                members: new Set(),
+                aaTypeScores: {},
+                pcaTypeScores: {},
+                _weighted: {}
+            });
+        }
+        const acc = groupMap.get(entityId);
+        acc.members.add(id);
+        const weight = Math.max(1, toNumber(row.first_customer_cnt, 0), toNumber(row.product_order_cnt_1y, 0));
+        sumFields(acc, row, sumFieldsList);
+        weightedFieldAssign(acc, row, weightedFields, weight);
+
+        const aaType = normalizeCategoryValue(row.AA_Primary_Type || row.Entry_Gravity_Primary_Type, '');
+        if (aaType) acc.aaTypeScores[aaType] = toNumber(acc.aaTypeScores[aaType], 0) + weight;
+        const pcaType = normalizeCategoryValue(row.PCA_Primary_Type || row.Expansion_Gravity_Primary_Type, '');
+        if (pcaType) acc.pcaTypeScores[pcaType] = toNumber(acc.pcaTypeScores[pcaType], 0) + weight;
+    });
+
+    const result = Array.from(groupMap.values()).map((acc) => {
+        finalizeWeightedFields(acc, weightedFields);
+        const aaPrimary = determinePrimaryType(acc.aaTypeScores, 'Broad');
+        const pcaPrimary = determinePrimaryType(acc.pcaTypeScores, 'Core');
+        return {
+            product_id: acc.product_id,
+            product_name_latest: acc.product_name_latest,
+            first_customer_cnt: toNumber(acc.first_customer_cnt, 0),
+            product_order_cnt_1y: toNumber(acc.product_order_cnt_1y, 0),
+            product_unit_qty_1y: toNumber(acc.product_unit_qty_1y, 0),
+            revenue_90d: toNumber(acc.revenue_90d, 0),
+            AA_Score: acc.AA_Score,
+            PCA_Score: acc.PCA_Score,
+            Entry_Gravity_Score: acc.Entry_Gravity_Score,
+            Expansion_Gravity_Score: acc.Expansion_Gravity_Score,
+            repurchase_rate_90d: acc.repurchase_rate_90d,
+            first_customer_ratio: acc.first_customer_ratio,
+            p50_addl_order_cnt_90d: acc.p50_addl_order_cnt_90d,
+            p75_addl_order_cnt_90d: acc.p75_addl_order_cnt_90d,
+            p90_addl_order_cnt_90d: acc.p90_addl_order_cnt_90d,
+            addl_order_rate_90d: acc.addl_order_rate_90d,
+            p75_retention_days: acc.p75_retention_days,
+            PrimaryAnchorScore: acc.PrimaryAnchorScore,
+            AA_Primary_Type: aaPrimary,
+            PCA_Primary_Type: pcaPrimary,
+            Entry_Gravity_Primary_Type: aaPrimary,
+            Expansion_Gravity_Primary_Type: pcaPrimary,
+            AA_Broad: toNumber(acc.AA_Broad, 0),
+            AA_Heavy: toNumber(acc.AA_Heavy, 0),
+            AA_Qualified: toNumber(acc.AA_Qualified, 0),
+            PCA_Core: toNumber(acc.PCA_Core, 0),
+            PCA_Deep: toNumber(acc.PCA_Deep, 0),
+            PCA_Scale: toNumber(acc.PCA_Scale, 0),
+            member_count: acc.members.size,
+            member_ids: Array.from(acc.members).sort().join('|')
+        };
+    });
+
+    result.sort((a, b) => toNumber(b.revenue_90d, 0) - toNumber(a.revenue_90d, 0));
+    return result;
+}
+
+function transformAnchorTransitionRows(rows, groupedAnchorRows) {
+    const src = rows || [];
+    const groupedByPath = new Map();
+    const rawCohortByAaEntity = new Map();
+    const groupedCohort = new Map((groupedAnchorRows || []).map((row) => [String(row.product_id), toNumber(row.first_customer_cnt, 0)]));
+
+    src.forEach((row) => {
+        const aaRaw = String(row.aa_product_id || '').trim();
+        const pcaRaw = String(row.pca_product_id || '').trim();
+        if (!aaRaw || !pcaRaw) return;
+        const aa = resolveEntityId(aaRaw);
+        const pca = resolveEntityId(pcaRaw);
+        if (!aa || !pca || aa === pca) return;
+
+        const transitionCustomers = toNumber(row.transition_customer_cnt, 0);
+        const avgDays = toNumber(row.avg_days_to_pca, NaN);
+        const rawCohort = toNumber(row.aa_cohort_customer_cnt, 0);
+        if (!rawCohortByAaEntity.has(aa)) rawCohortByAaEntity.set(aa, new Map());
+        const aaRawMap = rawCohortByAaEntity.get(aa);
+        aaRawMap.set(aaRaw, Math.max(toNumber(aaRawMap.get(aaRaw), 0), rawCohort));
+
+        const key = `${aa}::${pca}`;
+        if (!groupedByPath.has(key)) {
+            groupedByPath.set(key, {
+                aa_product_id: aa,
+                pca_product_id: pca,
+                transition_customer_cnt: 0,
+                avg_days_num: 0,
+                avg_days_den: 0
+            });
+        }
+        const acc = groupedByPath.get(key);
+        acc.transition_customer_cnt += transitionCustomers;
+        if (transitionCustomers > 0 && Number.isFinite(avgDays)) {
+            acc.avg_days_num += transitionCustomers * avgDays;
+            acc.avg_days_den += transitionCustomers;
+        }
+    });
+
+    const result = Array.from(groupedByPath.values()).map((acc) => {
+        const fallbackCohort = Array.from(rawCohortByAaEntity.get(acc.aa_product_id)?.values() || [])
+            .reduce((sum, v) => sum + toNumber(v, 0), 0);
+        const cohort = toNumber(groupedCohort.get(acc.aa_product_id), fallbackCohort);
+        const rate = cohort > 0 ? acc.transition_customer_cnt / cohort : 0;
+        const avgDays = acc.avg_days_den > 0 ? acc.avg_days_num / acc.avg_days_den : null;
+        return {
+            aa_product_id: acc.aa_product_id,
+            pca_product_id: acc.pca_product_id,
+            transition_customer_cnt: acc.transition_customer_cnt,
+            avg_days_to_pca: avgDays,
+            aa_cohort_customer_cnt: cohort,
+            transition_rate: rate,
+            entry_product_id: acc.aa_product_id,
+            expansion_product_id: acc.pca_product_id,
+            avg_days_to_expansion: avgDays
+        };
+    });
+
+    result.sort((a, b) => toNumber(b.transition_customer_cnt, 0) - toNumber(a.transition_customer_cnt, 0));
+    return result;
+}
+
+function transformCartAnchorDetailRows(rows) {
+    const src = rows || [];
+    const pairMap = new Map();
+    src.forEach((row) => {
+        const iRaw = String(row.i || '').trim();
+        const jRaw = String(row.j || '').trim();
+        if (!iRaw || !jRaw) return;
+        const i = resolveEntityId(iRaw);
+        const j = resolveEntityId(jRaw);
+        if (!i || !j || i === j) return;
+        const [a, b] = i < j ? [i, j] : [j, i];
+        const key = `${a}::${b}`;
+        const co = toNumber(row.co_order_cnt, 0);
+        if (!pairMap.has(key)) pairMap.set(key, { i: a, j: b, co_order_cnt: 0 });
+        pairMap.get(key).co_order_cnt += co;
+    });
+    const result = Array.from(pairMap.values())
+        .sort((a, b) => toNumber(b.co_order_cnt, 0) - toNumber(a.co_order_cnt, 0))
+        .map((row, idx) => ({ ...row, rn: idx + 1 }));
+    return result;
+}
+
+function buildTopCompanionMapFromDetail(detailRows) {
+    const top = new Map();
+    (detailRows || []).forEach((row) => {
+        const i = String(row.i || '').trim();
+        const j = String(row.j || '').trim();
+        const co = toNumber(row.co_order_cnt, 0);
+        if (!i || !j || i === j || co <= 0) return;
+        const currentI = top.get(i);
+        if (!currentI || co > currentI.co_order_cnt) top.set(i, { id: j, co_order_cnt: co });
+        const currentJ = top.get(j);
+        if (!currentJ || co > currentJ.co_order_cnt) top.set(j, { id: i, co_order_cnt: co });
+    });
+    return top;
+}
+
+function transformCartAnchorRows(rows) {
+    const src = rows || [];
+    const map = new Map();
+    src.forEach((row) => {
+        const rawId = String(row.product_id || '').trim();
+        if (!rawId) return;
+        const id = resolveEntityId(rawId);
+        if (!id) return;
+        if (!map.has(id)) {
+            map.set(id, {
+                product_id: id,
+                order_cnt: 0,
+                companion_cnt: 0,
+                volume_raw: 0,
+                volume_weight: 0,
+                attach_num: 0,
+                attach_den: 0,
+                median_num: 0,
+                median_den: 0,
+                breadth_num: 0,
+                breadth_den: 0,
+                top1_num: 0,
+                top1_den: 0,
+                top3_num: 0,
+                top3_den: 0,
+                caTypeScores: {}
+            });
+        }
+        const acc = map.get(id);
+        const orderCnt = Math.max(1, toNumber(row.order_cnt, 0));
+        acc.order_cnt += toNumber(row.order_cnt, 0);
+        acc.companion_cnt += toNumber(row.companion_cnt, 0);
+        acc.volume_raw += toNumber(row.volume_raw, 0);
+        acc.volume_weight += toNumber(row.volume_weight, 0);
+        acc.attach_num += toNumber(row.attach_rate, 0) * orderCnt;
+        acc.attach_den += orderCnt;
+        acc.median_num += toNumber(row.median_cart_size, 0) * orderCnt;
+        acc.median_den += orderCnt;
+        acc.breadth_num += toNumber(row.breadth_lift, 0) * orderCnt;
+        acc.breadth_den += orderCnt;
+        acc.top1_num += toNumber(row.top1_share, 0) * orderCnt;
+        acc.top1_den += orderCnt;
+        acc.top3_num += toNumber(row.top3_share, 0) * orderCnt;
+        acc.top3_den += orderCnt;
+        const caType = normalizeCategoryValue(row.CA_Primary_Type || row.Basket_Gravity_Primary_Type, 'None');
+        acc.caTypeScores[caType] = toNumber(acc.caTypeScores[caType], 0) + orderCnt;
+    });
+
+    return Array.from(map.values()).map((acc) => {
+        const caType = determinePrimaryType(acc.caTypeScores, 'None');
+        return {
+            product_id: acc.product_id,
+            order_cnt: acc.order_cnt,
+            attach_rate: acc.attach_den > 0 ? acc.attach_num / acc.attach_den : 0,
+            median_cart_size: acc.median_den > 0 ? acc.median_num / acc.median_den : 0,
+            breadth_lift: acc.breadth_den > 0 ? acc.breadth_num / acc.breadth_den : 0,
+            companion_cnt: acc.companion_cnt,
+            top1_share: acc.top1_den > 0 ? acc.top1_num / acc.top1_den : 0,
+            top3_share: acc.top3_den > 0 ? acc.top3_num / acc.top3_den : 0,
+            volume_raw: acc.volume_raw,
+            volume_weight: acc.volume_weight,
+            CA_Primary_Type: caType,
+            Basket_Gravity_Primary_Type: caType
+        };
+    }).sort((a, b) => toNumber(b.order_cnt, 0) - toNumber(a.order_cnt, 0));
+}
+
+function transformCaProfileRows(rows, topCompanionMap) {
+    const src = rows || [];
+    const map = new Map();
+    src.forEach((row) => {
+        const rawId = String(row.product_id || '').trim();
+        if (!rawId) return;
+        const id = resolveEntityId(rawId);
+        if (!id) return;
+        if (!map.has(id)) {
+            map.set(id, {
+                product_id: id,
+                companion_count: 0,
+                attach_num: 0,
+                attach_den: 0,
+                median_num: 0,
+                median_den: 0,
+                breadth_num: 0,
+                breadth_den: 0,
+                top1_num: 0,
+                top1_den: 0,
+                top3_num: 0,
+                top3_den: 0,
+                caTypeScores: {}
+            });
+        }
+        const acc = map.get(id);
+        const weight = Math.max(1, toNumber(row.companion_count, 0));
+        acc.companion_count += toNumber(row.companion_count, 0);
+        acc.attach_num += toNumber(row.attach_rate, 0) * weight;
+        acc.attach_den += weight;
+        acc.median_num += toNumber(row.median_cart_size, 0) * weight;
+        acc.median_den += weight;
+        acc.breadth_num += toNumber(row.breadth_lift, 0) * weight;
+        acc.breadth_den += weight;
+        acc.top1_num += toNumber(row.top1_share, 0) * weight;
+        acc.top1_den += weight;
+        acc.top3_num += toNumber(row.top3_share, 0) * weight;
+        acc.top3_den += weight;
+        const caType = normalizeCategoryValue(row.ca_type, 'None');
+        acc.caTypeScores[caType] = toNumber(acc.caTypeScores[caType], 0) + weight;
+    });
+
+    return Array.from(map.values()).map((acc) => {
+        const caType = determinePrimaryType(acc.caTypeScores, 'None');
+        return {
+            product_id: acc.product_id,
+            ca_type: caType,
+            attach_rate: acc.attach_den > 0 ? acc.attach_num / acc.attach_den : 0,
+            median_cart_size: acc.median_den > 0 ? acc.median_num / acc.median_den : 0,
+            breadth_lift: acc.breadth_den > 0 ? acc.breadth_num / acc.breadth_den : 0,
+            companion_count: acc.companion_count,
+            top1_share: acc.top1_den > 0 ? acc.top1_num / acc.top1_den : 0,
+            top3_share: acc.top3_den > 0 ? acc.top3_num / acc.top3_den : 0,
+            top1_companion_product_id: topCompanionMap.get(acc.product_id)?.id || ''
+        };
+    }).sort((a, b) => toNumber(b.attach_rate, 0) - toNumber(a.attach_rate, 0));
+}
+
+function transformAaCohortJourneyRows(rows) {
+    const src = rows || [];
+    const map = new Map();
+    src.forEach((row) => {
+        const rawId = String(row.aa_product_id || row.entry_product_id || '').trim();
+        const date = String(row.cohort_date || '').trim();
+        if (!rawId || !date) return;
+        const id = resolveEntityId(rawId);
+        const aaType = normalizeCategoryValue(row.aa_type, 'Unknown');
+        const key = `${date}::${id}::${aaType}`;
+        if (!map.has(key)) {
+            map.set(key, {
+                cohort_date: date,
+                aa_product_id: id,
+                aa_type: aaType,
+                cohort_customers: 0,
+                repeat_7d_num: 0,
+                repeat_30d_num: 0,
+                repeat_90d_num: 0,
+                pca_30d_num: 0,
+                pca_90d_num: 0,
+                avg_days_num: 0,
+                avg_days_den: 0,
+                avg_rev_num: 0
+            });
+        }
+        const acc = map.get(key);
+        const cohort = Math.max(0, toNumber(row.cohort_customers, 0));
+        acc.cohort_customers += cohort;
+        acc.repeat_7d_num += toNumber(row.repeat_7d_rate, 0) * cohort;
+        acc.repeat_30d_num += toNumber(row.repeat_30d_rate, 0) * cohort;
+        acc.repeat_90d_num += toNumber(row.repeat_90d_rate, 0) * cohort;
+        acc.pca_30d_num += toNumber(row.pca_transition_30d_rate, 0) * cohort;
+        acc.pca_90d_num += toNumber(row.pca_transition_90d_rate, 0) * cohort;
+        const days = toNumber(row.avg_days_to_pca, NaN);
+        if (Number.isFinite(days)) {
+            acc.avg_days_num += days * cohort;
+            acc.avg_days_den += cohort;
+        }
+        acc.avg_rev_num += toNumber(row.avg_revenue_90d, 0) * cohort;
+    });
+
+    return Array.from(map.values()).map((acc) => ({
+        cohort_date: acc.cohort_date,
+        aa_product_id: acc.aa_product_id,
+        entry_product_id: acc.aa_product_id,
+        aa_type: acc.aa_type,
+        cohort_customers: acc.cohort_customers,
+        repeat_7d_rate: acc.cohort_customers > 0 ? acc.repeat_7d_num / acc.cohort_customers : 0,
+        repeat_30d_rate: acc.cohort_customers > 0 ? acc.repeat_30d_num / acc.cohort_customers : 0,
+        repeat_90d_rate: acc.cohort_customers > 0 ? acc.repeat_90d_num / acc.cohort_customers : 0,
+        pca_transition_30d_rate: acc.cohort_customers > 0 ? acc.pca_30d_num / acc.cohort_customers : 0,
+        pca_transition_90d_rate: acc.cohort_customers > 0 ? acc.pca_90d_num / acc.cohort_customers : 0,
+        avg_days_to_pca: acc.avg_days_den > 0 ? acc.avg_days_num / acc.avg_days_den : null,
+        avg_days_to_expansion: acc.avg_days_den > 0 ? acc.avg_days_num / acc.avg_days_den : null,
+        avg_revenue_90d: acc.cohort_customers > 0 ? acc.avg_rev_num / acc.cohort_customers : 0
+    })).sort((a, b) => toNumber(b.cohort_customers, 0) - toNumber(a.cohort_customers, 0));
+}
+
+function transformAaTransitionPathRows(rows, groupedCohortRows) {
+    const src = rows || [];
+    const cohortMap = new Map();
+    (groupedCohortRows || []).forEach((row) => {
+        const date = String(row.cohort_date || '').trim();
+        const aa = String(row.aa_product_id || '').trim();
+        if (!date || !aa) return;
+        const key = `${date}::${aa}`;
+        cohortMap.set(key, toNumber(cohortMap.get(key), 0) + toNumber(row.cohort_customers, 0));
+    });
+
+    const map = new Map();
+    src.forEach((row) => {
+        const date = String(row.cohort_date || '').trim();
+        const aaRaw = String(row.aa_product_id || row.entry_product_id || '').trim();
+        const pcaRaw = String(row.pca_product_id || row.expansion_product_id || '').trim();
+        if (!date || !aaRaw || !pcaRaw) return;
+        const aa = resolveEntityId(aaRaw);
+        const pca = resolveEntityId(pcaRaw);
+        if (!aa || !pca || aa === pca) return;
+        const key = `${date}::${aa}::${pca}`;
+        if (!map.has(key)) {
+            map.set(key, {
+                cohort_date: date,
+                aa_product_id: aa,
+                pca_product_id: pca,
+                transition_customers: 0,
+                avg_days_num: 0,
+                avg_days_den: 0,
+                aaTypeScores: {}
+            });
+        }
+        const acc = map.get(key);
+        const trans = toNumber(row.transition_customers, 0);
+        const days = toNumber(row.avg_days_to_pca || row.avg_days_to_expansion, NaN);
+        const aaType = normalizeCategoryValue(row.aa_type, 'Unknown');
+        acc.transition_customers += trans;
+        if (trans > 0 && Number.isFinite(days)) {
+            acc.avg_days_num += trans * days;
+            acc.avg_days_den += trans;
+        }
+        acc.aaTypeScores[aaType] = toNumber(acc.aaTypeScores[aaType], 0) + trans;
+    });
+
+    const result = Array.from(map.values()).map((acc) => {
+        const cohort = toNumber(cohortMap.get(`${acc.cohort_date}::${acc.aa_product_id}`), 0);
+        const avgDays = acc.avg_days_den > 0 ? acc.avg_days_num / acc.avg_days_den : null;
+        return {
+            cohort_date: acc.cohort_date,
+            aa_product_id: acc.aa_product_id,
+            entry_product_id: acc.aa_product_id,
+            aa_type: determinePrimaryType(acc.aaTypeScores, 'Unknown'),
+            pca_product_id: acc.pca_product_id,
+            expansion_product_id: acc.pca_product_id,
+            transition_customers: acc.transition_customers,
+            transition_rate: cohort > 0 ? acc.transition_customers / cohort : 0,
+            avg_days_to_pca: avgDays,
+            avg_days_to_expansion: avgDays
+        };
+    });
+    result.sort((a, b) => toNumber(b.transition_customers, 0) - toNumber(a.transition_customers, 0));
+    return result;
+}
+
+function rebuildDerivedData() {
+    const raw = AppState.rawData || {};
+    AppState.helpers.grouping = buildGroupingState(raw.anchorScored || [], raw.productGroupMap || []);
+
+    AppState.data.brandScore = raw.brandScore || [];
+    AppState.data.biiWindow = raw.biiWindow || [];
+    AppState.data.apfActionRules = raw.apfActionRules || [];
+    AppState.data.productGroupMap = sanitizeProductGroupMapRows(raw.productGroupMap || []);
+
+    AppState.data.anchorScored = transformAnchorScoredRows(raw.anchorScored || []);
+    AppState.data.anchorTransition = transformAnchorTransitionRows(raw.anchorTransition || [], AppState.data.anchorScored);
+    AppState.data.cartAnchorDetail = transformCartAnchorDetailRows(raw.cartAnchorDetail || []);
+    const topCompanionMap = buildTopCompanionMapFromDetail(AppState.data.cartAnchorDetail);
+    AppState.data.cartAnchor = transformCartAnchorRows(raw.cartAnchor || []);
+    AppState.data.caProfile = transformCaProfileRows(raw.caProfile || [], topCompanionMap);
+    AppState.data.aaCohortJourney = transformAaCohortJourneyRows(raw.aaCohortJourney || []);
+    AppState.data.aaTransitionPath = transformAaTransitionPathRows(raw.aaTransitionPath || [], AppState.data.aaCohortJourney);
+    AppState.helpers.productNameMap = buildProductNameMap();
+}
 
 const asNullableNumber = (value) => {
     const num = Number(value);
@@ -415,6 +1281,9 @@ const getUploadFileConfig = (filename) => {
 const preprocessUploadRows = (config, filename, rows) => {
     if (!config) return normalizeCsvRows(rows);
     const lowerName = String(filename || '').toLowerCase();
+    if (config.key === REQUIRED_FILES.productGroupMap.key) {
+        return sanitizeProductGroupMapRows(rows);
+    }
     if (config.key === REQUIRED_FILES.biiWindow.key && lowerName.includes('brand_impact_windows')) {
         return convertBrandImpactWindowsToBiiWindow(rows);
     }
@@ -517,11 +1386,32 @@ function renderSearchUI(viewName, placeholder) {
         <div class="search-container animate-fade-in">
             <div class="search-wrapper">
                 <i class="ph ph-magnifying-glass"></i>
-                <input type="text" class="search-input" placeholder="${placeholder}" 
+                <input type="text" class="search-input" placeholder="${toFriendlyText(placeholder)}" 
                        value="${query}" oninput="handleGlobalSearch('${viewName}', this.value)">
             </div>
         </div>
     `;
+}
+
+function applyFriendlyUi(root = document.body) {
+    if (!root) return;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const textNodes = [];
+    while (walker.nextNode()) textNodes.push(walker.currentNode);
+    textNodes.forEach((node) => {
+        if (!node || !node.nodeValue) return;
+        const next = toFriendlyText(node.nodeValue);
+        if (next !== node.nodeValue) node.nodeValue = next;
+        validateUiHardRule(node.nodeValue, 'text-node');
+    });
+    root.querySelectorAll?.('[title],[placeholder],[aria-label]').forEach((el) => {
+        ['title', 'placeholder', 'aria-label'].forEach((attr) => {
+            if (!el.hasAttribute(attr)) return;
+            const next = toFriendlyText(el.getAttribute(attr));
+            el.setAttribute(attr, next);
+            validateUiHardRule(next, attr);
+        });
+    });
 }
 
 function destroyCarts() {
@@ -531,21 +1421,48 @@ function destroyCarts() {
 
 function buildProductNameMap() {
     const products = AppState.data.anchorScored || [];
+    const rawProducts = AppState.rawData.anchorScored || [];
+    const grouping = AppState.helpers.grouping;
     const map = new Map();
     products.forEach((p) => {
-        const id = p.product_id || p.Product_ID || p['\ufeffproduct_id'];
-        const name = p.product_name_latest || p.Product_Name || p.product_name;
+        const id = readProductId(p);
+        const name = readProductName(p);
         if (id) map.set(String(id).trim(), name || String(id));
     });
+    rawProducts.forEach((p) => {
+        const id = readProductId(p);
+        const name = readProductName(p);
+        if (id && name && !map.has(String(id).trim())) {
+            map.set(String(id).trim(), name);
+        }
+    });
+    if (grouping?.entityIdToName && grouping?.idToEntityId) {
+        grouping.idToEntityId.forEach((entityId, rawId) => {
+            const name = grouping.entityIdToName.get(entityId);
+            if (name) map.set(String(rawId).trim(), name);
+        });
+        grouping.entityIdToName.forEach((name, entityId) => {
+            if (name) map.set(String(entityId).trim(), name);
+        });
+    }
     return map;
 }
 
 function getProductName(id) {
     if (!id) return '-';
+    const key = String(id).trim();
+    const grouping = AppState.helpers.grouping;
+    if (grouping?.entityIdToName && grouping.entityIdToName.has(key)) {
+        return grouping.entityIdToName.get(key);
+    }
+    if (grouping?.idToEntityId && grouping.idToEntityId.has(key)) {
+        const entityId = grouping.idToEntityId.get(key);
+        if (grouping.entityIdToName.has(entityId)) return grouping.entityIdToName.get(entityId);
+    }
     if (!AppState.helpers.productNameMap) {
         AppState.helpers.productNameMap = buildProductNameMap();
     }
-    return AppState.helpers.productNameMap.get(String(id).trim()) || id;
+    return AppState.helpers.productNameMap.get(key) || id;
 }
 
 function applyDateFilter(rows, key, fromValue, toValue) {
@@ -636,6 +1553,38 @@ window.copyToClipboard = (text) => {
     });
 };
 
+window.closeNamePopover = () => {
+    const modal = document.getElementById('name-popover-modal');
+    if (modal) modal.remove();
+};
+
+window.showProductNamePopover = (name, id) => {
+    window.closeNamePopover();
+    const modal = document.createElement('div');
+    modal.id = 'name-popover-modal';
+    modal.className = 'modal-overlay active';
+    modal.innerHTML = `
+        <div class="modal-card name-popover-card">
+            <div class="modal-header">
+                <h3>상품명을 크게 볼게요</h3>
+                <button class="modal-close" type="button" onclick="closeNamePopover()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="name-popover-name">${escapeHtml(name)}</p>
+                <p class="name-popover-id">상품 ID: ${escapeHtml(id)}</p>
+                <div class="name-popover-actions">
+                    <button class="btn-primary" type="button" onclick="copyToClipboard('${escapeJs(id)}')">상품 ID 복사</button>
+                    <button class="btn-primary" type="button" onclick="closeNamePopover()">닫기</button>
+                </div>
+            </div>
+        </div>
+    `;
+    modal.onclick = (event) => {
+        if (event.target === modal) window.closeNamePopover();
+    };
+    document.body.appendChild(modal);
+};
+
 async function showRelatedProducts(productId) {
     initAppUI();
     const modal = document.getElementById('related-products-modal');
@@ -650,7 +1599,8 @@ async function showRelatedProducts(productId) {
 
     try {
         if (!AppState.data.cartAnchorDetail || AppState.data.cartAnchorDetail.length === 0) {
-            AppState.data.cartAnchorDetail = await loadDataFromDB(REQUIRED_FILES.cartAnchorDetail);
+            AppState.rawData.cartAnchorDetail = await loadDataFromDB(REQUIRED_FILES.cartAnchorDetail);
+            rebuildDerivedData();
         }
 
         const qId = String(productId).toLowerCase();
@@ -709,14 +1659,14 @@ function renderOverview() {
     container.innerHTML = `
         <div class="animate-fade-in" style="margin-bottom: 2rem;">
             <div class="card" style="text-align: center; background: linear-gradient(135deg, white 0%, var(--primary-light) 100%); border: 1px solid var(--primary); border-width: 2px;">
-                <h3 style="color: var(--primary); font-size: 1rem; margin-bottom: 0.5rem; font-weight: 700;">Brand Health Index</h3>
+                <h3 style="color: var(--primary); font-size: 1rem; margin-bottom: 0.5rem; font-weight: 700;">브랜드 구조 건강도</h3>
                 <div class="value" style="font-size: 4.5rem; color: var(--primary);">${bhi}</div>
             </div>
         </div>
 
         <div class="stats-grid animate-fade-in">
             <div class="card">
-                <h3>축 1: Entry Gravity 집중도</h3>
+                <h3>축 1: 첫구매 유입 집중도</h3>
                 <div class="value">${concentration}</div>
             </div>
             <div class="card">
@@ -732,24 +1682,887 @@ function renderOverview() {
         <div class="card animate-fade-in" style="margin-top: 2rem; border-left: 4px solid var(--primary);">
             <h3 style="color: var(--primary); text-transform: none; letter-spacing: normal; font-size: 1.1rem;">화면 해석 가이드</h3>
             <p style="color: var(--text-muted); margin-top: 1rem; line-height: 1.6; font-size: 0.95rem;">
-                Brand Health Index는 Entry-Expansion-Value 균형을 요약합니다. 매출 규모보다 구조 균형이 유지되는지 먼저 확인하세요.
+                브랜드 구조 건강도는 유입 균형, 재구매 연결 균형, 가치 준비도를 함께 보여줘요. 매출 규모보다 구조 균형이 유지되는지 먼저 보면 좋아요.
             </p>
         </div>
     `;
+    applyFriendlyUi(container);
 }
+
+function percentile(values, p) {
+    const nums = (values || []).filter((v) => Number.isFinite(v)).sort((a, b) => a - b);
+    if (!nums.length) return 0;
+    if (nums.length === 1) return nums[0];
+    const idx = Math.floor((nums.length - 1) * p);
+    return nums[idx];
+}
+
+function getLevelText(value, p33, p66) {
+    const v = toNumber(value, NaN);
+    if (!Number.isFinite(v)) return '-';
+    if (v >= p66) return '높음';
+    if (v >= p33) return '보통';
+    return '낮음';
+}
+
+function getQuadrantStatus(entry, expansion, centerEntry, centerExpansion) {
+    const highEntry = toNumber(entry, 0) >= toNumber(centerEntry, 0);
+    const highExpansion = toNumber(expansion, 0) >= toNumber(centerExpansion, 0);
+    if (highEntry && highExpansion) {
+        return {
+            key: 'hero',
+            label: '성장 견인',
+            color: '#3b82f6',
+            summary: '첫구매 유입과 재구매 연결이 모두 좋아요.',
+            actions: [
+                '주간 예산과 노출 우선순위를 상단으로 고정하면 좋아요.',
+                '재고와 배송 가용성을 먼저 지켜서 기회를 놓치지 않게 해요.'
+            ]
+        };
+    }
+    if (!highEntry && !highExpansion) {
+        return {
+            key: 'phaseout',
+            label: '개선 필요',
+            color: '#ef4444',
+            summary: '첫구매 유입과 재구매 연결이 모두 낮은 상태예요.',
+            actions: [
+                '단독 운영보다 묶음 제안이나 대체 노출 전환을 먼저 검토해요.',
+                '예산과 재고 우선순위를 낮추고 테스트 슬롯으로 운영해요.'
+            ]
+        };
+    }
+    if (highEntry && !highExpansion) {
+        return {
+            key: 'entry-only',
+            label: '유입 강점',
+            color: '#14b8a6',
+            summary: '첫구매 유입은 좋은데 재구매 연결이 약해요.',
+            actions: [
+                '전환 메시지와 추천 슬롯을 재구매 연결 상품 중심으로 재배치해요.',
+                '첫 구매 후 7일 안에 CRM 시퀀스를 집중 운영하면 좋아요.'
+            ]
+        };
+    }
+    return {
+        key: 'expansion-only',
+        label: '연결 강점',
+        color: '#8b5cf6',
+        summary: '재구매 연결은 좋지만 첫구매 유입 기여가 낮아요.',
+        actions: [
+            '첫구매 유입 상품과 함께 노출되도록 묶음 구성을 강화해요.',
+            '리타게팅과 재방문 경로에서 노출 우선순위를 높이면 좋아요.'
+        ]
+    };
+}
+
+function getFocusRange(points, selected) {
+    const entries = points.map((p) => p.entry);
+    const expansions = points.map((p) => p.expansion);
+    const exP5 = percentile(entries, 0.05);
+    const exP95 = percentile(entries, 0.95);
+    const eyP5 = percentile(expansions, 0.05);
+    const eyP95 = percentile(expansions, 0.95);
+    const xPad = Math.max((exP95 - exP5) * 0.08, 0.01);
+    const yPad = Math.max((eyP95 - eyP5) * 0.08, 0.01);
+    let xMin = exP5 - xPad;
+    let xMax = exP95 + xPad;
+    let yMin = eyP5 - yPad;
+    let yMax = eyP95 + yPad;
+    if (selected) {
+        xMin = Math.min(xMin, selected.entry - xPad);
+        xMax = Math.max(xMax, selected.entry + xPad);
+        yMin = Math.min(yMin, selected.expansion - yPad);
+        yMax = Math.max(yMax, selected.expansion + yPad);
+    }
+    if (xMin === xMax) xMax = xMin + 0.02;
+    if (yMin === yMax) yMax = yMin + 0.02;
+    return { xMin, xMax, yMin, yMax, xPad, yPad };
+}
+
+function projectOutlierPoint(point, range) {
+    let marker = '';
+    const isLeft = point.entry < range.xMin;
+    const isRight = point.entry > range.xMax;
+    const isBottom = point.expansion < range.yMin;
+    const isTop = point.expansion > range.yMax;
+    if (isTop && isRight) marker = '↗';
+    else if (isTop && isLeft) marker = '↖';
+    else if (isBottom && isRight) marker = '↘';
+    else if (isBottom && isLeft) marker = '↙';
+    else if (isTop) marker = '↑';
+    else if (isBottom) marker = '↓';
+    else if (isLeft) marker = '←';
+    else if (isRight) marker = '→';
+    return {
+        x: Math.min(Math.max(point.entry, range.xMin), range.xMax),
+        y: Math.min(Math.max(point.expansion, range.yMin), range.yMax),
+        marker
+    };
+}
+
+function buildQuadrantScaleModel(points, selected, scaleMode) {
+    const entries = points.map((p) => p.entry);
+    const expansions = points.map((p) => p.expansion);
+    const rawRange = {
+        xMin: Math.min(...entries),
+        xMax: Math.max(...entries),
+        yMin: Math.min(...expansions),
+        yMax: Math.max(...expansions)
+    };
+    if (rawRange.xMin === rawRange.xMax) rawRange.xMax = rawRange.xMin + 0.02;
+    if (rawRange.yMin === rawRange.yMax) rawRange.yMax = rawRange.yMin + 0.02;
+    const focusRange = getFocusRange(points, selected);
+    const activeRange = scaleMode === 'raw' ? rawRange : focusRange;
+    return {
+        rawRange,
+        focusRange,
+        activeRange,
+        mode: scaleMode
+    };
+}
+
+function buildQuadrantModel(rows, selectedId, scaleMode = 'focus') {
+    const points = (rows || [])
+        .map((row) => {
+            const id = String(row.product_id || '').trim();
+            const entry = toNumber(row.AA_Score || row.Entry_Gravity_Score, NaN);
+            const expansion = toNumber(row.PCA_Score || row.Expansion_Gravity_Score, NaN);
+            if (!id || !Number.isFinite(entry) || !Number.isFinite(expansion)) return null;
+            const weeklyForecast = Math.max(0, toNumber(row.product_order_cnt_1y, 0) / 52);
+            const memberCount = Math.max(1, toNumber(row.member_count, 1));
+            return {
+                id,
+                name: getProductName(id),
+                entry,
+                expansion,
+                weeklyForecast,
+                revenue90d: toNumber(row.revenue_90d, 0),
+                memberCount
+            };
+        })
+        .filter(Boolean)
+        .sort((a, b) => b.revenue90d - a.revenue90d);
+
+    if (!points.length) return null;
+
+    const entries = points.map((p) => p.entry);
+    const expansions = points.map((p) => p.expansion);
+    const weekly = points.map((p) => p.weeklyForecast);
+    const centerEntry = percentile(entries, 0.5);
+    const centerExpansion = percentile(expansions, 0.5);
+    const entryP33 = percentile(entries, 0.33);
+    const entryP66 = percentile(entries, 0.66);
+    const expansionP33 = percentile(expansions, 0.33);
+    const expansionP66 = percentile(expansions, 0.66);
+    const maxWeekly = Math.max(...weekly, 1);
+
+    let activeId = selectedId && points.some((p) => p.id === selectedId) ? selectedId : '';
+    if (!activeId && AppState.helpers.focusEntityId && points.some((p) => p.id === AppState.helpers.focusEntityId)) {
+        activeId = AppState.helpers.focusEntityId;
+    }
+    if (!activeId) activeId = points[0].id;
+    const selected = points.find((p) => p.id === activeId) || points[0];
+    const status = getQuadrantStatus(selected.entry, selected.expansion, centerEntry, centerExpansion);
+    const scale = buildQuadrantScaleModel(points, selected, scaleMode);
+
+    return {
+        points,
+        selected,
+        status,
+        centerEntry,
+        centerExpansion,
+        entryP33,
+        entryP66,
+        expansionP33,
+        expansionP66,
+        maxWeekly,
+        scaleMode: scale.mode,
+        scaleRange: scale.activeRange,
+        focusRange: scale.focusRange,
+        rawRange: scale.rawRange
+    };
+}
+
+function renderQuadrantPanel(model) {
+    if (!model) {
+        return '<p class="empty-state">4분면 계산 대상 상품이 없습니다.</p>';
+    }
+    const { selected, status } = model;
+    const entryLevel = getLevelText(selected.entry, model.entryP33, model.entryP66);
+    const expansionLevel = getLevelText(selected.expansion, model.expansionP33, model.expansionP66);
+    const memberMeta = selected.memberCount > 1 ? `그룹 상품 (${selected.memberCount}개 SKU)` : '단일 상품';
+    const hasHistory = (AppState.viewState.products.quadrant.history || []).length > 0;
+    return `
+        <div class="pgm-side-summary">
+            <span class="pgm-badge" style="background:${status.color}1f; color:${status.color}; border-color:${status.color}55;">${status.label}</span>
+            <h3 title="${escapeHtml(selected.name)}">${escapeHtml(truncateText(selected.name, 46))}</h3>
+            <p class="pgm-summary">${escapeHtml(status.summary)}</p>
+            <div class="pgm-metrics">
+                <div><label>첫구매 유입 점수</label><strong>${formatNumber(selected.entry, 3)}</strong><span>${entryLevel}</span></div>
+                <div><label>재구매 연결 점수</label><strong>${formatNumber(selected.expansion, 3)}</strong><span>${expansionLevel}</span></div>
+                <div><label>주간 예상 판매량</label><strong>${formatNumber(selected.weeklyForecast, 1)}</strong><span>${memberMeta}</span></div>
+            </div>
+            <div class="pgm-actions">
+                <h4>추천 액션</h4>
+                <ul>
+                    <li>${escapeHtml(status.actions[0])}</li>
+                    <li>${escapeHtml(status.actions[1])}</li>
+                </ul>
+            </div>
+            <div class="pgm-links">
+                <a class="btn-primary" href="transitions.html?focus=${encodeURIComponent(selected.id)}">전환 흐름 보기</a>
+                <a class="btn-primary" href="cart.html?focus=${encodeURIComponent(selected.id)}">장바구니 보기</a>
+            </div>
+            <button class="btn-primary pgm-prev-btn" type="button" onclick="selectPreviousQuadrantItem()" ${hasHistory ? '' : 'disabled'}>이전 상품으로</button>
+        </div>
+    `;
+}
+
+function renderProductQuadrant(model) {
+    const scaleMode = AppState.viewState.products.quadrant.scaleMode || 'focus';
+    return `
+        <div class="card pgm-quadrant-wrap animate-fade-in">
+            <div class="pgm-quadrant-head">
+                <div>
+                    <h3>상품 상태 4분면</h3>
+                    <p>첫구매 유입 점수와 재구매 연결 점수를 한눈에 비교해요.</p>
+                </div>
+                <div class="quadrant-scale-toggle">
+                    <button class="btn-primary ${scaleMode === 'focus' ? 'is-active' : ''}" type="button" onclick="setQuadrantScaleMode('focus')">집중뷰</button>
+                    <button class="btn-primary ${scaleMode === 'raw' ? 'is-active' : ''}" type="button" onclick="setQuadrantScaleMode('raw')">원본 보기</button>
+                </div>
+            </div>
+            <div class="pgm-quadrant-body">
+                <div class="pgm-chart card chart-card"><canvas id="pgmQuadrantChart"></canvas></div>
+                <div class="pgm-side card">${renderQuadrantPanel(model)}</div>
+            </div>
+            ${scaleMode === 'focus' ? '<p class="quadrant-outlier-note">집중뷰에서는 일부 점이 경계에 압축돼요. 원본 보기를 누르면 전체 분포를 볼 수 있어요.</p>' : ''}
+        </div>
+    `;
+}
+
+function renderQuadrantChart(model) {
+    const canvas = document.getElementById('pgmQuadrantChart');
+    if (!canvas || !model) return;
+    const ctx = canvas.getContext('2d');
+    const centerX = model.centerEntry;
+    const centerY = model.centerExpansion;
+    const selectedId = String(model.selected?.id || '').trim();
+
+    const range = model.scaleRange;
+    const chartPoints = model.points.map((p) => {
+        const status = getQuadrantStatus(p.entry, p.expansion, centerX, centerY);
+        const radius = 6 + 22 * Math.sqrt((p.weeklyForecast || 0) / (model.maxWeekly || 1));
+        const isSelected = selectedId && selectedId === p.id;
+        const projected = model.scaleMode === 'focus' ? projectOutlierPoint(p, range) : { x: p.entry, y: p.expansion, marker: '' };
+        return {
+            x: projected.x,
+            y: projected.y,
+            r: Math.min(28, Math.max(6, isSelected ? radius * 1.12 : radius)),
+            productId: p.id,
+            productName: p.name,
+            weeklyForecast: p.weeklyForecast,
+            rawEntry: p.entry,
+            rawExpansion: p.expansion,
+            outlierMarker: projected.marker,
+            status,
+            memberCount: p.memberCount,
+            isSelected
+        };
+    }).sort((a, b) => Number(a.isSelected) - Number(b.isSelected));
+
+    AppState.helpers.productsQuadrantModel = model;
+    AppState.charts.pgmQuadrant = new Chart(ctx, {
+        type: 'bubble',
+        data: {
+            datasets: [
+                {
+                    label: '상품',
+                    data: chartPoints,
+                    backgroundColor: (ctx2) => {
+                        const raw = ctx2.raw || {};
+                        const base = raw.status?.color || '#64748b';
+                        return raw.isSelected ? base : `${base}cc`;
+                    },
+                    borderColor: '#ffffff',
+                    borderWidth: (ctx2) => ((ctx2.raw && ctx2.raw.isSelected) ? 2.4 : 1.2),
+                    hoverBorderWidth: 1.8
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        title: (items) => {
+                            const item = items[0]?.raw || {};
+                            return `${item.productName} (${item.productId})`;
+                        },
+                        label: (ctx2) => {
+                            const raw = ctx2.raw || {};
+                            return [
+                                `상태: ${raw.status?.label || '-'}`,
+                                `첫구매 유입 점수: ${formatNumber(raw.rawEntry, 3)}`,
+                                `재구매 연결 점수: ${formatNumber(raw.rawExpansion, 3)}`,
+                                raw.outlierMarker ? `집중뷰 경계 표시: ${raw.outlierMarker}` : '',
+                                `주간 예상 판매량: ${formatNumber(raw.weeklyForecast, 1)}`,
+                                `SKU 수: ${formatNumber(raw.memberCount, 0)}`
+                            ].filter(Boolean);
+                        }
+                    }
+                }
+            },
+            onClick: (_, elements) => {
+                if (!elements.length) return;
+                const idx = elements[0].index;
+                const targetPoint = chartPoints[idx];
+                const target = model.points.find((p) => p.id === targetPoint?.productId);
+                if (!target) return;
+                window.selectQuadrantItem(target.id);
+            },
+            scales: {
+                x: {
+                    min: range.xMin,
+                    max: range.xMax,
+                    title: { display: true, text: '첫구매 유입 점수' },
+                    grid: { color: 'rgba(148,163,184,0.25)' }
+                },
+                y: {
+                    min: range.yMin,
+                    max: range.yMax,
+                    title: { display: true, text: '재구매 연결 점수' },
+                    grid: { color: 'rgba(148,163,184,0.25)' }
+                }
+            }
+        },
+        plugins: [{
+            id: 'center-lines',
+            afterDraw: (chart) => {
+                const { ctx: chartCtx, chartArea, scales } = chart;
+                if (!chartArea) return;
+                const xCenter = scales.x.getPixelForValue(centerX);
+                const yCenter = scales.y.getPixelForValue(centerY);
+                chartCtx.save();
+                chartCtx.setLineDash([4, 4]);
+                chartCtx.strokeStyle = '#93a7c4';
+                chartCtx.lineWidth = 1;
+                chartCtx.globalAlpha = 0.6;
+                chartCtx.beginPath();
+                chartCtx.moveTo(xCenter, chartArea.top);
+                chartCtx.lineTo(xCenter, chartArea.bottom);
+                chartCtx.stroke();
+                chartCtx.beginPath();
+                chartCtx.moveTo(chartArea.left, yCenter);
+                chartCtx.lineTo(chartArea.right, yCenter);
+                chartCtx.stroke();
+                if (model.scaleMode === 'focus') {
+                    const dataset = chart.data.datasets[0];
+                    const meta = chart.getDatasetMeta(0);
+                    chartCtx.font = '11px Inter, sans-serif';
+                    chartCtx.fillStyle = '#334155';
+                    chartCtx.textAlign = 'center';
+                    chartCtx.textBaseline = 'middle';
+                    dataset.data.forEach((point, idx) => {
+                        if (!point.outlierMarker) return;
+                        const element = meta.data[idx];
+                        if (!element) return;
+                        const props = element.getProps(['x', 'y', 'options'], true);
+                        const r = toNumber(props.options?.radius, 8);
+                        chartCtx.fillText(point.outlierMarker, props.x + r + 7, props.y - r - 3);
+                    });
+                }
+                chartCtx.restore();
+            }
+        }]
+    });
+}
+
+function ensureGroupEditorState() {
+    if (!AppState.viewState.products.groupEditor) {
+        AppState.viewState.products.groupEditor = {};
+    }
+    const state = AppState.viewState.products.groupEditor;
+    if (typeof state.query !== 'string') state.query = '';
+    if (!Array.isArray(state.selectedIds)) state.selectedIds = [];
+    if (!Array.isArray(state.draftOverrides)) {
+        state.draftOverrides = sanitizeProductGroupMapRows(AppState.rawData.productGroupMap || []);
+    }
+    return state;
+}
+
+function buildGroupEditorRows(state) {
+    const rawRows = AppState.rawData.anchorScored || [];
+    const auto = buildAutoGroups(rawRows);
+    const previewGrouping = buildGroupingState(rawRows, state.draftOverrides || []);
+    const overrideMap = new Map((state.draftOverrides || []).map((row) => [String(row.product_id), row]));
+    const rows = [];
+    const seen = new Set();
+
+    rawRows.forEach((row) => {
+        const productId = readProductId(row);
+        if (!productId || seen.has(productId)) return;
+        seen.add(productId);
+
+        const rawName = readProductName(row) || productId;
+        const normName = normalizeGroupName(rawName);
+        const autoGroupId = auto.idToGroupId.get(productId) || '';
+        const autoGroupName = autoGroupId ? (auto.groupIdToName.get(autoGroupId) || normName || rawName) : '';
+        const entityId = previewGrouping.idToEntityId.get(productId) || productId;
+        const entityName = previewGrouping.entityIdToName.get(entityId) || rawName;
+        const members = previewGrouping.entityIdToMembers.get(entityId) || [productId];
+        const override = overrideMap.get(productId);
+
+        let status = '독립';
+        let statusClass = 'status-default';
+        if (override?.status === 'ungrouped') {
+            status = '수동 해제';
+            statusClass = 'status-ungrouped';
+        } else if (override?.status === 'grouped') {
+            status = '수동 그룹';
+            statusClass = 'status-manual';
+        } else if (autoGroupId) {
+            status = '자동 후보';
+            statusClass = 'status-auto';
+        }
+
+        rows.push({
+            productId,
+            rawName,
+            normName,
+            entityId,
+            entityName,
+            memberCount: members.length,
+            autoGroupId,
+            autoGroupName,
+            override,
+            status,
+            statusClass,
+            groupId: override?.status === 'grouped' ? override.group_id : (entityId !== productId ? entityId : ''),
+            groupName: override?.status === 'grouped' ? override.group_name : (entityId !== productId ? entityName : ''),
+            rule: override?.rule || (entityId !== productId ? (previewGrouping.groupIdToRule?.get?.(entityId) || auto.groupIdToRule.get(autoGroupId) || 'auto') : '')
+        });
+    });
+
+    const query = String(state.query || '').trim().toLowerCase();
+    const filtered = !query ? rows : rows.filter((row) => {
+        const members = previewGrouping.entityIdToMembers.get(row.entityId) || [row.productId];
+        return [
+            row.productId,
+            row.rawName,
+            row.normName,
+            row.groupId,
+            row.groupName,
+            row.entityId,
+            members.join('|')
+        ].some((value) => String(value || '').toLowerCase().includes(query));
+    });
+
+    filtered.sort((a, b) => {
+        const aGrouped = a.entityId !== a.productId ? 0 : 1;
+        const bGrouped = b.entityId !== b.productId ? 0 : 1;
+        if (aGrouped !== bGrouped) return aGrouped - bGrouped;
+        return String(a.entityName).localeCompare(String(b.entityName), 'ko');
+    });
+
+    return {
+        rows: filtered,
+        totalRows: rows,
+        previewGrouping,
+        auto
+    };
+}
+
+function getSelectedGroupEditorIds(state) {
+    return Array.from(new Set((state.selectedIds || []).map((id) => String(id || '').trim()).filter(Boolean)));
+}
+
+function upsertDraftOverrides(state, newRows) {
+    const map = new Map((state.draftOverrides || []).map((row) => [String(row.product_id), row]));
+    (newRows || []).forEach((row) => {
+        const productId = String(row.product_id || '').trim();
+        if (!productId) return;
+        map.set(productId, row);
+    });
+    state.draftOverrides = sanitizeProductGroupMapRows(Array.from(map.values()));
+}
+
+function getGroupedEntitiesForEditor(previewGrouping) {
+    const entities = [];
+    (previewGrouping?.entityIdToMembers || new Map()).forEach((members, entityId) => {
+        if (!members || members.length < 2) return;
+        entities.push({
+            groupId: entityId,
+            groupName: previewGrouping.entityIdToName.get(entityId) || entityId,
+            memberCount: members.length
+        });
+    });
+    entities.sort((a, b) => b.memberCount - a.memberCount);
+    return entities;
+}
+
+function renderGroupEditorModal() {
+    const modal = document.getElementById('group-editor-modal');
+    if (!modal) return;
+    const state = ensureGroupEditorState();
+    const selectedIds = new Set(getSelectedGroupEditorIds(state));
+    const { rows, totalRows, previewGrouping, auto } = buildGroupEditorRows(state);
+    const groupedEntities = getGroupedEntitiesForEditor(previewGrouping);
+    const manualCount = (state.draftOverrides || []).filter((row) => row.status === 'grouped').length;
+    const ungroupedCount = (state.draftOverrides || []).filter((row) => row.status === 'ungrouped').length;
+    const invalidCount = previewGrouping?.stats?.invalidOverrideCount || 0;
+    const allFilteredSelected = rows.length > 0 && rows.every((row) => selectedIds.has(row.productId));
+
+    const tableRows = rows.slice(0, 600).map((row) => {
+        const checked = selectedIds.has(row.productId) ? 'checked' : '';
+        const groupText = row.groupId
+            ? `${row.groupName || row.groupId} (${row.groupId})`
+            : '-';
+        const skuHint = row.memberCount > 1 ? `그룹 ${row.memberCount}개` : '단일';
+        return `
+            <tr class="${checked ? 'selected' : ''}">
+                <td>
+                    <input type="checkbox" ${checked} onchange="toggleGroupEditorSelection('${escapeHtml(row.productId)}', this.checked)">
+                </td>
+                <td>
+                    <div class="id">${escapeHtml(row.productId)}</div>
+                    <div class="sub">${escapeHtml(skuHint)}</div>
+                </td>
+                <td>
+                    <div class="name" title="${escapeHtml(row.rawName)}">${escapeHtml(truncateText(row.rawName, 42))}</div>
+                    <div class="sub">${escapeHtml(row.normName || '-')}</div>
+                </td>
+                <td>
+                    <span class="group-status ${row.statusClass}">${escapeHtml(row.status)}</span>
+                </td>
+                <td title="${escapeHtml(groupText)}">${escapeHtml(truncateText(groupText, 46))}</td>
+                <td>${escapeHtml(row.rule || '-')}</td>
+            </tr>
+        `;
+    }).join('');
+
+    modal.innerHTML = `
+        <div class="modal-card pgm-modal pgm-group-modal">
+            <div class="modal-header">
+                <h3>상품 그룹 편집</h3>
+                <button class="modal-close" type="button" onclick="closeGroupEditorModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="pgm-group-summary">
+                    <span class="chip">자동 후보 그룹 ${formatNumber(auto?.stats?.groupedEntityCount || previewGrouping?.stats?.groupedEntityCount || 0)}개</span>
+                    <span class="chip">수동 그룹 지정 ${formatNumber(manualCount)}건</span>
+                    <span class="chip">수동 해제 ${formatNumber(ungroupedCount)}건</span>
+                    ${invalidCount > 0 ? `<span class="chip warning">무효 매핑 ${formatNumber(invalidCount)}건</span>` : ''}
+                </div>
+                <div class="pgm-group-toolbar">
+                    <div class="search-wrapper">
+                        <i class="ph ph-magnifying-glass"></i>
+                        <input
+                            type="text"
+                            class="search-input"
+                            placeholder="상품ID / 상품명 / 그룹명 검색"
+                            value="${escapeHtml(state.query || '')}"
+                            oninput="updateGroupEditorQuery(this.value)"
+                        >
+                    </div>
+                    <div class="pgm-group-meta">표시 ${formatNumber(rows.length)} / 전체 ${formatNumber(totalRows.length)} · 선택 ${formatNumber(selectedIds.size)}</div>
+                </div>
+                <div class="pgm-group-actions">
+                    <button class="btn-primary" type="button" onclick="groupEditorCreateGroup()">선택 묶기(새 그룹)</button>
+                    <button class="btn-primary" type="button" onclick="groupEditorMoveGroup()">선택 그룹 변경</button>
+                    <button class="btn-primary" type="button" onclick="groupEditorUngroup()">선택 그룹 해제</button>
+                    <button class="btn-primary" type="button" onclick="groupEditorRenameGroup()">그룹명 변경</button>
+                    <button class="btn-primary" type="button" onclick="triggerGroupMapImport()">CSV 불러오기</button>
+                    <button class="btn-primary" type="button" onclick="exportGroupMapCsv()">CSV 내보내기</button>
+                    <input id="group-map-import-input" type="file" accept=".csv" style="display:none" onchange="importGroupMapCsv(this.files)">
+                </div>
+                <div class="table-container group-editor-table-wrap">
+                    <table class="data-table group-editor-table">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" ${allFilteredSelected ? 'checked' : ''} onchange="toggleGroupEditorSelectAll(this.checked)"></th>
+                                <th>상품 ID</th>
+                                <th>상품명</th>
+                                <th>적용 상태</th>
+                                <th>현재 그룹</th>
+                                <th>규칙</th>
+                            </tr>
+                        </thead>
+                        <tbody>${tableRows || '<tr><td colspan="6" style="text-align:center;color:var(--text-muted)">검색 결과가 없습니다.</td></tr>'}</tbody>
+                    </table>
+                </div>
+                <p class="chart-hint">그룹 지정은 분석용 논리 통합입니다. 원본 상품ID는 유지되며, 저장 후 Products/Transitions/Cart/Insights 집계에 즉시 반영됩니다.</p>
+                ${groupedEntities.length ? `
+                    <div class="pgm-group-entity-list">
+                        <h4>현재 그룹 목록</h4>
+                        <div class="group-pills">
+                            ${groupedEntities.slice(0, 24).map((group) => `
+                                <span class="group-pill" title="${escapeHtml(group.groupId)}">${escapeHtml(group.groupName)} · ${formatNumber(group.memberCount)}개</span>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+            <div class="pgm-group-footer">
+                <button class="btn-primary" type="button" onclick="closeGroupEditorModal()">닫기</button>
+                <button class="btn-primary" type="button" onclick="saveGroupEdits()">저장 후 반영</button>
+            </div>
+        </div>
+    `;
+    applyFriendlyUi(modal);
+}
+
+function setGroupEditorSelection(nextSet) {
+    const state = ensureGroupEditorState();
+    state.selectedIds = Array.from(nextSet);
+}
+
+function buildManualGroupedRow(productId, groupId, groupName, rule = 'manual') {
+    return {
+        product_id: String(productId || '').trim(),
+        status: 'grouped',
+        group_id: String(groupId || '').trim(),
+        group_name: String(groupName || '').trim(),
+        rule,
+        updated_at: nowIso()
+    };
+}
+
+window.showGroupEditorModal = () => {
+    if (document.getElementById('group-editor-modal')) {
+        renderGroupEditorModal();
+        return;
+    }
+    const state = ensureGroupEditorState();
+    state.draftOverrides = sanitizeProductGroupMapRows(AppState.rawData.productGroupMap || []);
+    state.selectedIds = [];
+    AppState.viewState.products.quadrant.groupingEditorOpen = true;
+
+    const modal = document.createElement('div');
+    modal.id = 'group-editor-modal';
+    modal.className = 'modal-overlay active';
+    modal.addEventListener('click', (event) => {
+        if (event.target === modal) window.closeGroupEditorModal();
+    });
+    document.body.appendChild(modal);
+    renderGroupEditorModal();
+};
+
+window.closeGroupEditorModal = () => {
+    const modal = document.getElementById('group-editor-modal');
+    if (modal) modal.remove();
+    AppState.viewState.products.quadrant.groupingEditorOpen = false;
+};
+
+window.updateGroupEditorQuery = (query) => {
+    const state = ensureGroupEditorState();
+    state.query = String(query || '');
+    renderGroupEditorModal();
+};
+
+window.toggleGroupEditorSelection = (productId, checked) => {
+    const state = ensureGroupEditorState();
+    const next = new Set(getSelectedGroupEditorIds(state));
+    const id = String(productId || '').trim();
+    if (!id) return;
+    if (checked) next.add(id);
+    else next.delete(id);
+    setGroupEditorSelection(next);
+    renderGroupEditorModal();
+};
+
+window.toggleGroupEditorSelectAll = (checked) => {
+    const state = ensureGroupEditorState();
+    const { rows } = buildGroupEditorRows(state);
+    const next = new Set(getSelectedGroupEditorIds(state));
+    rows.forEach((row) => {
+        if (checked) next.add(row.productId);
+        else next.delete(row.productId);
+    });
+    setGroupEditorSelection(next);
+    renderGroupEditorModal();
+};
+
+window.groupEditorCreateGroup = () => {
+    const state = ensureGroupEditorState();
+    const selectedIds = getSelectedGroupEditorIds(state);
+    if (selectedIds.length === 0) {
+        alert('먼저 그룹으로 묶을 상품을 선택하세요.');
+        return;
+    }
+    const defaultName = normalizeGroupName(getProductName(selectedIds[0])) || getProductName(selectedIds[0]) || selectedIds[0];
+    const input = window.prompt('새 그룹명을 입력하세요.', defaultName);
+    const groupName = normalizeGroupName(input || '');
+    if (!groupName) return;
+    const sortedIds = [...selectedIds].sort();
+    const groupId = buildDeterministicGroupId(`${groupName}|${sortedIds.join('|')}`);
+    const updates = sortedIds.map((productId) => buildManualGroupedRow(productId, groupId, groupName, 'manual'));
+    upsertDraftOverrides(state, updates);
+    renderGroupEditorModal();
+};
+
+window.groupEditorMoveGroup = () => {
+    const state = ensureGroupEditorState();
+    const selectedIds = getSelectedGroupEditorIds(state);
+    if (selectedIds.length === 0) {
+        alert('먼저 이동할 상품을 선택하세요.');
+        return;
+    }
+    const { previewGrouping } = buildGroupEditorRows(state);
+    const entities = getGroupedEntitiesForEditor(previewGrouping);
+    const previewText = entities.slice(0, 12)
+        .map((group) => `${group.groupName} [${group.groupId}]`)
+        .join('\n');
+    const hint = previewText
+        ? `이동할 그룹명 또는 그룹ID를 입력하세요.\n\n현재 그룹 예시:\n${previewText}`
+        : '이동할 그룹명을 입력하세요.';
+    const input = window.prompt(hint, entities[0]?.groupName || '');
+    const normalizedInput = String(input || '').trim();
+    if (!normalizedInput) return;
+
+    const matched = entities.find((group) => group.groupId === normalizedInput || group.groupName === normalizedInput);
+    const groupName = matched ? matched.groupName : normalizeGroupName(normalizedInput);
+    const groupId = matched ? matched.groupId : buildDeterministicGroupId(groupName);
+    const updates = selectedIds.map((productId) => buildManualGroupedRow(productId, groupId, groupName, 'manual'));
+    upsertDraftOverrides(state, updates);
+    renderGroupEditorModal();
+};
+
+window.groupEditorUngroup = () => {
+    const state = ensureGroupEditorState();
+    const selectedIds = getSelectedGroupEditorIds(state);
+    if (selectedIds.length === 0) {
+        alert('먼저 해제할 상품을 선택하세요.');
+        return;
+    }
+    const updates = selectedIds.map((productId) => ({
+        product_id: productId,
+        status: 'ungrouped',
+        group_id: '',
+        group_name: '',
+        rule: 'manual',
+        updated_at: nowIso()
+    }));
+    upsertDraftOverrides(state, updates);
+    renderGroupEditorModal();
+};
+
+window.groupEditorRenameGroup = () => {
+    const state = ensureGroupEditorState();
+    const selectedIds = getSelectedGroupEditorIds(state);
+    if (selectedIds.length === 0) {
+        alert('먼저 그룹명을 변경할 상품을 선택하세요.');
+        return;
+    }
+    const { previewGrouping } = buildGroupEditorRows(state);
+    const groupIds = new Set();
+    selectedIds.forEach((productId) => {
+        const entityId = previewGrouping.idToEntityId.get(productId) || productId;
+        const members = previewGrouping.entityIdToMembers.get(entityId) || [];
+        if (members.length > 1) groupIds.add(entityId);
+    });
+    if (groupIds.size !== 1) {
+        alert('같은 그룹에 속한 상품을 선택한 뒤 다시 시도하세요.');
+        return;
+    }
+    const targetGroupId = Array.from(groupIds)[0];
+    const currentName = previewGrouping.entityIdToName.get(targetGroupId) || targetGroupId;
+    const input = window.prompt('새 그룹명을 입력하세요.', currentName);
+    const nextName = normalizeGroupName(input || '');
+    if (!nextName) return;
+    const members = previewGrouping.entityIdToMembers.get(targetGroupId) || [];
+    const updates = members.map((productId) => buildManualGroupedRow(productId, targetGroupId, nextName, 'manual'));
+    upsertDraftOverrides(state, updates);
+    renderGroupEditorModal();
+};
+
+function buildGroupMapCsv(rows) {
+    const header = ['product_id', 'status', 'group_id', 'group_name', 'rule', 'updated_at'];
+    const escape = (value) => {
+        const text = String(value ?? '');
+        if (!/[",\n]/.test(text)) return text;
+        return `"${text.replace(/"/g, '""')}"`;
+    };
+    const body = (rows || []).map((row) => header.map((field) => escape(row[field])).join(','));
+    return [header.join(','), ...body].join('\n');
+}
+
+window.exportGroupMapCsv = () => {
+    const state = ensureGroupEditorState();
+    const rows = sanitizeProductGroupMapRows(state.draftOverrides || []);
+    const csv = buildGroupMapCsv(rows);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'pgm_product_group_map.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+};
+
+window.triggerGroupMapImport = () => {
+    const input = document.getElementById('group-map-import-input');
+    if (input) input.click();
+};
+
+window.importGroupMapCsv = async (files) => {
+    const file = files && files[0];
+    if (!file) return;
+    const state = ensureGroupEditorState();
+    try {
+        const parsedRows = await new Promise((resolve, reject) => {
+            Papa.parse(file, {
+                header: true,
+                dynamicTyping: true,
+                skipEmptyLines: true,
+                complete: (result) => resolve(result.data || []),
+                error: reject
+            });
+        });
+        state.draftOverrides = sanitizeProductGroupMapRows(parsedRows);
+        state.selectedIds = [];
+        renderGroupEditorModal();
+    } catch (error) {
+        alert(`CSV 불러오기에 실패했습니다: ${error.message}`);
+    }
+};
+
+window.saveGroupEdits = async () => {
+    const state = ensureGroupEditorState();
+    const sanitized = sanitizeProductGroupMapRows(state.draftOverrides || []);
+    await DB.save(REQUIRED_FILES.productGroupMap.key, sanitized);
+    AppState.rawData.productGroupMap = sanitized;
+    AppState.data.productGroupMap = sanitized;
+    rebuildDerivedData();
+    AppState.helpers.productNameMap = buildProductNameMap();
+
+    const pageId = document.body.id;
+    if (pageId === 'page-products') renderProducts();
+    else if (pageId === 'page-transitions') renderTransitions();
+    else if (pageId === 'page-cart') renderCartAnalysis();
+    else if (pageId === 'page-insights') renderInsightsPage();
+    window.closeGroupEditorModal();
+};
 
 function renderProducts() {
     destroyCarts();
     const container = document.getElementById('content-area');
     const data = AppState.data.anchorScored || [];
     const { sortCol, sortDesc, searchQuery } = AppState.viewState.products;
+    const focusEntityId = String(AppState.helpers.focusEntityId || '').trim();
 
     let filteredData = [...data];
     if (searchQuery) {
         const q = searchQuery.toLowerCase();
         filteredData = data.filter((d) =>
-            String(d.product_id).toLowerCase().includes(q) ||
-            (d.product_name_latest && d.product_name_latest.toLowerCase().includes(q))
+            String(d.product_id || '').toLowerCase().includes(q) ||
+            String(d.member_ids || '').toLowerCase().includes(q) ||
+            (d.product_name_latest && String(d.product_name_latest).toLowerCase().includes(q))
         );
     }
 
@@ -773,16 +2586,18 @@ function renderProducts() {
         product_id: '상품 ID',
         product_name_latest: '상품명',
         revenue_90d: '90일 매출',
-        first_customer_cnt: 'Entry Gravity 고객수',
-        AA_Score: 'Entry Gravity 점수',
-        AA_Primary_Type: 'Entry Gravity 유형',
-        PCA_Score: 'Expansion Gravity 점수',
-        PCA_Primary_Type: 'Expansion Gravity 유형'
+        first_customer_cnt: '첫구매 유입 고객수',
+        AA_Score: '첫구매 유입 점수',
+        AA_Primary_Type: '첫구매 유입 유형',
+        PCA_Score: '재구매 연결 점수',
+        PCA_Primary_Type: '재구매 연결 유형'
     };
     const sortLabel = sortLabelMap[sortCol] || sortCol;
 
-    const rows = displayData.map((row) => `
-        <tr class="clickable" onclick="showRelatedProducts('${escapeHtml(row.product_id)}')">
+    const rows = displayData.map((row) => {
+        const isFocused = focusEntityId && String(row.product_id) === focusEntityId;
+        return `
+        <tr class="clickable ${isFocused ? 'row-focused' : ''}" onclick="showRelatedProducts('${escapeHtml(row.product_id)}')">
             <td>
                 <div style="display:flex; align-items:center; gap:0.5rem;">
                     <span>${escapeHtml(row.product_id)}</span>
@@ -792,7 +2607,7 @@ function renderProducts() {
                     </button>
                 </div>
             </td>
-            <td title="${escapeHtml(row.product_name_latest)}">${escapeHtml(row.product_name_latest || '-')}</td>
+            <td>${renderProductCell(row.product_name_latest || '-', row.product_id, 32)}</td>
             <td>${formatNumber(row.revenue_90d)}</td>
             <td>${formatNumber(row.first_customer_cnt)}</td>
             <td>${formatNumber(row.AA_Score, 4)}</td>
@@ -800,9 +2615,20 @@ function renderProducts() {
             <td>${formatNumber(row.PCA_Score, 4)}</td>
             <td><span class="badge" style="background: rgba(236, 72, 153, 0.2); color: #f472b6;">${escapeHtml(toPcaTypeLabel(row.PCA_Primary_Type || '-'))}</span></td>
         </tr>
-    `).join('');
+    `;
+    }).join('');
+
+    const quadrantModel = buildQuadrantModel(
+        sortedData,
+        AppState.viewState.products.quadrant.selectedId,
+        AppState.viewState.products.quadrant.scaleMode || 'focus'
+    );
+    if (quadrantModel) {
+        AppState.viewState.products.quadrant.selectedId = quadrantModel.selected.id;
+    }
 
     container.innerHTML = `
+        ${renderProductQuadrant(quadrantModel)}
         ${renderSearchUI('products', '상품 ID 또는 이름 검색')}
         <div class="controls-area animate-fade-in" style="margin-bottom:2rem;"><div class="card" style="height:400px;"><canvas id="productsChart"></canvas></div></div>
         <div class="card animate-fade-in"><h3>상위 50개 핵심 상품 (정렬 기준: ${escapeHtml(sortLabel)})</h3>
@@ -812,17 +2638,20 @@ function renderProducts() {
                         <th onclick="handleProductSort('product_id')">ID${getSortIndicator('product_id')}</th>
                         <th onclick="handleProductSort('product_name_latest')">상품명${getSortIndicator('product_name_latest')}</th>
                         <th onclick="handleProductSort('revenue_90d')">90일 매출${getSortIndicator('revenue_90d')}</th>
-                        <th onclick="handleProductSort('first_customer_cnt')">Entry Gravity 고객수${getSortIndicator('first_customer_cnt')}</th>
-                        <th onclick="handleProductSort('AA_Score')">Entry Gravity 점수${getSortIndicator('AA_Score')}</th>
-                        <th onclick="handleProductSort('AA_Primary_Type')">Entry Gravity 유형${getSortIndicator('AA_Primary_Type')}</th>
-                        <th onclick="handleProductSort('PCA_Score')">Expansion Gravity 점수${getSortIndicator('PCA_Score')}</th>
-                        <th onclick="handleProductSort('PCA_Primary_Type')">Expansion Gravity 유형${getSortIndicator('PCA_Primary_Type')}</th>
+                        <th onclick="handleProductSort('first_customer_cnt')">첫구매 유입 고객수${getSortIndicator('first_customer_cnt')}</th>
+                        <th onclick="handleProductSort('AA_Score')">첫구매 유입 점수${getSortIndicator('AA_Score')}</th>
+                        <th onclick="handleProductSort('AA_Primary_Type')">첫구매 유입 유형${getSortIndicator('AA_Primary_Type')}</th>
+                        <th onclick="handleProductSort('PCA_Score')">재구매 연결 점수${getSortIndicator('PCA_Score')}</th>
+                        <th onclick="handleProductSort('PCA_Primary_Type')">재구매 연결 유형${getSortIndicator('PCA_Primary_Type')}</th>
                     </tr></thead>
                     <tbody>${rows}</tbody>
                 </table>
             </div>
         </div>
     `;
+    applyFriendlyUi(container);
+
+    renderQuadrantChart(quadrantModel);
 
     const ctx = document.getElementById('productsChart').getContext('2d');
     AppState.charts.products = new Chart(ctx, {
@@ -858,6 +2687,35 @@ function renderProducts() {
         }
         renderProducts();
     };
+
+    window.selectQuadrantItem = (entityId) => {
+        const targetId = String(entityId || '').trim();
+        if (!targetId) return;
+        const qState = AppState.viewState.products.quadrant;
+        if (qState.selectedId && qState.selectedId !== targetId) {
+            qState.history.push(qState.selectedId);
+            if (qState.history.length > 30) qState.history = qState.history.slice(-30);
+        }
+        qState.selectedId = targetId;
+        AppState.helpers.focusEntityId = targetId;
+        renderProducts();
+    };
+
+    window.selectPreviousQuadrantItem = () => {
+        const qState = AppState.viewState.products.quadrant;
+        if (!qState.history.length) return;
+        const prev = qState.history.pop();
+        if (!prev) return;
+        qState.selectedId = prev;
+        AppState.helpers.focusEntityId = prev;
+        renderProducts();
+    };
+
+    window.setQuadrantScaleMode = (mode) => {
+        const next = String(mode || '').toLowerCase() === 'raw' ? 'raw' : 'focus';
+        AppState.viewState.products.quadrant.scaleMode = next;
+        renderProducts();
+    };
 }
 
 function renderTransitions() {
@@ -865,6 +2723,7 @@ function renderTransitions() {
     const container = document.getElementById('content-area');
     const transitions = AppState.data.anchorTransition || [];
     const { sortCol, sortDesc, searchQuery } = AppState.viewState.transitions;
+    const focusEntityId = String(AppState.helpers.focusEntityId || '').trim();
 
     const getName = (id) => getProductName(id);
 
@@ -874,7 +2733,9 @@ function renderTransitions() {
         filteredData = transitions.filter((d) => {
             const fromId = String(d.aa_product_id).toLowerCase();
             const fromName = getName(d.aa_product_id).toLowerCase();
-            return fromId.includes(q) || fromName.includes(q);
+            const toId = String(d.pca_product_id).toLowerCase();
+            const toName = getName(d.pca_product_id).toLowerCase();
+            return fromId.includes(q) || fromName.includes(q) || toId.includes(q) || toName.includes(q);
         });
     }
 
@@ -895,8 +2756,8 @@ function renderTransitions() {
     const displayData = sortedData.slice(0, 200);
     const getSortIndicator = (col) => sortCol === col ? (sortDesc ? ' ▼' : ' ▲') : '';
     const sortLabelMap = {
-        aa_product_id: 'Entry 상품',
-        pca_product_id: 'Expansion Gravity 상품',
+        aa_product_id: '첫구매 유입 상품',
+        pca_product_id: '재구매 연결 상품',
         transition_customer_cnt: '전환 고객수',
         avg_days_to_pca: '평균 전환 소요일',
         transition_rate: '전환율'
@@ -904,7 +2765,7 @@ function renderTransitions() {
     const sortLabel = sortLabelMap[sortCol] || sortCol;
 
     const rows = displayData.map((row) => `
-        <tr>
+        <tr class="${focusEntityId && (String(row.aa_product_id) === focusEntityId || String(row.pca_product_id) === focusEntityId) ? 'row-focused' : ''}">
             <td><div>${escapeHtml(getName(row.aa_product_id))}</div><div style="font-size:0.8em;color:var(--text-muted);cursor:pointer;" onclick="copyToClipboard('${escapeHtml(row.aa_product_id)}')">${escapeHtml(row.aa_product_id)} <i class="ph ph-copy"></i></div></td>
             <td><div>${escapeHtml(getName(row.pca_product_id))}</div><div style="font-size:0.8em;color:var(--text-muted);cursor:pointer;" onclick="copyToClipboard('${escapeHtml(row.pca_product_id)}')">${escapeHtml(row.pca_product_id)} <i class="ph ph-copy"></i></div></td>
             <td>${formatNumber(row.transition_customer_cnt)}</td>
@@ -914,13 +2775,13 @@ function renderTransitions() {
     `).join('');
 
     container.innerHTML = `
-        ${renderSearchUI('transitions', 'Entry Gravity 상품 기준 검색')}
-        <div class="card animate-fade-in"><h3>상위 100개 전환 흐름 (정렬 기준: ${escapeHtml(sortLabel)})</h3>
+        ${renderSearchUI('transitions', '첫구매 유입 상품 기준 검색')}
+        <div class="card animate-fade-in"><h3>상위 200개 전환 흐름 (정렬 기준: ${escapeHtml(sortLabel)})</h3>
             <div class="table-container">
                 <table class="data-table">
                     <thead><tr>
-                        <th onclick="handleTransitionSort('aa_product_id')">Entry 상품${getSortIndicator('aa_product_id')}</th>
-                        <th onclick="handleTransitionSort('pca_product_id')">Expansion Gravity 상품${getSortIndicator('pca_product_id')}</th>
+                        <th onclick="handleTransitionSort('aa_product_id')">첫구매 유입 상품${getSortIndicator('aa_product_id')}</th>
+                        <th onclick="handleTransitionSort('pca_product_id')">재구매 연결 상품${getSortIndicator('pca_product_id')}</th>
                         <th onclick="handleTransitionSort('transition_customer_cnt')">전환 고객수${getSortIndicator('transition_customer_cnt')}</th>
                         <th onclick="handleTransitionSort('avg_days_to_pca')">평균 전환 소요일${getSortIndicator('avg_days_to_pca')}</th>
                         <th onclick="handleTransitionSort('transition_rate')">전환율${getSortIndicator('transition_rate')}</th>
@@ -930,6 +2791,7 @@ function renderTransitions() {
             </div>
         </div>
     `;
+    applyFriendlyUi(container);
 
     window.handleTransitionSort = (col) => {
         if (AppState.viewState.transitions.sortCol === col) AppState.viewState.transitions.sortDesc = !AppState.viewState.transitions.sortDesc;
@@ -971,6 +2833,7 @@ function renderCartAnalysis() {
             <div class="pagination-controls"><button id="prevBtn" class="btn-primary" disabled>이전</button><button id="nextBtn" class="btn-primary" disabled>다음</button></div>
         </div>
     `;
+    applyFriendlyUi(container);
 
     const ctx = document.getElementById('cartChart').getContext('2d');
     AppState.charts.cart = new Chart(ctx, {
@@ -1004,9 +2867,9 @@ function renderCartAnalysis() {
 
 async function loadDetailData() {
     try {
-        const data = await loadDataFromDB(REQUIRED_FILES.cartAnchorDetail);
-        const deduplicated = data.filter((row) => String(row.i) < String(row.j));
-        AppState.data.cartAnchorDetail = deduplicated;
+        AppState.rawData.cartAnchorDetail = await loadDataFromDB(REQUIRED_FILES.cartAnchorDetail);
+        rebuildDerivedData();
+        const deduplicated = AppState.data.cartAnchorDetail || [];
         AppState.pagination.cartDetail.totalRows = deduplicated.length;
         renderCartDetailTable();
     } catch (_) {
@@ -1018,6 +2881,7 @@ function renderCartDetailTable() {
     const { currentPage, rowsPerPage } = AppState.pagination.cartDetail;
     const { sortCol, sortDesc, searchQuery } = AppState.viewState.cart;
     const getName = AppState.helpers.getName;
+    const focusEntityId = String(AppState.helpers.focusEntityId || '').trim();
 
     let data = [...(AppState.data.cartAnchorDetail || [])];
     if (searchQuery) {
@@ -1051,7 +2915,7 @@ function renderCartDetailTable() {
     const getSortIndicator = (col) => sortCol === col ? (sortDesc ? ' ▼' : ' ▲') : '';
 
     const rows = pData.map((row) => `
-        <tr>
+        <tr class="${focusEntityId && (String(row.i) === focusEntityId || String(row.j) === focusEntityId) ? 'row-focused' : ''}">
             <td><div>${escapeHtml(getName(row.i))}</div><div style="font-size:0.8em;color:var(--text-muted);cursor:pointer;" onclick="copyToClipboard('${escapeHtml(row.i)}')">${escapeHtml(row.i)} <i class="ph ph-copy"></i></div></td>
             <td><div>${escapeHtml(getName(row.j))}</div><div style="font-size:0.8em;color:var(--text-muted);cursor:pointer;" onclick="copyToClipboard('${escapeHtml(row.j)}')">${escapeHtml(row.j)} <i class="ph ph-copy"></i></div></td>
             <td>${formatNumber(row.co_order_cnt)}</td>
@@ -1068,6 +2932,7 @@ function renderCartDetailTable() {
             <tbody>${rows}</tbody>
         </table>
     `;
+    applyFriendlyUi(document.getElementById('cart-detail-container'));
 
     document.getElementById('pagination-info').innerText = `${currentPage} / ${Math.max(1, Math.ceil(totalRows / rowsPerPage))} 페이지`;
     document.getElementById('prevBtn').disabled = currentPage === 1;
@@ -1279,7 +3144,7 @@ function getInsightWarnings(model) {
         warnings.push(`전이율-전이고객수 불일치 ${model.summaries.mismatchCount}건 감지`);
     }
     if ((model.summaries.pca90 || 0) < 0.2 && model.summaries.cohortCustomers > 0) {
-        warnings.push('90일 Expansion Gravity 도달률이 낮아 Entry Gravity 이후 이탈 위험이 있습니다');
+        warnings.push('90일 재구매 연결 도달률이 낮아 첫구매 유입 이후 이탈 위험이 있습니다');
     }
     if ((model.metrics.ca_pair_top1_share_max || 0) > 0.7) {
         warnings.push('장바구니 조합형 집중도가 높아 특정 조합 의존 리스크가 있습니다');
@@ -1315,10 +3180,10 @@ function getBuiltInActionCards(model) {
         cards.push({
             domain: 'marketing',
             priority: 1,
-            title: '대량 유입형 상품의 Expansion Gravity 연결 강화',
-            action: 'Entry Gravity 후 7일 이내 단골의 시작점 상품으로 이어지도록 CRM/리타게팅을 우선 배치합니다.',
-            impact: 'Expansion Gravity 도달률 개선 및 유입 낭비 축소',
-            evidence: `${TERM_LABELS.AA}-${AA_TYPE_LABELS.BROAD} 비중 ${formatPercent(m.aa_broad_ratio, 1)} / 90일 Expansion Gravity 도달률 ${formatPercent(m.pca_transition_90d_rate, 1)}`
+            title: '대량 유입형 상품의 재구매 연결 연결 강화',
+            action: '첫구매 유입 후 7일 이내 단골의 시작점 상품으로 이어지도록 CRM/리타게팅을 우선 배치합니다.',
+            impact: '재구매 연결 도달률 개선 및 유입 낭비 축소',
+            evidence: `${TERM_LABELS.AA}-${AA_TYPE_LABELS.BROAD} 비중 ${formatPercent(m.aa_broad_ratio, 1)} / 90일 재구매 연결 도달률 ${formatPercent(m.pca_transition_90d_rate, 1)}`
         });
     }
 
@@ -1327,7 +3192,7 @@ function getBuiltInActionCards(model) {
             domain: 'marketing',
             priority: 2,
             title: '전이 경로 과집중 완화 실험',
-            action: '상위 Expansion Gravity 상품 편중 경로를 유지하되 대체 상품 노출 A/B 테스트를 병행합니다.',
+            action: '상위 재구매 연결 상품 편중 경로를 유지하되 대체 상품 노출 A/B 테스트를 병행합니다.',
             impact: '경로 리스크 분산 및 안정적 확장',
             evidence: `전이 상위 3경로 비중 ${formatPercent(m.transition_top3_share, 1)}`
         });
@@ -1337,8 +3202,8 @@ function getBuiltInActionCards(model) {
         cards.push({
             domain: 'marketing',
             priority: 1,
-            title: 'Expansion Gravity 도달 속도 개선',
-            action: 'Entry Gravity 후 메시지 발화 시점을 앞당기고, 3~7일 구간 혜택을 강화합니다.',
+            title: '재구매 연결 도달 속도 개선',
+            action: '첫구매 유입 후 메시지 발화 시점을 앞당기고, 3~7일 구간 혜택을 강화합니다.',
             impact: '평균 전이 소요일 단축',
             evidence: `평균 days_to_pca ${formatNumber(m.avg_days_to_pca, 1)}일`
         });
@@ -1350,7 +3215,7 @@ function getBuiltInActionCards(model) {
             priority: 1,
             title: '장바구니 조합형 고정 번들 운영',
             action: '상위 조합 상품을 고정 번들로 구성하고 교차추천 슬롯을 상단에 고정합니다.',
-            impact: 'Basket Gravity 확장률 향상',
+            impact: '장바구니 확장 확장률 향상',
             evidence: `최대 top1_share ${formatPercent(m.ca_pair_top1_share_max, 1)}`
         });
     }
@@ -1429,7 +3294,7 @@ function getFitnessTrend(ratio) {
             direction: '하락',
             status: '약화 신호',
             problem: '최근 체력이 장기 기준 대비 약해지는 신호입니다.',
-            action: 'Entry Gravity 후 7일 이내 CRM 접점을 앞당겨 재구매 전환을 보강하세요.',
+            action: '첫구매 유입 후 7일 이내 CRM 접점을 앞당겨 재구매 전환을 보강하세요.',
             tone: 'warning'
         };
     }
@@ -1437,7 +3302,7 @@ function getFitnessTrend(ratio) {
         direction: '위험',
         status: '즉시 대응 필요',
         problem: '최근 체력이 장기 기준 대비 크게 약화된 상태입니다.',
-        action: 'Expansion Gravity 상품 노출과 핵심 재고 방어를 최우선으로 전환하세요.',
+        action: '재구매 연결 상품 노출과 핵심 재고 방어를 최우선으로 전환하세요.',
         tone: 'critical'
     };
 }
@@ -1459,7 +3324,7 @@ function renderHeroStory(model) {
         <section class="insight-section card animate-fade-in">
             <div class="section-headline">
                 <h2>인사이트 스튜디오</h2>
-                <p>Entry Gravity 이후 90일 전환 최적화를 한 화면에서 확인합니다</p>
+                <p>첫구매 유입 이후 90일 전환 최적화를 한 화면에서 확인합니다</p>
             </div>
             <div class="hero-metrics">
                 <div class="hero-metric">
@@ -1490,7 +3355,7 @@ function renderHeroStory(model) {
 
 function renderAAJourney(model) {
     if (!model.aaRowsAll.length) {
-        return renderMissingSection('Entry Gravity 고객 흐름', `${REQUIRED_FILES.aaCohortJourney.filename} 데이터가 없어 Entry Gravity 고객 흐름을 표시할 수 없습니다.`);
+        return renderMissingSection('첫구매 유입 고객 흐름', `${REQUIRED_FILES.aaCohortJourney.filename} 데이터가 없어 첫구매 유입 고객 흐름을 표시할 수 없습니다.`);
     }
 
     const s = model.summaries;
@@ -1513,12 +3378,12 @@ function renderAAJourney(model) {
     return `
         <section id="aa-journey" class="insight-section card animate-fade-in">
             <div class="section-headline">
-                <h2>Entry Gravity 고객 흐름</h2>
-                <p>Entry Gravity 이후 7/30/90일 행동과 전환 속도</p>
+                <h2>첫구매 유입 고객 흐름</h2>
+                <p>첫구매 유입 이후 7/30/90일 행동과 전환 속도</p>
             </div>
             <div class="journey-grid">
                 <div class="journey-kpi">
-                    <label>Entry Gravity 고객수</label>
+                    <label>첫구매 유입 고객수</label>
                     <strong>${formatNumber(first)}</strong>
                 </div>
                 <div class="journey-kpi">
@@ -1537,11 +3402,11 @@ function renderAAJourney(model) {
                     <span>${formatPercent(s.repeat90, 1)}</span>
                 </div>
                 <div class="journey-kpi">
-                    <label>90일 Expansion Gravity 도달률</label>
+                    <label>90일 재구매 연결 도달률</label>
                     <strong>${formatPercent(s.pca90, 1)}</strong>
                 </div>
                 <div class="journey-kpi">
-                    <label>Expansion Gravity까지 평균 일수</label>
+                    <label>재구매 연결까지 평균 일수</label>
                     <strong>${formatNumber(s.avgDaysToPca, 1)}일</strong>
                 </div>
             </div>
@@ -1556,7 +3421,7 @@ function renderAAJourney(model) {
                             <th>Entry 유형</th>
                             <th>대상 고객수</th>
                             <th>90일 재구매율</th>
-                            <th>90일 Expansion Gravity 도달률</th>
+                            <th>90일 재구매 연결 도달률</th>
                             <th>90일 가치</th>
                             <th>평균 소요일</th>
                         </tr>
@@ -1570,7 +3435,7 @@ function renderAAJourney(model) {
 
 function renderAATransition(model) {
     if (!model.transitionRowsAll.length) {
-        return renderMissingSection('Expansion Gravity 전환 흐름', `${REQUIRED_FILES.aaTransitionPath.filename} 데이터가 없어 전환 흐름을 표시할 수 없습니다.`);
+        return renderMissingSection('재구매 연결 전환 흐름', `${REQUIRED_FILES.aaTransitionPath.filename} 데이터가 없어 전환 흐름을 표시할 수 없습니다.`);
     }
 
     const rows = model.topTransitionRows.map((row) => `
@@ -1586,8 +3451,8 @@ function renderAATransition(model) {
     return `
         <section id="aa-transition" class="insight-section card animate-fade-in">
             <div class="section-headline">
-                <h2>Expansion Gravity 전환 흐름</h2>
-                <p>Entry Gravity 상품별 Expansion Gravity 상품 도달 구조와 속도</p>
+                <h2>재구매 연결 전환 흐름</h2>
+                <p>첫구매 유입 상품별 재구매 연결 상품 도달 구조와 속도</p>
             </div>
             <div class="journey-grid">
                 <div class="journey-kpi">
@@ -1605,8 +3470,8 @@ function renderAATransition(model) {
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>Entry Gravity 상품</th>
-                            <th>Expansion Gravity 상품</th>
+                            <th>첫구매 유입 상품</th>
+                            <th>재구매 연결 상품</th>
                             <th>전이 고객수</th>
                             <th>전이율</th>
                             <th>평균 소요일</th>
@@ -1621,7 +3486,7 @@ function renderAATransition(model) {
 
 function renderCASection(model) {
     if (!model.caRows.length) {
-        return renderMissingSection('Basket Gravity 인사이트', `${REQUIRED_FILES.caProfile.filename} 데이터가 없어 Basket Gravity 흐름을 표시할 수 없습니다.`);
+        return renderMissingSection('장바구니 확장 인사이트', `${REQUIRED_FILES.caProfile.filename} 데이터가 없어 장바구니 확장 흐름을 표시할 수 없습니다.`);
     }
 
     const topRows = [...model.caRows]
@@ -1641,7 +3506,7 @@ function renderCASection(model) {
     const selectedPanel = model.selectedCa
         ? `
         <div class="selected-ca-panel">
-            <h4>선택한 Entry Gravity 상품 기준 Basket Gravity</h4>
+            <h4>선택한 첫구매 유입 상품 기준 장바구니 확장</h4>
             <p><strong title="${escapeHtml(getProductName(model.selectedCa.product_id))}">${escapeHtml(truncateText(getProductName(model.selectedCa.product_id), 42))}</strong> (${escapeHtml(model.selectedCa.product_id)})</p>
             <div class="selected-ca-grid">
                 <span>확장 유형: ${escapeHtml(toCaTypeLabel(withFallback(model.selectedCa.ca_type, 'None')))}</span>
@@ -1651,12 +3516,12 @@ function renderCASection(model) {
             </div>
         </div>
         `
-        : '<div class="selected-ca-panel"><h4>선택한 Entry Gravity 상품 기준 Basket Gravity</h4><p>Entry Gravity 상품 필터를 선택하면 해당 상품의 Basket Gravity 신호를 표시합니다.</p></div>';
+        : '<div class="selected-ca-panel"><h4>선택한 첫구매 유입 상품 기준 장바구니 확장</h4><p>첫구매 유입 상품 필터를 선택하면 해당 상품의 장바구니 확장 신호를 표시합니다.</p></div>';
 
     return `
         <section id="cart-ca" class="insight-section card animate-fade-in">
             <div class="section-headline">
-                <h2>Basket Gravity 인사이트</h2>
+                <h2>장바구니 확장 인사이트</h2>
                 <p>장바구니 결합력과 동반구매 구조</p>
             </div>
             <div class="insight-chart-grid">
@@ -1813,7 +3678,7 @@ function renderBrandFitness(model) {
                 <p><strong>바로 실행:</strong> ${escapeHtml(trend.action)}</p>
             </div>
             <div class="structure-block">
-                <h3>Brand Health Index의 3개 구조</h3>
+                <h3>브랜드 구조 건강도의 3개 구조</h3>
                 ${hasStructureData ? `
                     <div class="card chart-card structure-radar-card">
                         <canvas
@@ -1873,11 +3738,11 @@ function renderBrandFitness(model) {
                 <summary>원인 자세히 보기 (구성 요소/추세/기간별 수치)</summary>
                 <div class="fitness-details-body">
                     <div class="factor-block">
-                        <h3>Brand Impact Index 구성 요소 (${selectedWindow}일)</h3>
+                        <h3>브랜드 실전 체력 구성 요소 (${selectedWindow}일)</h3>
                         <p class="chart-hint">구조, ${FITNESS_COMPONENT_LABELS.value}, ${FITNESS_COMPONENT_LABELS.strength} 중 어떤 요소가 변화를 만들었는지 확인합니다.</p>
                         <div class="factor-grid">
                             <div class="journey-kpi">
-                                <label>Brand Health Index</label>
+                                <label>브랜드 구조 건강도</label>
                                 <strong>${componentBhi !== null ? formatNumber(componentBhi, 3) : '-'}</strong>
                             </div>
                             <div class="journey-kpi">
@@ -2004,9 +3869,9 @@ function renderInsightFilters(model) {
             ${jumpNavOpen ? `
                 <nav class="filter-jump-nav">
                     <a href="#brand-fitness">브랜드 체력</a>
-                    <a href="#aa-journey">Entry Gravity 고객 흐름</a>
-                    <a href="#aa-transition">Expansion Gravity 전환</a>
-                    <a href="#cart-ca">Basket Gravity</a>
+                    <a href="#aa-journey">첫구매 유입 고객 흐름</a>
+                    <a href="#aa-transition">재구매 연결 전환</a>
+                    <a href="#cart-ca">장바구니 확장</a>
                     <a href="#action-center">실행 카드</a>
                 </nav>
                 <div class="filter-grid">
@@ -2060,7 +3925,7 @@ function renderInsightsCharts(model) {
                         fill: true
                     },
                     {
-                        label: 'Expansion Gravity 도달률',
+                        label: '재구매 연결 도달률',
                         data: [toNumber(s.pca30, 0) * 100, toNumber(s.pca90, 0) * 100, toNumber(s.pca90, 0) * 100],
                         borderColor: '#ec4899',
                         backgroundColor: 'rgba(236,72,153,0.12)',
@@ -2101,7 +3966,7 @@ function renderInsightsCharts(model) {
             data: {
                 labels: rows.map((row) => row.shortLabel),
                 datasets: [{
-                    label: 'Entry Gravity 고객수',
+                    label: '첫구매 유입 고객수',
                     data: rows.map((row) => row.cohortCustomers),
                     backgroundColor: 'rgba(16,185,129,0.6)',
                     borderColor: 'rgba(16,185,129,1)',
@@ -2323,7 +4188,7 @@ function renderInsightsCharts(model) {
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Brand Impact Index 구성 요소 추세',
+                        text: '브랜드 실전 체력 구성 요소 추세',
                         color: '#1e293b'
                     }
                 }
@@ -2344,7 +4209,7 @@ function renderInsightsCharts(model) {
                     labels: ['Entry Balance', 'Expansion Balance', 'Value Readiness'],
                     datasets: [
                         {
-                            label: 'Brand Health Index 3축',
+                            label: '브랜드 구조 건강도 3축',
                             data: [
                                 asPct !== null ? asPct : 0,
                                 csPct !== null ? csPct : 0,
@@ -2364,7 +4229,7 @@ function renderInsightsCharts(model) {
                         legend: { display: false },
                         title: {
                             display: true,
-                            text: 'Brand Health Index 레이더(%)',
+                            text: '브랜드 구조 건강도 레이더(%)',
                             color: '#1e293b'
                         },
                         tooltip: {
@@ -2406,6 +4271,7 @@ function renderInsightsPage() {
             ${renderActionCenter(model)}
         </div>
     `;
+    applyFriendlyUi(container);
 
     renderInsightsCharts(model);
     bindInsightsInteractions();
@@ -2459,18 +4325,118 @@ window.resetInsightsFilters = () => {
 
 // --- Upload Logic ---
 
+function renderSettingsTabs() {
+    const activeTab = AppState.viewState.settings.activeTab || 'grouping';
+    const groupingStats = AppState.helpers.grouping?.stats || {};
+    const groupedEntityCount = groupingStats.groupedEntityCount || 0;
+    const invalidOverrideCount = groupingStats.invalidOverrideCount || 0;
+
+    const groupingPanel = `
+        <div class="settings-panel ${activeTab === 'grouping' ? 'active' : ''}">
+            <h4>상품 그룹 관리</h4>
+            <p>같은 상품인데 ID가 다른 경우를 묶어 분석 정확도를 높일 수 있어요.</p>
+            <div class="settings-kpis">
+                <span>현재 그룹 수: ${formatNumber(groupedEntityCount)}개</span>
+                <span>무효 매핑: ${formatNumber(invalidOverrideCount)}건</span>
+            </div>
+            <div class="settings-actions">
+                <button class="btn-primary" type="button" onclick="openGroupEditorFromSettings()">상품 그룹 관리 열기</button>
+                <button class="btn-primary" type="button" onclick="exportGroupMapCsv()">그룹 CSV 내보내기</button>
+            </div>
+        </div>
+    `;
+
+    const dataPanel = `
+        <div class="settings-panel ${activeTab === 'data' ? 'active' : ''}">
+            <h4>데이터 관리</h4>
+            <p>데이터를 다시 불러오거나 업로드하고, 필요하면 로컬 저장 데이터를 초기화할 수 있어요.</p>
+            <div class="settings-actions">
+                <button class="btn-primary" type="button" onclick="showUploadModal()">CSV 업로드</button>
+                <button class="btn-primary" type="button" onclick="resyncLocalCsvFromSettings()">로컬 파일 다시 불러오기</button>
+                <button class="btn-primary danger" type="button" onclick="clearIndexedDbFromSettings()">저장 데이터 초기화</button>
+            </div>
+        </div>
+    `;
+
+    return `
+        <div class="settings-tabs">
+            <button class="settings-tab ${activeTab === 'grouping' ? 'active' : ''}" type="button" onclick="switchSettingsTab('grouping')">상품 그룹</button>
+            <button class="settings-tab ${activeTab === 'data' ? 'active' : ''}" type="button" onclick="switchSettingsTab('data')">데이터 관리</button>
+        </div>
+        ${groupingPanel}
+        ${dataPanel}
+    `;
+}
+
+function showSettingsModal() {
+    if (document.getElementById('settingsModal')) document.getElementById('settingsModal').remove();
+    document.body.insertAdjacentHTML('beforeend', `
+        <div id="settingsModal" class="modal-overlay active">
+            <div class="modal-card settings-modal-card">
+                <div class="modal-header">
+                    <h3>설정</h3>
+                    <button class="modal-close" type="button" onclick="closeSettingsModal()">&times;</button>
+                </div>
+                <div id="settings-modal-body" class="modal-body"></div>
+            </div>
+        </div>
+    `);
+    const modal = document.getElementById('settingsModal');
+    modal.onclick = (event) => {
+        if (event.target === modal) window.closeSettingsModal();
+    };
+    window.renderSettingsModal();
+}
+
+window.renderSettingsModal = () => {
+    const body = document.getElementById('settings-modal-body');
+    if (!body) return;
+    body.innerHTML = renderSettingsTabs();
+    applyFriendlyUi(body);
+};
+
+window.closeSettingsModal = () => {
+    const modal = document.getElementById('settingsModal');
+    if (modal) modal.remove();
+};
+
+window.switchSettingsTab = (tab) => {
+    AppState.viewState.settings.activeTab = tab === 'data' ? 'data' : 'grouping';
+    window.renderSettingsModal();
+};
+
+window.openGroupEditorFromSettings = () => {
+    window.closeSettingsModal();
+    window.showGroupEditorModal();
+};
+
+window.resyncLocalCsvFromSettings = async () => {
+    const keys = await DB.getAllKeys();
+    const result = await syncDataFromLocalCsv(keys);
+    alert(`로컬 동기화가 끝났어요. ${result.loadedCount}개 파일을 반영했어요.`);
+    location.reload();
+};
+
+window.clearIndexedDbFromSettings = async () => {
+    if (!window.confirm('로컬에 저장된 CSV를 모두 지울까요?')) return;
+    await DB.clearAll();
+    alert('저장 데이터를 지웠어요. 화면을 새로고침할게요.');
+    location.reload();
+};
+
 function showUploadModal() {
     if (document.getElementById('uploadModal')) document.getElementById('uploadModal').remove();
     document.body.insertAdjacentHTML('beforeend', `
         <div id="uploadModal" style="position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; display:flex; align-items:center; justify-content:center;">
             <div class="card" style="width:560px; max-width:92%;">
                 <div style="display:flex; justify-content:space-between; margin-bottom:1.5rem;"><h3>CSV 업로드</h3><button onclick="document.getElementById('uploadModal').remove()" style="background:none; border:none; color:white; cursor:pointer;"><i class="ph ph-x" style="font-size:1.5rem"></i></button></div>
-                <div id="upload-status" style="margin-bottom:1rem; color:var(--text-muted)">여러 CSV를 동시에 선택할 수 있습니다. 권장 파일명 또는 키를 포함한 파일명을 사용하세요.</div>
+                <div id="upload-status" style="margin-bottom:1rem; color:var(--text-muted)">여러 CSV를 동시에 선택할 수 있습니다.</div>
                 <input type="file" id="file-input" multiple accept=".csv" onchange="handleFiles(this.files)">
                 <div id="file-list" style="margin-top:1rem; font-size:0.9rem;"></div>
             </div>
         </div>
     `);
+    applyFriendlyUi(document.getElementById('uploadModal'));
 }
 
 window.handleFiles = async (files) => {
@@ -2527,8 +4493,25 @@ window.handleFiles = async (files) => {
 
 // --- Initialization ---
 
+function applyFocusFromUrl(pageId) {
+    const focusRaw = new URLSearchParams(window.location.search).get('focus');
+    if (!focusRaw) return;
+    const focusEntity = resolveEntityId(focusRaw);
+    if (!focusEntity) return;
+    AppState.helpers.focusEntityId = focusEntity;
+
+    if (pageId === 'page-products') {
+        AppState.viewState.products.searchQuery = focusEntity;
+        AppState.viewState.products.quadrant.selectedId = focusEntity;
+    } else if (pageId === 'page-transitions') {
+        AppState.viewState.transitions.searchQuery = focusEntity;
+    } else if (pageId === 'page-cart') {
+        AppState.viewState.cart.searchQuery = focusEntity;
+    }
+}
+
 async function loadInsightsData() {
-    const [brandScore, anchorScored, anchorTransition, cartAnchor, cartAnchorDetail, aaCohortJourney, aaTransitionPath, caProfile, biiWindow, apfActionRules] = await Promise.all([
+    const [brandScore, anchorScored, anchorTransition, cartAnchor, cartAnchorDetail, aaCohortJourney, aaTransitionPath, caProfile, biiWindow, apfActionRules, productGroupMap] = await Promise.all([
         loadOptionalDataFromDB(REQUIRED_FILES.brandScore, []),
         loadOptionalDataFromDB(REQUIRED_FILES.anchorScored, []),
         loadOptionalDataFromDB(REQUIRED_FILES.anchorTransition, []),
@@ -2538,19 +4521,22 @@ async function loadInsightsData() {
         loadOptionalDataFromDB(REQUIRED_FILES.aaTransitionPath, []),
         loadOptionalDataFromDB(REQUIRED_FILES.caProfile, []),
         loadOptionalDataFromDB(REQUIRED_FILES.biiWindow, []),
-        loadOptionalDataFromDB(REQUIRED_FILES.apfActionRules, [])
+        loadOptionalDataFromDB(REQUIRED_FILES.apfActionRules, []),
+        loadOptionalDataFromDB(REQUIRED_FILES.productGroupMap, [])
     ]);
 
-    AppState.data.brandScore = brandScore;
-    AppState.data.anchorScored = anchorScored;
-    AppState.data.anchorTransition = anchorTransition;
-    AppState.data.cartAnchor = cartAnchor;
-    AppState.data.cartAnchorDetail = cartAnchorDetail;
-    AppState.data.aaCohortJourney = aaCohortJourney;
-    AppState.data.aaTransitionPath = aaTransitionPath;
-    AppState.data.caProfile = caProfile;
-    AppState.data.biiWindow = biiWindow;
-    AppState.data.apfActionRules = apfActionRules;
+    AppState.rawData.brandScore = brandScore;
+    AppState.rawData.anchorScored = anchorScored;
+    AppState.rawData.anchorTransition = anchorTransition;
+    AppState.rawData.cartAnchor = cartAnchor;
+    AppState.rawData.cartAnchorDetail = cartAnchorDetail;
+    AppState.rawData.aaCohortJourney = aaCohortJourney;
+    AppState.rawData.aaTransitionPath = aaTransitionPath;
+    AppState.rawData.caProfile = caProfile;
+    AppState.rawData.biiWindow = biiWindow;
+    AppState.rawData.apfActionRules = apfActionRules;
+    AppState.rawData.productGroupMap = productGroupMap;
+    rebuildDerivedData();
 }
 
 async function init() {
@@ -2558,7 +4544,9 @@ async function init() {
     initAppUI();
 
     const sidebar = document.querySelector('.user-profile');
-    if (sidebar) sidebar.innerHTML = '<button class="btn-primary" style="width:100%" onclick="showUploadModal()"><i class="ph ph-upload-simple"></i> 데이터 업로드</button>';
+    if (sidebar) {
+        sidebar.innerHTML = '<button class="btn-primary settings-launch-btn" style="width:100%" onclick="showSettingsModal()"><i class="ph ph-sliders-horizontal"></i> 설정</button>';
+    }
 
     try {
         let keys = await DB.getAllKeys();
@@ -2585,35 +4573,56 @@ async function init() {
 
         if (pageId === 'page-insights') {
             await loadInsightsData();
+            applyFocusFromUrl(pageId);
             renderInsightsPage();
+            applyFriendlyUi(document.body);
             return;
         }
 
         if (pageId === 'page-overview') {
-            AppState.data.brandScore = await loadDataFromDB(REQUIRED_FILES.brandScore);
+            AppState.rawData.brandScore = await loadDataFromDB(REQUIRED_FILES.brandScore);
+            AppState.data.brandScore = AppState.rawData.brandScore;
             renderOverview();
+            applyFriendlyUi(document.body);
         } else if (pageId === 'page-products') {
-            AppState.data.anchorScored = await loadDataFromDB(REQUIRED_FILES.anchorScored);
-            AppState.helpers.productNameMap = buildProductNameMap();
+            const [s, groupMap] = await Promise.all([
+                loadDataFromDB(REQUIRED_FILES.anchorScored),
+                loadOptionalDataFromDB(REQUIRED_FILES.productGroupMap, [])
+            ]);
+            AppState.rawData.anchorScored = s;
+            AppState.rawData.productGroupMap = groupMap;
+            rebuildDerivedData();
+            applyFocusFromUrl(pageId);
             renderProducts();
+            applyFriendlyUi(document.body);
         } else if (pageId === 'page-transitions') {
-            const [t, s] = await Promise.all([
+            const [t, s, groupMap] = await Promise.all([
                 loadDataFromDB(REQUIRED_FILES.anchorTransition),
-                loadDataFromDB(REQUIRED_FILES.anchorScored)
+                loadDataFromDB(REQUIRED_FILES.anchorScored),
+                loadOptionalDataFromDB(REQUIRED_FILES.productGroupMap, [])
             ]);
-            AppState.data.anchorTransition = t;
-            AppState.data.anchorScored = s;
-            AppState.helpers.productNameMap = buildProductNameMap();
+            AppState.rawData.anchorTransition = t;
+            AppState.rawData.anchorScored = s;
+            AppState.rawData.productGroupMap = groupMap;
+            rebuildDerivedData();
+            applyFocusFromUrl(pageId);
             renderTransitions();
+            applyFriendlyUi(document.body);
         } else if (pageId === 'page-cart') {
-            const [c, s] = await Promise.all([
+            const [c, d, s, groupMap] = await Promise.all([
                 loadDataFromDB(REQUIRED_FILES.cartAnchor),
-                loadDataFromDB(REQUIRED_FILES.anchorScored)
+                loadOptionalDataFromDB(REQUIRED_FILES.cartAnchorDetail, []),
+                loadDataFromDB(REQUIRED_FILES.anchorScored),
+                loadOptionalDataFromDB(REQUIRED_FILES.productGroupMap, [])
             ]);
-            AppState.data.cartAnchor = c;
-            AppState.data.anchorScored = s;
-            AppState.helpers.productNameMap = buildProductNameMap();
+            AppState.rawData.cartAnchor = c;
+            AppState.rawData.cartAnchorDetail = d;
+            AppState.rawData.anchorScored = s;
+            AppState.rawData.productGroupMap = groupMap;
+            rebuildDerivedData();
+            applyFocusFromUrl(pageId);
             renderCartAnalysis();
+            applyFriendlyUi(document.body);
         }
     } catch (e) {
         console.error(e);
