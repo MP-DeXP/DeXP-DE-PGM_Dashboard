@@ -446,8 +446,12 @@ const renderProductCell = (name, id, maxLen = 24, options = {}) => {
     const showId = options.showId !== false;
     const showGroupLabel = options.showGroupLabel !== false;
     const groupClickable = options.groupClickable !== false;
+    const nameClickMode = String(options.nameClickMode || 'popover').toLowerCase();
     const groupMeta = options.groupMeta || getEntityMeta(id);
     const isGrouped = Boolean(showGroupLabel && groupMeta && groupMeta.memberCount > 1 && groupMeta.entityId);
+    const nameClickHandler = nameClickMode === 'focus-quadrant'
+        ? `event.stopPropagation();focusQuadrantFromTable('${escapeJs(id)}')`
+        : `event.stopPropagation();showProductNamePopover('${escapeJs(fullName)}','${escapeJs(id)}')`;
     const groupLabel = isGrouped
         ? `
             <button
@@ -462,7 +466,7 @@ const renderProductCell = (name, id, maxLen = 24, options = {}) => {
         : '';
     return `
         <div class="name-inline-wrap">
-            <button class="name-trigger" type="button" onclick="event.stopPropagation();showProductNamePopover('${escapeJs(fullName)}','${escapeJs(id)}')">
+            <button class="name-trigger" type="button" onclick="${nameClickHandler}">
                 <span class="name-clamp-2">${escapeHtml(fullName)}</span>
             </button>
             ${groupLabel}
@@ -1455,6 +1459,8 @@ function renderSearchUI(viewName, placeholder, options = {}) {
                         class="search-input"
                         placeholder="${toFriendlyText(placeholder)}"
                         value="${query}"
+                        oncompositionstart="handleSearchCompositionStart('${viewName}')"
+                        oncompositionend="handleSearchCompositionEnd('${viewName}', this)"
                         oninput="handleGlobalSearch('${viewName}', this.value, this.selectionStart, this.selectionEnd)"
                     >
                 </div>
@@ -1658,17 +1664,42 @@ function restoreSearchInputCursor(viewName, selectionStart = null, selectionEnd 
 }
 
 window.handleGlobalSearch = (viewName, query, selectionStart = null, selectionEnd = null) => {
-    if (!AppState.viewState[viewName]) return;
-    AppState.viewState[viewName].searchQuery = query;
+    const state = AppState.viewState[viewName];
+    if (!state) return;
+    state.searchQuery = query;
+    if (state.searchComposing) return;
 
-    if (window.searchTimeout) clearTimeout(window.searchTimeout);
-    window.searchTimeout = setTimeout(() => {
-        if (viewName === 'products') renderProducts();
-        else if (viewName === 'transitions') renderTransitionsTable();
+    if (!window.searchTimeouts) window.searchTimeouts = {};
+    if (window.searchTimeouts[viewName]) clearTimeout(window.searchTimeouts[viewName]);
+    window.searchTimeouts[viewName] = setTimeout(() => {
+        if (viewName === 'products') {
+            renderProductsTableAndChartOnly();
+        } else if (viewName === 'transitions') {
+            renderTransitionsTable();
+        }
         if (viewName === 'transitions') {
             restoreSearchInputCursor(viewName, selectionStart, selectionEnd);
         }
+        delete window.searchTimeouts[viewName];
     }, 150);
+};
+
+window.handleSearchCompositionStart = (viewName) => {
+    const state = AppState.viewState[viewName];
+    if (!state) return;
+    state.searchComposing = true;
+    if (window.searchTimeouts?.[viewName]) {
+        clearTimeout(window.searchTimeouts[viewName]);
+        delete window.searchTimeouts[viewName];
+    }
+};
+
+window.handleSearchCompositionEnd = (viewName, inputEl) => {
+    const state = AppState.viewState[viewName];
+    if (!state) return;
+    state.searchComposing = false;
+    if (!inputEl) return;
+    window.handleGlobalSearch(viewName, inputEl.value, inputEl.selectionStart, inputEl.selectionEnd);
 };
 
 window.handleSearchModeChange = (viewName, mode) => {
@@ -3507,15 +3538,23 @@ window.saveGroupEdits = async () => {
     window.closeGroupEditorModal();
 };
 
-function renderProducts() {
-    destroyCarts();
-    const container = document.getElementById('content-area');
+function getProductsSortLabel(sortCol) {
+    const sortLabelMap = {
+        product_id: '상품 ID',
+        product_name_latest: '상품명',
+        revenue_90d: '90일 매출',
+        first_customer_cnt: '첫구매 유입 고객수',
+        AA_Score: '첫구매 유입 점수',
+        AA_Primary_Type: '첫구매 유입 유형',
+        PCA_Score: '재구매 점수',
+        PCA_Primary_Type: '재구매 유형'
+    };
+    return sortLabelMap[sortCol] || sortCol;
+}
+
+function getFilteredSortedProductsData() {
     const data = AppState.data.anchorScored || [];
     const { sortCol, sortDesc, searchQuery } = AppState.viewState.products;
-    const qState = AppState.viewState.products.quadrant;
-    if (!['transition', 'all'].includes(qState.scope)) qState.scope = 'transition';
-    if (!['focus', 'raw'].includes(qState.scaleMode)) qState.scaleMode = 'focus';
-    const focusEntityId = String(AppState.helpers.focusEntityId || '').trim();
 
     let filteredData = [...data];
     if (searchQuery) {
@@ -3537,25 +3576,11 @@ function renderProducts() {
         return 0;
     });
 
-    const displayData = sortedData.slice(0, 50);
-    const top10 = sortedData.slice(0, 10);
-    const chartLabels = top10.map((d) => `${(d.product_name_latest || d.product_id || '').substring(0, 15)}...`);
-    const chartData = top10.map((d) => toNumber(d[sortCol]));
+    return { sortedData, sortCol, sortDesc };
+}
 
-    const getSortIndicator = (col) => sortCol === col ? (sortDesc ? ' ▼' : ' ▲') : '';
-    const sortLabelMap = {
-        product_id: '상품 ID',
-        product_name_latest: '상품명',
-        revenue_90d: '90일 매출',
-        first_customer_cnt: '첫구매 유입 고객수',
-        AA_Score: '첫구매 유입 점수',
-        AA_Primary_Type: '첫구매 유입 유형',
-        PCA_Score: '재구매 점수',
-        PCA_Primary_Type: '재구매 유형'
-    };
-    const sortLabel = sortLabelMap[sortCol] || sortCol;
-
-    const rows = displayData.map((row) => {
+function buildProductsRowsHtml(displayData, focusEntityId) {
+    return displayData.map((row) => {
         const isFocused = focusEntityId && String(row.product_id) === focusEntityId;
         const meta = getEntityMeta(row.product_id);
         const groupedIdCell = meta.memberCount > 1
@@ -3572,7 +3597,7 @@ function renderProducts() {
             <td>
                 ${groupedIdCell}
             </td>
-            <td>${renderProductCell(row.product_name_latest || '-', row.product_id, 32)}</td>
+            <td>${renderProductCell(row.product_name_latest || '-', row.product_id, 32, { nameClickMode: 'focus-quadrant' })}</td>
             <td>${formatNumber(row.revenue_90d)}</td>
             <td>${formatNumber(row.first_customer_cnt)}</td>
             <td>${formatNumber(row.AA_Score, 4)}</td>
@@ -3582,7 +3607,102 @@ function renderProducts() {
         </tr>
     `;
     }).join('');
+}
 
+function renderProductsTableAndChartOnly() {
+    if (document.body.id !== 'page-products') return;
+    const summaryCard = document.getElementById('products-summary-card');
+    const chartCanvas = document.getElementById('productsChart');
+    if (!summaryCard || !chartCanvas) return;
+
+    const { sortedData, sortCol, sortDesc } = getFilteredSortedProductsData();
+    const focusEntityId = String(AppState.helpers.focusEntityId || '').trim();
+    const displayData = sortedData.slice(0, 50);
+    const top10 = sortedData.slice(0, 10);
+    const chartLabels = top10.map((d) => `${(d.product_name_latest || d.product_id || '').substring(0, 15)}...`);
+    const chartData = top10.map((d) => toNumber(d[sortCol]));
+    const getSortIndicator = (col) => sortCol === col ? (sortDesc ? ' ▼' : ' ▲') : '';
+    const sortLabel = getProductsSortLabel(sortCol);
+    const rows = buildProductsRowsHtml(displayData, focusEntityId);
+
+    summaryCard.innerHTML = `
+        <h3>상위 50개 핵심 상품 (정렬 기준: ${escapeHtml(sortLabel)})</h3>
+        <div class="table-container">
+            <table class="data-table">
+                <thead><tr>
+                    <th onclick="handleProductSort('product_id')">ID${getSortIndicator('product_id')}</th>
+                    <th onclick="handleProductSort('product_name_latest')">상품명${getSortIndicator('product_name_latest')}</th>
+                    <th onclick="handleProductSort('revenue_90d')">90일 매출${getSortIndicator('revenue_90d')}</th>
+                    <th onclick="handleProductSort('first_customer_cnt')">첫구매 유입 고객수${getSortIndicator('first_customer_cnt')}</th>
+                    <th onclick="handleProductSort('AA_Score')">첫구매 유입 점수${getSortIndicator('AA_Score')}</th>
+                    <th onclick="handleProductSort('AA_Primary_Type')">첫구매 유입 유형${getSortIndicator('AA_Primary_Type')}</th>
+                    <th onclick="handleProductSort('PCA_Score')">재구매 점수${getSortIndicator('PCA_Score')}</th>
+                    <th onclick="handleProductSort('PCA_Primary_Type')">재구매 유형${getSortIndicator('PCA_Primary_Type')}</th>
+                </tr></thead>
+                <tbody>${rows}</tbody>
+            </table>
+        </div>
+    `;
+    applyFriendlyUi(summaryCard);
+
+    const existing = AppState.charts.products;
+    if (existing && existing.canvas === chartCanvas) {
+        existing.data.labels = chartLabels;
+        if (!existing.data.datasets?.length) {
+            existing.data.datasets = [{
+                label: sortCol,
+                data: chartData,
+                backgroundColor: 'rgba(99, 102, 241, 0.6)',
+                borderColor: 'rgba(99, 102, 241, 1)',
+                borderWidth: 1
+            }];
+        } else {
+            existing.data.datasets[0].label = sortCol;
+            existing.data.datasets[0].data = chartData;
+        }
+        if (!existing.options.plugins) existing.options.plugins = {};
+        if (!existing.options.plugins.title) existing.options.plugins.title = { display: true };
+        existing.options.plugins.title.text = `정렬 기준 상위 10개 상품: ${sortLabel}`;
+        existing.options.plugins.title.color = '#1e293b';
+        existing.update('none');
+    } else {
+        if (existing) existing.destroy();
+        const ctx = chartCanvas.getContext('2d');
+        AppState.charts.products = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: sortCol,
+                    data: chartData,
+                    backgroundColor: 'rgba(99, 102, 241, 0.6)',
+                    borderColor: 'rgba(99, 102, 241, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: { display: true, text: `정렬 기준 상위 10개 상품: ${sortLabel}`, color: '#1e293b' }
+                },
+                scales: {
+                    y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(0,0,0,0.05)' } },
+                    x: { ticks: { color: '#64748b' } }
+                }
+            }
+        });
+    }
+}
+
+function renderProducts() {
+    destroyCarts();
+    const container = document.getElementById('content-area');
+    const qState = AppState.viewState.products.quadrant;
+    if (!['transition', 'all'].includes(qState.scope)) qState.scope = 'transition';
+    if (!['focus', 'raw'].includes(qState.scaleMode)) qState.scaleMode = 'focus';
+
+    const { sortedData } = getFilteredSortedProductsData();
     const quadrantModel = buildQuadrantModel(
         sortedData,
         qState.selectedId,
@@ -3598,53 +3718,12 @@ function renderProducts() {
         ${renderProductQuadrant(quadrantModel)}
         ${renderSearchUI('products', '상품 ID 또는 이름 검색')}
         <div class="controls-area animate-fade-in" style="margin-bottom:2rem;"><div class="card" style="height:400px;"><canvas id="productsChart"></canvas></div></div>
-        <div class="card animate-fade-in"><h3>상위 50개 핵심 상품 (정렬 기준: ${escapeHtml(sortLabel)})</h3>
-            <div class="table-container">
-                <table class="data-table">
-                    <thead><tr>
-                        <th onclick="handleProductSort('product_id')">ID${getSortIndicator('product_id')}</th>
-                        <th onclick="handleProductSort('product_name_latest')">상품명${getSortIndicator('product_name_latest')}</th>
-                        <th onclick="handleProductSort('revenue_90d')">90일 매출${getSortIndicator('revenue_90d')}</th>
-                        <th onclick="handleProductSort('first_customer_cnt')">첫구매 유입 고객수${getSortIndicator('first_customer_cnt')}</th>
-                        <th onclick="handleProductSort('AA_Score')">첫구매 유입 점수${getSortIndicator('AA_Score')}</th>
-                        <th onclick="handleProductSort('AA_Primary_Type')">첫구매 유입 유형${getSortIndicator('AA_Primary_Type')}</th>
-                        <th onclick="handleProductSort('PCA_Score')">재구매 점수${getSortIndicator('PCA_Score')}</th>
-                        <th onclick="handleProductSort('PCA_Primary_Type')">재구매 유형${getSortIndicator('PCA_Primary_Type')}</th>
-                    </tr></thead>
-                    <tbody>${rows}</tbody>
-                </table>
-            </div>
-        </div>
+        <div id="products-summary-card" class="card animate-fade-in"></div>
     `;
     applyFriendlyUi(container);
 
     renderQuadrantChart(quadrantModel);
-
-    const ctx = document.getElementById('productsChart').getContext('2d');
-    AppState.charts.products = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: chartLabels,
-            datasets: [{
-                label: sortCol,
-                data: chartData,
-                backgroundColor: 'rgba(99, 102, 241, 0.6)',
-                borderColor: 'rgba(99, 102, 241, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                title: { display: true, text: `정렬 기준 상위 10개 상품: ${sortLabel}`, color: '#1e293b' }
-            },
-            scales: {
-                y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(0,0,0,0.05)' } },
-                x: { ticks: { color: '#64748b' } }
-            }
-        }
-    });
+    renderProductsTableAndChartOnly();
 
     window.handleProductSort = (col) => {
         if (AppState.viewState.products.sortCol === col) AppState.viewState.products.sortDesc = !AppState.viewState.products.sortDesc;
@@ -3671,6 +3750,12 @@ function renderProducts() {
     window.focusQuadrantFromTable = (entityId) => {
         const targetId = String(entityId || '').trim();
         if (!targetId) return;
+        const qState = AppState.viewState.products?.quadrant || {};
+        const scopeMode = String(qState.scope || 'transition').toLowerCase();
+        if (scopeMode === 'transition') {
+            const transitionEntitySet = buildTransitionEntitySet();
+            if (!transitionEntitySet.has(targetId)) return;
+        }
         if (typeof window.selectQuadrantItem === 'function') {
             window.selectQuadrantItem(targetId);
         }
