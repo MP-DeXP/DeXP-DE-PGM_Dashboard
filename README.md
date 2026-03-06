@@ -1,22 +1,22 @@
-# 마케팅 분석 대시보드
+# PGM 대시보드
 
 내부 테스트/시연용 브라우저 대시보드입니다.
 복잡한 내부 용어 대신, 마케터/MD가 바로 이해할 수 있는 쉬운 문장으로 구성했습니다.
 
 ## 핵심 목적
 - 첫구매 이후 90일 흐름을 빠르게 확인해 의사결정하기
-- 상품/전환/장바구니/브랜드 건강도를 한 화면 흐름으로 보기
+- 상품/리텐션/장바구니/브랜드 건강도를 한 화면 흐름으로 보기
 - 지표를 실행 카드로 바로 연결하기
 
 ## 페이지 구성
 - `insights.html`: 인사이트 스튜디오 (기본 진입)
-- `index.html?overview=1`: 요약 현황
+- `index.html?overview=1`: 대시보드 개요
 - `products.html`: 상품 분석 (상품 상태 4분면 포함)
-- `transitions.html`: 전환 흐름
-- `cart.html`: 장바구니 분석
+- `transitions.html`: 리텐션 흐름
 
 참고:
 - `index.html`을 직접 열면 `insights.html`로 자동 이동합니다.
+- `cart.html`은 호환용 리다이렉트 페이지이며 `products.html`로 이동합니다.
 
 ## 실행 방법
 1. 브라우저에서 `insights.html` 파일을 직접 엽니다.
@@ -59,7 +59,7 @@
 ## 딥링크 포커스
 - `products.html?focus=<id>`
 - `transitions.html?focus=<id>`
-- `cart.html?focus=<id>`
+- `cart.html?focus=<id>` → `products.html?focus=<id>`로 자동 전달
 
 ## 용어/호환성
 - UI/툴팁에서는 내부 약어와 어려운 용어를 사용하지 않습니다.

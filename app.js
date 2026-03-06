@@ -91,13 +91,6 @@ const AppState = {
         apfActionRules: [],
         productGroupMap: []
     },
-    pagination: {
-        cartDetail: {
-            currentPage: 1,
-            rowsPerPage: 20,
-            totalRows: 0
-        }
-    },
     viewState: {
         products: {
             sortCol: 'revenue_90d',
@@ -113,7 +106,6 @@ const AppState = {
             }
         },
         transitions: { sortCol: 'transition_customer_cnt', sortDesc: true, searchQuery: '', searchMode: 'all' },
-        cart: { sortCol: 'co_order_cnt', sortDesc: true, searchQuery: '', searchMode: 'all' },
         settings: {
             activeTab: 'grouping'
         },
@@ -302,7 +294,6 @@ const STRUCTURE_LABELS = {
 };
 
 const BANNED_UI_TERMS = [
-    /\bPGM\b/gi,
     /\bEntry\s*Gravity\b/gi,
     /\bExpansion\s*Gravity\b/gi,
     /\bBasket\s*Gravity\b/gi,
@@ -332,7 +323,7 @@ const UI_TERM_REPLACEMENTS = [
     [/\bPCA\b/g, TERM_LABELS.PCA],
     [/\bAA\b/g, TERM_LABELS.AA],
     [/\bCA\b/g, TERM_LABELS.CA],
-    [/\bTransition\b/gi, '전환 흐름'],
+    [/\bTransition\b/gi, '리텐션 흐름'],
     [/\bJourney\b/gi, '고객 흐름'],
     [/\bFitness\b/gi, '건강도'],
     [/\bEntry Balance\b/gi, STRUCTURE_LABELS.entry],
@@ -340,8 +331,7 @@ const UI_TERM_REPLACEMENTS = [
     [/\bValue Readiness\b/gi, STRUCTURE_LABELS.valueReadiness],
     [/\bEntry\s*Gravity\b/gi, '첫구매 유입'],
     [/\bExpansion\s*Gravity\b/gi, '재구매'],
-    [/\bBasket\s*Gravity\b/gi, '장바구니 확장'],
-    [/\bPGM\b/gi, '마케팅']
+    [/\bBasket\s*Gravity\b/gi, '장바구니 확장']
 ];
 
 const METRIC_TOOLTIP_RULES = [
@@ -381,7 +371,7 @@ const METRIC_TOOLTIP_RULES = [
     { pattern: /^동시구매수$/, description: '두 상품이 같은 주문에서 함께 구매된 횟수예요.' }
 ];
 
-const QUADRANT_TRANSITION_SCOPE_CRITERIA = '리텐션 재구매 상품은 유입 상위 핵심 상품과 재구매 핵심 상품을 대상으로, 첫 구매 후 90일 안에 실제로 다음 구매가 발생한 경우만 포함해요. 같은 주문에서 함께 산 건은 제외되고, 전환이 0건이면 목록에 나타나지 않아요.';
+const QUADRANT_TRANSITION_SCOPE_CRITERIA = '리텐션 상품은 유입 상위 핵심 상품과 재구매 핵심 상품을 대상으로, 첫 구매 후 90일 안에 실제로 다음 구매가 발생한 경우만 포함해요. 같은 주문에서 함께 산 건은 제외되고, 전환이 0건이면 목록에 나타나지 않아요.';
 const QUADRANT_EDGE_TOP_N = 6;
 const RETENTION_90D_FLOW_LABEL = '첫 구매 후 90일 안에 다음 구매로 이어진 리텐션 흐름';
 
@@ -1730,26 +1720,6 @@ function renderMissingSection(title, desc) {
     `;
 }
 
-function initAppUI() {
-    let modal = document.getElementById('related-products-modal');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'related-products-modal';
-        modal.className = 'modal-overlay';
-        modal.innerHTML = `
-            <div class="modal-card">
-                <div class="modal-header">
-                    <h3 class="modal-title">연관 상품</h3>
-                    <button class="modal-close" onclick="closeRelatedModal()">&times;</button>
-                </div>
-                <div class="modal-body"></div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-        modal.onclick = (e) => { if (e.target === modal) closeRelatedModal(); };
-    }
-}
-
 function restoreSearchInputCursor(viewName, selectionStart = null, selectionEnd = null) {
     const input = document.getElementById(`search-input-${viewName}`);
     if (!input) return;
@@ -1768,13 +1738,11 @@ function restoreSearchInputCursor(viewName, selectionStart = null, selectionEnd 
 window.handleGlobalSearch = (viewName, query, selectionStart = null, selectionEnd = null) => {
     if (!AppState.viewState[viewName]) return;
     AppState.viewState[viewName].searchQuery = query;
-    if (viewName === 'cart') AppState.pagination.cartDetail.currentPage = 1;
 
     if (window.searchTimeout) clearTimeout(window.searchTimeout);
     window.searchTimeout = setTimeout(() => {
         if (viewName === 'products') renderProducts();
         else if (viewName === 'transitions') renderTransitionsTable();
-        else if (viewName === 'cart') renderCartDetailTable();
         if (viewName === 'transitions') {
             restoreSearchInputCursor(viewName, selectionStart, selectionEnd);
         }
@@ -1784,11 +1752,6 @@ window.handleGlobalSearch = (viewName, query, selectionStart = null, selectionEn
 window.handleSearchModeChange = (viewName, mode) => {
     if (!AppState.viewState[viewName]) return;
     AppState.viewState[viewName].searchMode = normalizeSearchMode(mode);
-    if (viewName === 'cart') {
-        AppState.pagination.cartDetail.currentPage = 1;
-        renderCartDetailTable();
-        return;
-    }
     if (viewName === 'transitions') {
         renderTransitionsTable();
         restoreSearchInputCursor(viewName);
@@ -1799,9 +1762,9 @@ window.handleSearchModeChange = (viewName, mode) => {
     }
 };
 
-window.closeRelatedModal = () => {
-    const modal = document.getElementById('related-products-modal');
-    if (modal) modal.classList.remove('active');
+window.closeCartFlowModal = () => {
+    const modal = document.getElementById('cart-flow-modal');
+    if (modal) modal.remove();
 };
 
 window.closeRetentionFlowModal = () => {
@@ -1858,7 +1821,7 @@ window.openRetentionFlowModal = async (entityId) => {
         if (!related.length) {
             body.innerHTML = `
                 <p class="empty-state" style="margin:0;">
-                    첫 구매 후 90일 내 이 상품 기준 리텐션 재구매 흐름이 아직 없어요.
+                    고객의 첫 구매 여부와 무관하게, 이 상품 첫 구매 기준이에요. 90일 내 리텐션 흐름이 아직 없어요.
                 </p>
             `;
             applyFriendlyUi(modal);
@@ -1878,10 +1841,10 @@ window.openRetentionFlowModal = async (entityId) => {
 
         body.innerHTML = `
             <div class="retention-flow-summary">
-                <strong>${escapeHtml(focusName)}</strong> 기준으로 첫 구매 후 90일 내 리텐션 재구매 흐름 ${formatNumber(related.length)}개를 보여줘요.
+                고객의 첫 구매 여부와 무관하게, <strong>${escapeHtml(focusName)}</strong>의 이 상품 첫 구매 기준으로 90일 내 리텐션 흐름 ${formatNumber(related.length)}개를 보여줘요.
             </div>
             <div class="chart-hint" style="margin-top:0.25rem;">
-                첫구매 유입 상품: ${renderProductCell(focusName, focusId, 42, { showId: false, groupClickable: true })}
+                기준 안내: 고객의 첫 구매 여부와 무관하게, 이 상품 첫 구매 기준이에요.
             </div>
             <div class="table-container retention-flow-table-wrap">
                 <table class="data-table">
@@ -1901,6 +1864,97 @@ window.openRetentionFlowModal = async (entityId) => {
         applyFriendlyUi(modal);
     } catch (error) {
         body.innerHTML = `<p style="color:var(--accent); text-align:center; padding:2rem;">90일 리텐션 흐름 로딩에 실패했어요: ${escapeHtml(error.message)}</p>`;
+        applyFriendlyUi(modal);
+    }
+};
+
+window.openCartFlowModal = async (entityId) => {
+    const focusId = String(entityId || '').trim();
+    if (!focusId) return;
+
+    window.closeCartFlowModal();
+    const modal = document.createElement('div');
+    modal.id = 'cart-flow-modal';
+    modal.className = 'modal-overlay active';
+    modal.innerHTML = `
+        <div class="modal-card retention-flow-modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title">장바구니 동시구매</h3>
+                <button class="modal-close" type="button" onclick="closeCartFlowModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-loading">
+                    <div class="spinner"></div>
+                    <p style="margin-top:1rem">장바구니 동시구매 데이터를 불러오는 중이에요.</p>
+                </div>
+            </div>
+        </div>
+    `;
+    modal.onclick = (event) => {
+        if (event.target === modal) window.closeCartFlowModal();
+    };
+    document.body.appendChild(modal);
+
+    const title = modal.querySelector('.modal-title');
+    const body = modal.querySelector('.modal-body');
+    const focusName = getProductName(focusId);
+    title.textContent = `장바구니 동시구매 · ${focusName}`;
+
+    try {
+        if (!Array.isArray(AppState.data.cartAnchorDetail) || !AppState.data.cartAnchorDetail.length) {
+            AppState.rawData.cartAnchorDetail = await loadOptionalDataFromDB(REQUIRED_FILES.cartAnchorDetail, []);
+            if (!Array.isArray(AppState.rawData.anchorScored) || !AppState.rawData.anchorScored.length) {
+                AppState.rawData.anchorScored = await loadOptionalDataFromDB(REQUIRED_FILES.anchorScored, []);
+            }
+            rebuildDerivedData();
+        }
+
+        const rowsAll = AppState.data.cartAnchorDetail || [];
+        const qId = String(focusId).toLowerCase();
+        const related = rowsAll
+            .filter((row) => String(row.i || '').toLowerCase() === qId || String(row.j || '').toLowerCase() === qId)
+            .sort((a, b) => toNumber(b.co_order_cnt, 0) - toNumber(a.co_order_cnt, 0));
+
+        if (!related.length) {
+            body.innerHTML = `
+                <p class="empty-state" style="margin:0;">
+                    이 상품 기준 장바구니 동시구매 데이터가 아직 없어요.
+                </p>
+            `;
+            applyFriendlyUi(modal);
+            return;
+        }
+
+        const rows = related.slice(0, 30).map((row) => {
+            const otherId = String(row.i || '').toLowerCase() === qId ? row.j : row.i;
+            return `
+                <tr>
+                    <td>${renderProductCell(getProductName(otherId), otherId, 42, { groupClickable: true })}</td>
+                    <td style="text-align:right">${formatNumber(row.co_order_cnt)}</td>
+                </tr>
+            `;
+        }).join('');
+
+        body.innerHTML = `
+            <div class="retention-flow-summary">
+                <strong>${escapeHtml(focusName)}</strong> 기준 장바구니 동시구매 상위 ${formatNumber(Math.min(related.length, 30))}개를 보여줘요.
+            </div>
+            <div class="table-container retention-flow-table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>연관 상품</th>
+                            <th style="text-align:right">동시구매 수</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>
+            <p class="chart-hint" style="margin-top:0.7rem;">상위 30개 조합만 표시해요.</p>
+        `;
+        applyFriendlyUi(modal);
+    } catch (error) {
+        body.innerHTML = `<p style="color:var(--accent); text-align:center; padding:2rem;">장바구니 동시구매 로딩에 실패했어요: ${escapeHtml(error.message)}</p>`;
         applyFriendlyUi(modal);
     }
 };
@@ -1946,61 +2000,6 @@ window.showProductNamePopover = (name, id) => {
     };
     document.body.appendChild(modal);
 };
-
-async function showRelatedProducts(productId) {
-    initAppUI();
-    const modal = document.getElementById('related-products-modal');
-    modal.classList.add('active');
-
-    const body = modal.querySelector('.modal-body');
-    const title = modal.querySelector('.modal-title');
-    const pName = getProductName(productId);
-
-    title.innerText = `함께 구매된 상품: ${pName}`;
-    body.innerHTML = '<div class="modal-loading"><div class="spinner"></div><p style="margin-top:1rem">동시구매 데이터를 조회하는 중...</p></div>';
-
-    try {
-        if (!AppState.data.cartAnchorDetail || AppState.data.cartAnchorDetail.length === 0) {
-            AppState.rawData.cartAnchorDetail = await loadDataFromDB(REQUIRED_FILES.cartAnchorDetail);
-            rebuildDerivedData();
-        }
-
-        const qId = String(productId).toLowerCase();
-        const related = AppState.data.cartAnchorDetail.filter((d) =>
-            String(d.i).toLowerCase() === qId || String(d.j).toLowerCase() === qId
-        );
-
-        if (related.length === 0) {
-            body.innerHTML = '<p style="text-align:center; padding:4rem; color:var(--text-muted);">해당 상품의 동시구매 데이터가 없습니다.</p>';
-            return;
-        }
-
-        related.sort((a, b) => toNumber(b.co_order_cnt) - toNumber(a.co_order_cnt));
-
-        const rows = related.slice(0, 30).map((row) => {
-            const otherId = String(row.i).toLowerCase() === qId ? row.j : row.i;
-            return `
-                <tr>
-                    <td><span style="color:var(--text-muted); font-size:0.8rem">${escapeHtml(otherId)}</span></td>
-                    <td style="font-weight:500">${escapeHtml(getProductName(otherId))}</td>
-                    <td style="text-align:right; font-family:var(--font-heading); font-weight:600; color:var(--primary)">${formatNumber(row.co_order_cnt)}</td>
-                </tr>
-            `;
-        }).join('');
-
-        body.innerHTML = `
-            <div class="animate-fade-in">
-                <table class="mini-table">
-                    <thead><tr><th>ID</th><th>상품명</th><th style="text-align:right">동시구매 수</th></tr></thead>
-                    <tbody>${rows}</tbody>
-                </table>
-                <p style="font-size:0.8rem; color:var(--text-muted); margin-top:1.5rem; text-align:center">상위 30개만 표시</p>
-            </div>
-        `;
-    } catch (e) {
-        body.innerHTML = `<p style="color:var(--accent); text-align:center; padding:3rem;">데이터 로딩 실패: ${escapeHtml(e.message)}</p>`;
-    }
-}
 
 // --- Legacy Pages (Overview/Products/Transitions/Cart) ---
 
@@ -2363,8 +2362,8 @@ function renderQuadrantPanel(model) {
     const transitionCta = selected.hasTransition
         ? `<button class="btn-primary" type="button" onclick="openRetentionFlowModal('${escapeJs(selected.id)}')">90일 리텐션 흐름 보기</button>`
         : `
-            <button class="btn-primary" type="button" disabled title="90일 리텐션 재구매 데이터가 없어 이동할 수 없음">90일 리텐션 흐름 보기</button>
-            <p class="pgm-link-help">구매 후 90일 내 리텐션 재구매 데이터가 없어 이동할 수 없어요.</p>
+            <button class="btn-primary" type="button" disabled title="90일 리텐션 데이터가 없어 이동할 수 없음">90일 리텐션 흐름 보기</button>
+            <p class="pgm-link-help">구매 후 90일 내 리텐션 데이터가 없어 이동할 수 없어요.</p>
         `;
     const edgeModeLabel = model.edgeMode === 'both' ? '양방향 흐름' : '다음 재구매 흐름';
     const edgeGuide = model.visibleEdges?.length
@@ -2409,7 +2408,7 @@ function renderQuadrantPanel(model) {
             <p class="pgm-edge-guide">${escapeHtml(edgeGuide)}</p>
             <div class="pgm-links">
                 ${transitionCta}
-                <a class="btn-primary" href="cart.html?focus=${encodeURIComponent(selected.id)}">장바구니 보기</a>
+                <button class="btn-primary" type="button" onclick="openCartFlowModal('${escapeJs(selected.id)}')">장바구니 보기</button>
             </div>
             <button class="btn-primary pgm-prev-btn" type="button" onclick="selectPreviousQuadrantItem()" ${hasHistory ? '' : 'disabled'}>이전 상품으로</button>
         </div>
@@ -2435,15 +2434,15 @@ function renderProductQuadrant(model) {
                         <button
                             class="btn-primary metric-tooltip-target ${scopeMode === 'transition' ? 'is-active' : ''}"
                             type="button"
-                            data-metric-tooltip="실제 리텐션 재구매가 확인된 상품만 보여줘요."
-                            aria-label="실제 리텐션 재구매가 확인된 상품만 보여줘요."
+                            data-metric-tooltip="실제 리텐션이 확인된 상품만 보여줘요."
+                            aria-label="실제 리텐션이 확인된 상품만 보여줘요."
                             onclick="setQuadrantScopeMode('transition')"
-                        >리텐션 재구매 상품만</button>
+                        >리텐션 상품만</button>
                         <button
                             class="btn-primary metric-tooltip-target ${scopeMode === 'all' ? 'is-active' : ''}"
                             type="button"
-                            data-metric-tooltip="점수 계산된 전체 상품을 보여주며 리텐션 재구매가 아직 없는 상품도 포함해요."
-                            aria-label="점수 계산된 전체 상품을 보여주며 리텐션 재구매가 아직 없는 상품도 포함해요."
+                            data-metric-tooltip="점수 계산된 전체 상품을 보여주며 리텐션이 아직 없는 상품도 포함해요."
+                            aria-label="점수 계산된 전체 상품을 보여주며 리텐션이 아직 없는 상품도 포함해요."
                             onclick="setQuadrantScopeMode('all')"
                         >전체 상품 보기</button>
                     </div>
@@ -2463,6 +2462,12 @@ function renderProductQuadrant(model) {
                 <div class="pgm-side card">${renderQuadrantPanel(model)}</div>
             </div>
             ${scaleMode === 'focus' ? '<p class="quadrant-outlier-note">집중뷰에서는 일부 점이 경계에 압축돼요. 원본 보기를 누르면 전체 분포를 볼 수 있어요.</p>' : ''}
+            <p
+                class="quadrant-bubble-note metric-tooltip-target"
+                title="버블 크기는 주간 예상 판매량(최근 1년 주문수 ÷ 52)의 상대 크기예요."
+                data-metric-tooltip="버블 크기는 주간 예상 판매량(최근 1년 주문수 ÷ 52)의 상대 크기예요."
+                aria-label="버블 크기는 주간 예상 판매량(최근 1년 주문수 ÷ 52)의 상대 크기예요."
+            >버블 크기 기준: 주간 예상 판매량(최근 1년 주문수 ÷ 52)</p>
         </div>
     `;
 }
@@ -3571,7 +3576,6 @@ window.saveGroupEdits = async () => {
     const pageId = document.body.id;
     if (pageId === 'page-products') renderProducts();
     else if (pageId === 'page-transitions') renderTransitions();
-    else if (pageId === 'page-cart') renderCartAnalysis();
     else if (pageId === 'page-insights') renderInsightsPage();
     window.closeGroupEditorModal();
 };
@@ -3634,16 +3638,10 @@ function renderProducts() {
                 </button>
             `
             : `
-                <div style="display:flex; align-items:center; gap:0.5rem;">
-                    <span>${escapeHtml(row.product_id)}</span>
-                    <button class="btn-icon" style="width:24px; height:24px; font-size:0.8rem; border:none; background:var(--primary-light); color:var(--primary);" 
-                            onclick="event.stopPropagation(); copyToClipboard('${escapeHtml(row.product_id)}')">
-                        <i class="ph ph-copy"></i>
-                    </button>
-                </div>
+                <span>${escapeHtml(row.product_id)}</span>
             `;
         return `
-        <tr class="clickable ${isFocused ? 'row-focused' : ''}" onclick="showRelatedProducts('${escapeHtml(row.product_id)}')">
+        <tr class="clickable ${isFocused ? 'row-focused' : ''}" onclick="focusQuadrantFromTable('${escapeHtml(row.product_id)}')">
             <td>
                 ${groupedIdCell}
             </td>
@@ -3743,6 +3741,17 @@ function renderProducts() {
         renderProducts();
     };
 
+    window.focusQuadrantFromTable = (entityId) => {
+        const targetId = String(entityId || '').trim();
+        if (!targetId) return;
+        if (typeof window.selectQuadrantItem === 'function') {
+            window.selectQuadrantItem(targetId);
+        }
+        setTimeout(() => {
+            document.querySelector('.pgm-quadrant-wrap')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 0);
+    };
+
     window.selectPreviousQuadrantItem = () => {
         const qState = AppState.viewState.products.quadrant;
         if (!qState.history.length) return;
@@ -3836,11 +3845,11 @@ function renderTransitionsTable() {
     `).join('');
     const emptyMessage = searchQuery
         ? `검색 결과가 없습니다. (검색어: ${escapeHtml(searchQuery)})`
-        : '표시할 90일 리텐션 재구매 데이터가 없어요.';
+        : '표시할 90일 리텐션 데이터가 없어요.';
     const bodyRows = rows || `<tr><td colspan="5" style="text-align:center;color:var(--text-muted); padding:1rem;">${emptyMessage}</td></tr>`;
 
     tableContainer.innerHTML = `
-        <div class="card animate-fade-in"><h3>상위 200개 90일 리텐션 재구매 흐름 (정렬 기준: ${escapeHtml(sortLabel)})</h3>
+        <div class="card animate-fade-in"><h3>상위 200개 90일 리텐션 흐름 (정렬 기준: ${escapeHtml(sortLabel)})</h3>
             <div class="table-container">
                 <table class="data-table">
                     <thead><tr>
@@ -3864,124 +3873,6 @@ function renderTransitionsTable() {
             AppState.viewState.transitions.sortDesc = true;
         }
         renderTransitionsTable();
-    };
-}
-
-function renderCartAnalysis() {
-    destroyCarts();
-    const container = document.getElementById('content-area');
-
-    AppState.helpers.productNameMap = buildProductNameMap();
-    const getName = (id) => getProductName(id);
-    AppState.helpers.getName = getName;
-
-    container.innerHTML = `
-        ${renderSearchUI('cart', '상품명 또는 ID 검색', { includeModeSelect: true })}
-        <div class="card animate-fade-in" style="margin-top:2rem;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-                <h3>장바구니 동시구매 상세</h3><div id="pagination-info" style="color:var(--text-muted); font-size:0.9rem;"></div>
-            </div>
-            <div id="cart-detail-container" class="table-container"></div>
-            <div class="pagination-controls"><button id="prevBtn" class="btn-primary" disabled>이전</button><button id="nextBtn" class="btn-primary" disabled>다음</button></div>
-        </div>
-    `;
-    applyFriendlyUi(container);
-
-    if (AppState.data.cartAnchorDetail && AppState.data.cartAnchorDetail.length > 0) renderCartDetailTable();
-    else loadDetailData();
-}
-
-async function loadDetailData() {
-    try {
-        AppState.rawData.cartAnchorDetail = await loadDataFromDB(REQUIRED_FILES.cartAnchorDetail);
-        rebuildDerivedData();
-        const deduplicated = AppState.data.cartAnchorDetail || [];
-        AppState.pagination.cartDetail.totalRows = deduplicated.length;
-        renderCartDetailTable();
-    } catch (_) {
-        document.getElementById('cart-detail-container').innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:2rem;">상세 데이터가 없습니다. <button class="btn-primary" style="font-size:0.8rem" onclick="showUploadModal()">CSV 업로드</button></p>';
-    }
-}
-
-function renderCartDetailTable() {
-    const { currentPage, rowsPerPage } = AppState.pagination.cartDetail;
-    const { sortCol, sortDesc, searchQuery, searchMode } = AppState.viewState.cart;
-    const getName = AppState.helpers.getName || ((id) => getProductName(id));
-    const focusEntityId = String(AppState.helpers.focusEntityId || '').trim();
-
-    let data = [...(AppState.data.cartAnchorDetail || [])];
-    if (searchQuery) {
-        data = data.filter((d) => {
-            const iTokens = buildEntitySearchTokens(d.i, getName);
-            const jTokens = buildEntitySearchTokens(d.j, getName);
-            return matchesSearchQuery(
-                searchQuery,
-                searchMode,
-                [...iTokens.ids, ...jTokens.ids],
-                [...iTokens.names, ...jTokens.names]
-            );
-        });
-    }
-
-    const totalRows = data.length;
-
-    data.sort((a, b) => {
-        let valA = a[sortCol];
-        let valB = b[sortCol];
-        if (sortCol === 'i' || sortCol === 'j') {
-            valA = getName(valA);
-            valB = getName(valB);
-        }
-        if (valA === undefined || valA === null) valA = 0;
-        if (valB === undefined || valB === null) valB = 0;
-        if (valA < valB) return sortDesc ? 1 : -1;
-        if (valA > valB) return sortDesc ? -1 : 1;
-        return 0;
-    });
-
-    const pData = data.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
-    const getSortIndicator = (col) => sortCol === col ? (sortDesc ? ' ▼' : ' ▲') : '';
-
-    const rows = pData.map((row) => `
-        <tr class="${focusEntityId && (String(row.i) === focusEntityId || String(row.j) === focusEntityId) ? 'row-focused' : ''}">
-            <td>${renderProductCell(getName(row.i), row.i, 44)}</td>
-            <td>${renderProductCell(getName(row.j), row.j, 44)}</td>
-            <td>${formatNumber(row.co_order_cnt)}</td>
-        </tr>
-    `).join('');
-
-    document.getElementById('cart-detail-container').innerHTML = `
-        <table class="data-table">
-            <thead><tr>
-                <th onclick="handleCartSort('i')">상품 A${getSortIndicator('i')}</th>
-                <th onclick="handleCartSort('j')">상품 B${getSortIndicator('j')}</th>
-                <th onclick="handleCartSort('co_order_cnt')">동시구매 수${getSortIndicator('co_order_cnt')}</th>
-            </tr></thead>
-            <tbody>${rows}</tbody>
-        </table>
-    `;
-    applyFriendlyUi(document.getElementById('cart-detail-container'));
-
-    document.getElementById('pagination-info').innerText = `${currentPage} / ${Math.max(1, Math.ceil(totalRows / rowsPerPage))} 페이지`;
-    document.getElementById('prevBtn').disabled = currentPage === 1;
-    document.getElementById('nextBtn').disabled = currentPage * rowsPerPage >= totalRows;
-    document.getElementById('prevBtn').onclick = () => {
-        AppState.pagination.cartDetail.currentPage -= 1;
-        renderCartDetailTable();
-    };
-    document.getElementById('nextBtn').onclick = () => {
-        AppState.pagination.cartDetail.currentPage += 1;
-        renderCartDetailTable();
-    };
-
-    window.handleCartSort = (col) => {
-        if (AppState.viewState.cart.sortCol === col) AppState.viewState.cart.sortDesc = !AppState.viewState.cart.sortDesc;
-        else {
-            AppState.viewState.cart.sortCol = col;
-            AppState.viewState.cart.sortDesc = true;
-        }
-        AppState.pagination.cartDetail.currentPage = 1;
-        renderCartDetailTable();
     };
 }
 
@@ -4446,7 +4337,7 @@ function renderAAJourney(model) {
 
 function renderAATransition(model) {
     if (!model.transitionRowsAll.length) {
-        return renderMissingSection('90일 리텐션 재구매 흐름', `${REQUIRED_FILES.aaTransitionPath.filename} 데이터가 없어 첫 구매 후 90일 리텐션 흐름을 표시할 수 없습니다.`);
+        return renderMissingSection('90일 리텐션 흐름', `${REQUIRED_FILES.aaTransitionPath.filename} 데이터가 없어 첫 구매 후 90일 리텐션 흐름을 표시할 수 없습니다.`);
     }
 
     const rows = model.topTransitionRows.map((row) => `
@@ -4462,7 +4353,7 @@ function renderAATransition(model) {
     return `
         <section id="aa-transition" class="insight-section card animate-fade-in">
             <div class="section-headline">
-                <h2>90일 리텐션 재구매 흐름</h2>
+                <h2>90일 리텐션 흐름</h2>
                 <p>첫 구매 후 90일 안에 다음 구매로 이어진 경로와 속도를 보여줘요.</p>
             </div>
             <div class="journey-grid">
@@ -5537,9 +5428,6 @@ function applyFocusFromUrl(pageId) {
     } else if (pageId === 'page-transitions') {
         AppState.viewState.transitions.searchQuery = focusEntity;
         AppState.viewState.transitions.searchMode = 'id';
-    } else if (pageId === 'page-cart') {
-        AppState.viewState.cart.searchQuery = focusEntity;
-        AppState.viewState.cart.searchMode = 'id';
     }
 }
 
@@ -5574,7 +5462,6 @@ async function loadInsightsData() {
 
 async function init() {
     const pageId = document.body.id;
-    initAppUI();
 
     const sidebar = document.querySelector('.user-profile');
     if (sidebar) {
@@ -5642,21 +5529,6 @@ async function init() {
             rebuildDerivedData();
             applyFocusFromUrl(pageId);
             renderTransitions();
-            applyFriendlyUi(document.body);
-        } else if (pageId === 'page-cart') {
-            const [c, d, s, groupMap] = await Promise.all([
-                loadDataFromDB(REQUIRED_FILES.cartAnchor),
-                loadOptionalDataFromDB(REQUIRED_FILES.cartAnchorDetail, []),
-                loadDataFromDB(REQUIRED_FILES.anchorScored),
-                loadOptionalDataFromDB(REQUIRED_FILES.productGroupMap, [])
-            ]);
-            AppState.rawData.cartAnchor = c;
-            AppState.rawData.cartAnchorDetail = d;
-            AppState.rawData.anchorScored = s;
-            AppState.rawData.productGroupMap = groupMap;
-            rebuildDerivedData();
-            applyFocusFromUrl(pageId);
-            renderCartAnalysis();
             applyFriendlyUi(document.body);
         }
     } catch (e) {

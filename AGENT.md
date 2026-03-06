@@ -9,9 +9,9 @@
 - 프런트엔드 단독 구조(백엔드 없음, 빌드 단계 없음).
 - 주요 파일:
   - `insights.html` (인사이트 스튜디오, 기본 진입)
-  - `index.html` (요약 현황)
+  - `index.html` (대시보드 개요)
   - `products.html` (상품 분석)
-  - `transitions.html` (전환 흐름)
+  - `transitions.html` (리텐션 흐름)
   - `cart.html` (장바구니 분석)
   - `app.js` (전체 로직)
   - `style.css` (공통 스타일)

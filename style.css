@@ -658,6 +658,10 @@ body {
     border-radius: 14px;
 }
 
+.pgm-chart.chart-card {
+    min-height: 210px;
+}
+
 .pgm-center-line {
     stroke: #93a7c4;
     stroke-width: 1;
@@ -908,6 +912,13 @@ body {
     font-size: 0.9rem;
     line-height: 1.45;
     max-width: 320px;
+}
+
+.quadrant-bubble-note {
+    margin-top: 0.4rem;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    line-height: 1.35;
 }
 
 .quadrant-outlier-note {
@@ -2358,6 +2369,10 @@ body {
 
     .chart-card {
         min-height: 250px;
+    }
+
+    .pgm-chart.chart-card {
+        min-height: 180px;
     }
 
     .fitness-summary-grid {
