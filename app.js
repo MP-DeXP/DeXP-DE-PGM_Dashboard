@@ -2479,17 +2479,22 @@ function renderQuadrantChart(model) {
     const centerX = model.centerEntry;
     const centerY = model.centerExpansion;
     const selectedId = String(model.selected?.id || '').trim();
+    const canvasHeight = Math.max(220, toNumber(canvas.clientHeight, 0));
+    const bubbleScale = Math.min(1.55, Math.max(1, canvasHeight / 560));
+    const baseRadius = 7 * bubbleScale;
+    const radiusSpread = 24 * bubbleScale;
+    const maxRadius = 42;
 
     const range = model.scaleRange;
     const chartPoints = model.points.map((p) => {
         const status = getQuadrantStatus(p.entry, p.expansion, centerX, centerY);
-        const radius = 6 + 22 * Math.sqrt((p.weeklyForecast || 0) / (model.maxWeekly || 1));
+        const radius = baseRadius + radiusSpread * Math.sqrt((p.weeklyForecast || 0) / (model.maxWeekly || 1));
         const isSelected = selectedId && selectedId === p.id;
         const projected = model.scaleMode === 'focus' ? projectOutlierPoint(p, range) : { x: p.entry, y: p.expansion, marker: '' };
         return {
             x: projected.x,
             y: projected.y,
-            r: Math.min(28, Math.max(6, isSelected ? radius * 1.12 : radius)),
+            r: Math.min(maxRadius, Math.max(baseRadius, isSelected ? radius * 1.15 : radius)),
             productId: p.id,
             productName: p.name,
             weeklyForecast: p.weeklyForecast,

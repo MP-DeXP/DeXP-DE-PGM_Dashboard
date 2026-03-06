@@ -645,6 +645,7 @@ body {
     display: grid;
     grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
     gap: 0.8rem;
+    align-items: start;
 }
 
 .pgm-modal {
@@ -659,7 +660,9 @@ body {
 }
 
 .pgm-chart.chart-card {
-    min-height: 210px;
+    height: clamp(560px, 90vh, 980px);
+    min-height: 560px;
+    max-height: 100vh;
 }
 
 .pgm-center-line {
@@ -899,7 +902,7 @@ body {
 
 .quadrant-chart-empty {
     height: 100%;
-    min-height: 320px;
+    min-height: 560px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2372,7 +2375,9 @@ body {
     }
 
     .pgm-chart.chart-card {
-        min-height: 180px;
+        height: clamp(420px, 90vh, 780px);
+        min-height: 420px;
+        max-height: 100vh;
     }
 
     .fitness-summary-grid {
