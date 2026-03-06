@@ -108,11 +108,12 @@ const AppState = {
                 history: [],
                 filters: {},
                 groupingEditorOpen: false,
-                scaleMode: 'focus'
+                scaleMode: 'focus',
+                scope: 'transition'
             }
         },
-        transitions: { sortCol: 'transition_customer_cnt', sortDesc: true, searchQuery: '' },
-        cart: { sortCol: 'co_order_cnt', sortDesc: true, searchQuery: '' },
+        transitions: { sortCol: 'transition_customer_cnt', sortDesc: true, searchQuery: '', searchMode: 'all' },
+        cart: { sortCol: 'co_order_cnt', sortDesc: true, searchQuery: '', searchMode: 'all' },
         settings: {
             activeTab: 'grouping'
         },
@@ -254,7 +255,7 @@ const withFallback = (value, fallback = '-') => {
 
 const TERM_LABELS = {
     AA: '첫구매 유입 상품',
-    PCA: '재구매 연결 상품',
+    PCA: '재구매 상품',
     CA: '장바구니 확장 상품',
     BHI: '브랜드 구조 건강도',
     BII: '브랜드 실전 건강도'
@@ -338,10 +339,51 @@ const UI_TERM_REPLACEMENTS = [
     [/\bExpansion Balance\b/gi, STRUCTURE_LABELS.expansion],
     [/\bValue Readiness\b/gi, STRUCTURE_LABELS.valueReadiness],
     [/\bEntry\s*Gravity\b/gi, '첫구매 유입'],
-    [/\bExpansion\s*Gravity\b/gi, '재구매 연결'],
+    [/\bExpansion\s*Gravity\b/gi, '재구매'],
     [/\bBasket\s*Gravity\b/gi, '장바구니 확장'],
     [/\bPGM\b/gi, '마케팅']
 ];
+
+const METRIC_TOOLTIP_RULES = [
+    { pattern: /^첫구매 유입 점수$/, description: '이 상품이 신규 고객 첫 구매를 얼마나 잘 만드는지 보여줘요. 높을수록 유입에 강해요.' },
+    { pattern: /^재구매 점수$/, description: '첫 구매 뒤 다음 구매로 이어지게 하는 힘이에요. 높을수록 재구매가 좋아요.' },
+    { pattern: /^주간 예상 판매량$/, description: '최근 흐름 기준으로 본 주간 판매 예상치예요.' },
+    { pattern: /^첫구매 유입 고객수$/, description: '이 상품을 통해 처음 들어온 고객 수예요.' },
+    { pattern: /^7일 재구매$/, description: '첫 구매 후 7일 안에 다시 산 고객 비율이에요.' },
+    { pattern: /^30일 재구매$/, description: '첫 구매 후 30일 안에 다시 산 고객 비율이에요.' },
+    { pattern: /^90일 재구매$/, description: '첫 구매 후 90일 안에 다시 산 고객 비율이에요.' },
+    { pattern: /^90일 재구매 도달률$/, description: '첫 구매 고객 중 90일 안에 재구매 상품까지 간 비율이에요.' },
+    { pattern: /^재구매까지 평균 일수$/, description: '첫 구매 후 다음 구매까지 걸린 평균 기간이에요.' },
+    { pattern: /^상위 3개 전이 집중도$/, description: '전환이 상위 3개 경로에 얼마나 몰려 있는지 보여줘요.' },
+    { pattern: /^평균 90일 전이율$/, description: '첫 구매에서 재구매로 넘어간 평균 비율이에요.' },
+    { pattern: /^건강도 방향$/, description: '브랜드 건강도가 지금 좋아지는지, 유지되는지, 약해지는지 보여줘요.' },
+    { pattern: /^최근 기준 건강도$/, description: '선택한 기간 기준의 최신 건강도 값이에요.' },
+    { pattern: /^90일 대비 연간 흐름$/, description: '단기(90일)와 연간(365일) 흐름 비교값이에요. 1보다 크면 최근 흐름이 더 좋아요.' },
+    { pattern: /^신뢰도$/, description: '지표를 믿고 의사결정해도 되는 정도를 보여줘요.' },
+    { pattern: /^현재 단계 \(\d+일\)$/, description: '선택 기간 기준으로 지금 브랜드가 어느 단계인지 표시해요.' },
+    { pattern: /^브랜드 실전 건강도 \d+일$/, description: '선택한 기간 기준의 브랜드 실전 건강도 지수예요.' },
+    { pattern: /^브랜드 구조 건강도$/, description: '상품 구조가 균형적인지 보는 기본 지표예요.' },
+    { pattern: /^고객가치$/, description: '유입 고객이 만들어내는 가치 수준이에요.' },
+    { pattern: /^재구매 강도$/, description: '고객이 반복 구매하는 힘을 보여줘요.' },
+    { pattern: /^계산 건강도\(참고\)$/, description: '구조·고객가치·재구매강도로 계산한 참고용 건강도예요.' },
+    { pattern: /^신규유입 안정성$/, description: '신규 유입이 특정 상품에 너무 치우치지 않는지 보여줘요.' },
+    { pattern: /^재구매 안정성$/, description: '재구매가 특정 경로에 과도하게 몰리지 않는지 보여줘요.' },
+    { pattern: /^매출확장 준비도$/, description: '지금 포트폴리오가 매출 확대를 받을 준비가 되었는지 보여줘요.' },
+    { pattern: /^효율·고가치 유입 비중$/, description: '효율 좋고 가치 높은 유입의 비중이에요.' },
+    { pattern: /^확장형 유입 비중$/, description: '확장형 유입(Broad) 비중이에요. 너무 높으면 효율이 퍼질 수 있어요.' },
+    { pattern: /^유입 집중도$/, description: '신규 유입이 일부 상품에 얼마나 몰려 있는지 보여줘요. 높을수록 쏠림이 커요.' },
+    { pattern: /^90일 재구매 고객수$/, description: '첫 구매 후 90일 안에 실제로 재구매한 고객 수예요.' },
+    { pattern: /^평균 재구매 소요일$/, description: '첫 구매부터 다음 구매까지 걸린 평균 기간이에요.' },
+    { pattern: /^90일 재구매율$/, description: '첫 구매 고객 중 90일 안에 다음 구매로 이어진 비율이에요.' },
+    { pattern: /^전환고객수$/, description: '상품 A에서 상품 B로 실제 전환한 고객 수예요.' },
+    { pattern: /^평균 전이일수$/, description: '상품 A 구매 후 상품 B로 넘어오기까지 걸린 평균 기간이에요.' },
+    { pattern: /^전이율$/, description: '상품 A 고객 중 상품 B로 넘어간 비율이에요.' },
+    { pattern: /^동시구매수$/, description: '두 상품이 같은 주문에서 함께 구매된 횟수예요.' }
+];
+
+const QUADRANT_TRANSITION_SCOPE_CRITERIA = '리텐션 재구매 상품은 유입 상위 핵심 상품과 재구매 핵심 상품을 대상으로, 첫 구매 후 90일 안에 실제로 다음 구매가 발생한 경우만 포함해요. 같은 주문에서 함께 산 건은 제외되고, 전환이 0건이면 목록에 나타나지 않아요.';
+const QUADRANT_EDGE_TOP_N = 6;
+const RETENTION_90D_FLOW_LABEL = '첫 구매 후 90일 안에 다음 구매로 이어진 리텐션 흐름';
 
 const normalizeCategoryValue = (value, fallback = '') => {
     if (value === null || value === undefined) return fallback;
@@ -475,6 +517,59 @@ function normalizeGroupName(name) {
     return removedPrefix.replace(/\s+/g, ' ').trim();
 }
 
+const GROUP_PROMO_TOKEN_KEYWORDS = [
+    'vip', '특가', '사은품', '전용', '체험', '한정', '이벤트', '세일', 'sale', '혜택',
+    '증정', '비밀판매', '아로셀데이', '타임', '재구매', '여름선물', '광복절', '설 맞이', '세컨드'
+];
+
+function parseLeadingBracketTokens(name) {
+    let rest = String(name || '').trim();
+    const tokens = [];
+    while (true) {
+        const match = rest.match(/^\s*\[([^\]]+)\]\s*/);
+        if (!match) break;
+        tokens.push(String(match[1] || '').trim());
+        rest = rest.slice(match[0].length);
+    }
+    return { tokens, rest: rest.trim() };
+}
+
+function isQuantityToken(token) {
+    const raw = String(token || '').trim();
+    if (!raw) return false;
+    if (/\d+\s*(매|개|입|ea|ml|mL|g|kg)\b/i.test(raw)) return true;
+    if (/\d+\s*x\s*\d+/i.test(raw)) return true;
+    return false;
+}
+
+function isPromotionToken(token) {
+    const raw = String(token || '').trim();
+    if (!raw) return false;
+    if (isQuantityToken(raw)) return false;
+    const lower = raw.toLowerCase();
+    return GROUP_PROMO_TOKEN_KEYWORDS.some((keyword) => lower.includes(keyword.toLowerCase()));
+}
+
+function normalizeGroupKeyName(name) {
+    const raw = String(name || '').trim();
+    if (!raw) return '';
+    const { tokens, rest } = parseLeadingBracketTokens(raw);
+    const keptTokens = tokens.filter((token) => !isPromotionToken(token));
+    const prefix = keptTokens.map((token) => `[${token}]`).join(' ');
+    const combined = `${prefix} ${rest}`.trim();
+    return combined.replace(/\s+/g, ' ').trim();
+}
+
+function firstDefinedValue(...values) {
+    for (let i = 0; i < values.length; i += 1) {
+        const value = values[i];
+        if (value === null || value === undefined) continue;
+        if (typeof value === 'string' && value.trim() === '') continue;
+        return value;
+    }
+    return undefined;
+}
+
 function slugify(value) {
     return String(value || '')
         .toLowerCase()
@@ -545,7 +640,7 @@ function buildAutoGroups(anchorRows) {
         const rawName = readProductName(row);
         if (!id || !rawName) return;
         knownIds.add(id);
-        const normName = normalizeGroupName(rawName);
+        const normName = normalizeGroupKeyName(rawName);
         const revenue = toNumber(row.revenue_90d, 0);
         productMeta.set(id, { id, rawName, normName, revenue });
 
@@ -1056,20 +1151,25 @@ function transformCaProfileRows(rows, topCompanionMap) {
             });
         }
         const acc = map.get(id);
-        const weight = Math.max(1, toNumber(row.companion_count, 0));
-        acc.companion_count += toNumber(row.companion_count, 0);
-        acc.attach_num += toNumber(row.attach_rate, 0) * weight;
-        acc.attach_den += weight;
-        acc.median_num += toNumber(row.median_cart_size, 0) * weight;
-        acc.median_den += weight;
-        acc.breadth_num += toNumber(row.breadth_lift, 0) * weight;
-        acc.breadth_den += weight;
-        acc.top1_num += toNumber(row.top1_share, 0) * weight;
-        acc.top1_den += weight;
-        acc.top3_num += toNumber(row.top3_share, 0) * weight;
-        acc.top3_den += weight;
+        const companionCount = Math.max(0, toNumber(row.companion_count, 0));
+        const weight = companionCount;
+        acc.companion_count += companionCount;
+        if (weight > 0) {
+            acc.attach_num += toNumber(row.attach_rate, 0) * weight;
+            acc.attach_den += weight;
+            acc.median_num += toNumber(row.median_cart_size, 0) * weight;
+            acc.median_den += weight;
+            acc.breadth_num += toNumber(row.breadth_lift, 0) * weight;
+            acc.breadth_den += weight;
+            acc.top1_num += toNumber(row.top1_share, 0) * weight;
+            acc.top1_den += weight;
+            acc.top3_num += toNumber(row.top3_share, 0) * weight;
+            acc.top3_den += weight;
+        }
         const caType = normalizeCategoryValue(row.ca_type, 'None');
-        acc.caTypeScores[caType] = toNumber(acc.caTypeScores[caType], 0) + weight;
+        if (weight > 0) {
+            acc.caTypeScores[caType] = toNumber(acc.caTypeScores[caType], 0) + weight;
+        }
     });
 
     return Array.from(map.values()).map((acc) => {
@@ -1181,7 +1281,7 @@ function transformAaTransitionPathRows(rows, groupedCohortRows) {
         }
         const acc = map.get(key);
         const trans = toNumber(row.transition_customers, 0);
-        const days = toNumber(row.avg_days_to_pca || row.avg_days_to_expansion, NaN);
+        const days = toNumber(firstDefinedValue(row.avg_days_to_pca, row.avg_days_to_expansion), NaN);
         const aaType = normalizeCategoryValue(row.aa_type, 'Unknown');
         acc.transition_customers += trans;
         if (trans > 0 && Number.isFinite(days)) {
@@ -1410,14 +1510,42 @@ const getUploadPriority = (config, filename) => {
     return 1;
 };
 
-function renderSearchUI(viewName, placeholder) {
-    const query = AppState.viewState[viewName].searchQuery;
+function normalizeSearchMode(mode) {
+    const key = String(mode || '').toLowerCase();
+    return ['all', 'name', 'id'].includes(key) ? key : 'all';
+}
+
+function renderSearchUI(viewName, placeholder, options = {}) {
+    const state = AppState.viewState[viewName] || {};
+    const query = state.searchQuery || '';
+    const includeModeSelect = Boolean(options.includeModeSelect);
+    const mode = normalizeSearchMode(state.searchMode || 'all');
+    const selectOptions = [
+        ['all', '전체'],
+        ['name', '상품명'],
+        ['id', 'ID']
+    ];
     return `
         <div class="search-container animate-fade-in">
-            <div class="search-wrapper">
-                <i class="ph ph-magnifying-glass"></i>
-                <input type="text" class="search-input" placeholder="${toFriendlyText(placeholder)}" 
-                       value="${query}" oninput="handleGlobalSearch('${viewName}', this.value)">
+            <div class="search-combo">
+                ${includeModeSelect ? `
+                    <select class="search-select" onchange="handleSearchModeChange('${viewName}', this.value)">
+                        ${selectOptions.map(([value, label]) => `
+                            <option value="${value}" ${mode === value ? 'selected' : ''}>${label}</option>
+                        `).join('')}
+                    </select>
+                ` : ''}
+                <div class="search-wrapper">
+                    <i class="ph ph-magnifying-glass"></i>
+                    <input
+                        id="search-input-${viewName}"
+                        type="text"
+                        class="search-input"
+                        placeholder="${toFriendlyText(placeholder)}"
+                        value="${query}"
+                        oninput="handleGlobalSearch('${viewName}', this.value, this.selectionStart, this.selectionEnd)"
+                    >
+                </div>
             </div>
         </div>
     `;
@@ -1442,6 +1570,72 @@ function applyFriendlyUi(root = document.body) {
             validateUiHardRule(next, attr);
         });
     });
+    applyMetricTooltips(root);
+}
+
+function getMetricTooltip(text) {
+    const normalized = String(text || '')
+        .replace(/[▲▼]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    if (!normalized) return '';
+    const matched = METRIC_TOOLTIP_RULES.find((rule) => rule.pattern.test(normalized));
+    return matched ? matched.description : '';
+}
+
+function applyMetricTooltips(root = document.body) {
+    if (!root?.querySelectorAll) return;
+    const targets = root.querySelectorAll(
+        '.hero-metric label, .journey-kpi label, .pgm-metrics label, .structure-item label, .value-driver-item label, .fitness-summary-card label, .data-table th'
+    );
+    targets.forEach((el) => {
+        const tooltip = getMetricTooltip(el.textContent);
+        if (!tooltip) {
+            el.classList.remove('metric-tooltip-target');
+            if (el.dataset.metricTooltipApplied === '1') {
+                el.removeAttribute('title');
+                el.removeAttribute('aria-label');
+                el.removeAttribute('data-metric-tooltip');
+                delete el.dataset.metricTooltipApplied;
+            }
+            return;
+        }
+        const label = String(el.textContent || '').replace(/\s+/g, ' ').trim();
+        el.setAttribute('title', tooltip);
+        el.setAttribute('aria-label', `${label} - ${tooltip}`);
+        el.setAttribute('data-metric-tooltip', tooltip);
+        el.classList.add('metric-tooltip-target');
+        el.dataset.metricTooltipApplied = '1';
+    });
+}
+
+function buildEntitySearchTokens(productId, getName) {
+    const meta = getEntityMeta(productId);
+    const ids = [
+        productId,
+        meta.entityId,
+        ...(meta.members || [])
+    ]
+        .map((v) => String(v || '').toLowerCase().trim())
+        .filter(Boolean);
+    const names = [
+        getName(productId),
+        meta.entityName
+    ]
+        .map((v) => String(v || '').toLowerCase().trim())
+        .filter(Boolean);
+    return { ids, names };
+}
+
+function matchesSearchQuery(query, mode, ids = [], names = []) {
+    const q = String(query || '').toLowerCase().trim();
+    if (!q) return true;
+    const idMatch = ids.some((text) => text.includes(q));
+    const nameMatch = names.some((text) => text.includes(q));
+    const searchMode = normalizeSearchMode(mode);
+    if (searchMode === 'id') return idMatch;
+    if (searchMode === 'name') return nameMatch;
+    return idMatch || nameMatch;
 }
 
 function destroyCarts() {
@@ -1556,21 +1750,159 @@ function initAppUI() {
     }
 }
 
-window.handleGlobalSearch = (viewName, query) => {
+function restoreSearchInputCursor(viewName, selectionStart = null, selectionEnd = null) {
+    const input = document.getElementById(`search-input-${viewName}`);
+    if (!input) return;
+    input.focus();
+    if (Number.isInteger(selectionStart) && Number.isInteger(selectionEnd)) {
+        const start = Math.max(0, Math.min(selectionStart, input.value.length));
+        const end = Math.max(0, Math.min(selectionEnd, input.value.length));
+        try {
+            input.setSelectionRange(start, end);
+        } catch (_) {
+            // ignore selection restore failure
+        }
+    }
+}
+
+window.handleGlobalSearch = (viewName, query, selectionStart = null, selectionEnd = null) => {
+    if (!AppState.viewState[viewName]) return;
     AppState.viewState[viewName].searchQuery = query;
     if (viewName === 'cart') AppState.pagination.cartDetail.currentPage = 1;
 
     if (window.searchTimeout) clearTimeout(window.searchTimeout);
     window.searchTimeout = setTimeout(() => {
         if (viewName === 'products') renderProducts();
-        else if (viewName === 'transitions') renderTransitions();
+        else if (viewName === 'transitions') renderTransitionsTable();
         else if (viewName === 'cart') renderCartDetailTable();
+        if (viewName === 'transitions') {
+            restoreSearchInputCursor(viewName, selectionStart, selectionEnd);
+        }
     }, 150);
+};
+
+window.handleSearchModeChange = (viewName, mode) => {
+    if (!AppState.viewState[viewName]) return;
+    AppState.viewState[viewName].searchMode = normalizeSearchMode(mode);
+    if (viewName === 'cart') {
+        AppState.pagination.cartDetail.currentPage = 1;
+        renderCartDetailTable();
+        return;
+    }
+    if (viewName === 'transitions') {
+        renderTransitionsTable();
+        restoreSearchInputCursor(viewName);
+        return;
+    }
+    if (viewName === 'products') {
+        renderProducts();
+    }
 };
 
 window.closeRelatedModal = () => {
     const modal = document.getElementById('related-products-modal');
     if (modal) modal.classList.remove('active');
+};
+
+window.closeRetentionFlowModal = () => {
+    const modal = document.getElementById('retention-flow-modal');
+    if (modal) modal.remove();
+};
+
+window.openRetentionFlowModal = async (entityId) => {
+    const focusId = String(entityId || '').trim();
+    if (!focusId) return;
+
+    window.closeRetentionFlowModal();
+    const modal = document.createElement('div');
+    modal.id = 'retention-flow-modal';
+    modal.className = 'modal-overlay active';
+    modal.innerHTML = `
+        <div class="modal-card retention-flow-modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title">90일 리텐션 흐름</h3>
+                <button class="modal-close" type="button" onclick="closeRetentionFlowModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-loading">
+                    <div class="spinner"></div>
+                    <p style="margin-top:1rem">90일 리텐션 흐름 데이터를 불러오는 중이에요.</p>
+                </div>
+            </div>
+        </div>
+    `;
+    modal.onclick = (event) => {
+        if (event.target === modal) window.closeRetentionFlowModal();
+    };
+    document.body.appendChild(modal);
+
+    const title = modal.querySelector('.modal-title');
+    const body = modal.querySelector('.modal-body');
+    const focusName = getProductName(focusId);
+    title.textContent = `90일 리텐션 흐름 · ${focusName}`;
+
+    try {
+        if (!Array.isArray(AppState.data.anchorTransition) || !AppState.data.anchorTransition.length) {
+            AppState.rawData.anchorTransition = await loadOptionalDataFromDB(REQUIRED_FILES.anchorTransition, []);
+            if (!Array.isArray(AppState.rawData.anchorScored) || !AppState.rawData.anchorScored.length) {
+                AppState.rawData.anchorScored = await loadOptionalDataFromDB(REQUIRED_FILES.anchorScored, []);
+            }
+            rebuildDerivedData();
+        }
+
+        const transitions = AppState.data.anchorTransition || [];
+        const related = transitions
+            .filter((row) => String(row.aa_product_id || '') === focusId)
+            .sort((a, b) => toNumber(b.transition_customer_cnt, 0) - toNumber(a.transition_customer_cnt, 0));
+
+        if (!related.length) {
+            body.innerHTML = `
+                <p class="empty-state" style="margin:0;">
+                    첫 구매 후 90일 내 이 상품 기준 리텐션 재구매 흐름이 아직 없어요.
+                </p>
+            `;
+            applyFriendlyUi(modal);
+            return;
+        }
+
+        const rows = related.slice(0, 200).map((row) => {
+            return `
+                <tr>
+                    <td>${renderProductCell(getProductName(row.pca_product_id), row.pca_product_id, 42, { groupClickable: true })}</td>
+                    <td style="text-align:right">${formatNumber(row.transition_customer_cnt)}</td>
+                    <td style="text-align:right">${formatPercent(row.transition_rate, 2)}</td>
+                    <td style="text-align:right">${formatNumber(row.avg_days_to_pca, 1)}일</td>
+                </tr>
+            `;
+        }).join('');
+
+        body.innerHTML = `
+            <div class="retention-flow-summary">
+                <strong>${escapeHtml(focusName)}</strong> 기준으로 첫 구매 후 90일 내 리텐션 재구매 흐름 ${formatNumber(related.length)}개를 보여줘요.
+            </div>
+            <div class="chart-hint" style="margin-top:0.25rem;">
+                첫구매 유입 상품: ${renderProductCell(focusName, focusId, 42, { showId: false, groupClickable: true })}
+            </div>
+            <div class="table-container retention-flow-table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>다음 구매 상품</th>
+                            <th style="text-align:right">90일 재구매 고객수</th>
+                            <th style="text-align:right">90일 재구매율</th>
+                            <th style="text-align:right">평균 재구매 소요일</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>
+            <p class="chart-hint" style="margin-top:0.7rem;">상위 200개 경로만 표시해요.</p>
+        `;
+        applyFriendlyUi(modal);
+    } catch (error) {
+        body.innerHTML = `<p style="color:var(--accent); text-align:center; padding:2rem;">90일 리텐션 흐름 로딩에 실패했어요: ${escapeHtml(error.message)}</p>`;
+        applyFriendlyUi(modal);
+    }
 };
 
 window.copyToClipboard = (text) => {
@@ -1712,7 +2044,7 @@ function renderOverview() {
         <div class="card animate-fade-in" style="margin-top: 2rem; border-left: 4px solid var(--primary);">
             <h3 style="color: var(--primary); text-transform: none; letter-spacing: normal; font-size: 1.1rem;">화면 해석 가이드</h3>
             <p style="color: var(--text-muted); margin-top: 1rem; line-height: 1.6; font-size: 0.95rem;">
-                브랜드 구조 건강도는 유입 균형, 재구매 연결 균형, 가치 준비도를 함께 보여줘요. 매출 규모보다 구조 균형이 유지되는지 먼저 보면 좋아요.
+                브랜드 구조 건강도는 유입 균형, 재구매 균형, 가치 준비도를 함께 보여줘요. 매출 규모보다 구조 균형이 유지되는지 먼저 보면 좋아요.
             </p>
         </div>
     `;
@@ -1769,8 +2101,8 @@ function getQuadrantStatus(entry, expansion, centerEntry, centerExpansion) {
             key: 'entry-only',
             label: '유입 유도',
             color: '#14b8a6',
-            summary: '첫 구매 유입은 강하니, 번들로 다음 구매를 연결해요.',
-            guide: '첫 구매 유입은 강하니, 번들로 다음 구매를 연결해요.',
+            summary: '첫 구매 유입은 강하니, 번들로 다음 재구매를 유도해요.',
+            guide: '첫 구매 유입은 강하니, 번들로 다음 재구매를 유도해요.',
             actions: [
                 '번들/세트 제안을 전면에 배치해 재구매 진입 장벽을 낮춰요.',
                 '첫 구매 후 7일 내 리마인드 CRM을 집중 운영해요.'
@@ -1856,12 +2188,85 @@ function buildQuadrantScaleModel(points, selected, scaleMode) {
     };
 }
 
-function buildQuadrantModel(rows, selectedId, scaleMode = 'focus') {
-    const points = (rows || [])
+function buildTransitionEntitySet() {
+    const set = new Set();
+    (AppState.data.anchorTransition || []).forEach((row) => {
+        const aa = String(firstDefinedValue(row.aa_product_id, row.entry_product_id, '')).trim();
+        const pca = String(firstDefinedValue(row.pca_product_id, row.expansion_product_id, '')).trim();
+        if (aa) set.add(aa);
+        if (pca) set.add(pca);
+    });
+    return set;
+}
+
+function buildVisibleQuadrantEdges(points, selectedId, edgeMode = 'both') {
+    const selected = String(selectedId || '').trim();
+    if (!selected || !Array.isArray(points) || !points.length) return [];
+    const pointIdSet = new Set(points.map((point) => String(point.id || '').trim()).filter(Boolean));
+    if (!pointIdSet.has(selected)) return [];
+
+    const normalizedEdgeMode = String(edgeMode || '').toLowerCase() === 'outbound' ? 'outbound' : 'both';
+    const edgeMap = new Map();
+    const upsertEdge = (from, to, direction, row) => {
+        if (!from || !to || from === to) return;
+        if (!pointIdSet.has(from) || !pointIdSet.has(to)) return;
+        const customers = Math.max(0, toNumber(row.transition_customer_cnt, 0));
+        if (customers <= 0) return;
+
+        const key = `${from}::${to}`;
+        if (!edgeMap.has(key)) {
+            edgeMap.set(key, {
+                from,
+                to,
+                direction,
+                transitionCustomers: 0,
+                avgDaysNum: 0,
+                avgDaysDen: 0,
+                peakRate: 0
+            });
+        }
+        const acc = edgeMap.get(key);
+        acc.transitionCustomers += customers;
+        const avgDays = toNumber(firstDefinedValue(row.avg_days_to_pca, row.avg_days_to_expansion), NaN);
+        if (Number.isFinite(avgDays)) {
+            acc.avgDaysNum += avgDays * customers;
+            acc.avgDaysDen += customers;
+        }
+        const rate = Math.max(0, toNumber(row.transition_rate, 0));
+        acc.peakRate = Math.max(acc.peakRate, rate);
+    };
+
+    (AppState.data.anchorTransition || []).forEach((row) => {
+        const from = String(firstDefinedValue(row.aa_product_id, row.entry_product_id, '')).trim();
+        const to = String(firstDefinedValue(row.pca_product_id, row.expansion_product_id, '')).trim();
+        if (!from || !to || from === to) return;
+
+        if (from === selected) upsertEdge(from, to, 'outbound', row);
+        if (normalizedEdgeMode === 'both' && to === selected) upsertEdge(from, to, 'inbound', row);
+    });
+
+    return Array.from(edgeMap.values())
+        .map((row) => ({
+            ...row,
+            avgDays: row.avgDaysDen > 0 ? row.avgDaysNum / row.avgDaysDen : null
+        }))
+        .sort((a, b) => {
+            const byCustomers = toNumber(b.transitionCustomers, 0) - toNumber(a.transitionCustomers, 0);
+            if (byCustomers !== 0) return byCustomers;
+            return toNumber(b.peakRate, 0) - toNumber(a.peakRate, 0);
+        })
+        .slice(0, QUADRANT_EDGE_TOP_N);
+}
+
+function buildQuadrantModel(rows, selectedId, scaleMode = 'focus', scope = 'transition', edgeMode = 'both') {
+    const transitionEntitySet = buildTransitionEntitySet();
+    const normalizedScope = String(scope || '').toLowerCase() === 'all' ? 'all' : 'transition';
+    const normalizedEdgeMode = String(edgeMode || '').toLowerCase() === 'outbound' ? 'outbound' : 'both';
+    const allPoints = (rows || [])
         .map((row) => {
             const id = String(row.product_id || '').trim();
-            const entry = toNumber(row.AA_Score || row.Entry_Gravity_Score, NaN);
-            const expansion = toNumber(row.PCA_Score || row.Expansion_Gravity_Score, NaN);
+            const entry = toNumber(firstDefinedValue(row.AA_Score, row.Entry_Gravity_Score), NaN);
+            const expansion = toNumber(firstDefinedValue(row.PCA_Score, row.Expansion_Gravity_Score), NaN);
             if (!id || !Number.isFinite(entry) || !Number.isFinite(expansion)) return null;
             const weeklyForecast = Math.max(0, toNumber(row.product_order_cnt_1y, 0) / 52);
             const entityMeta = getEntityMeta(id);
@@ -1874,11 +2279,16 @@ function buildQuadrantModel(rows, selectedId, scaleMode = 'focus') {
                 weeklyForecast,
                 revenue90d: toNumber(row.revenue_90d, 0),
                 memberCount,
-                groupEntityId: entityMeta.entityId || id
+                groupEntityId: entityMeta.entityId || id,
+                hasTransition: transitionEntitySet.has(id)
             };
         })
         .filter(Boolean)
         .sort((a, b) => b.revenue90d - a.revenue90d);
+
+    const points = normalizedScope === 'transition'
+        ? allPoints.filter((point) => point.hasTransition)
+        : allPoints;
 
     if (!points.length) return null;
 
@@ -1901,10 +2311,12 @@ function buildQuadrantModel(rows, selectedId, scaleMode = 'focus') {
     const selected = points.find((p) => p.id === activeId) || points[0];
     const status = getQuadrantStatus(selected.entry, selected.expansion, centerEntry, centerExpansion);
     const scale = buildQuadrantScaleModel(points, selected, scaleMode);
+    const visibleEdges = buildVisibleQuadrantEdges(points, selected.id, normalizedEdgeMode);
 
     return {
         points,
         selected,
+        visibleEdges,
         status,
         centerEntry,
         centerExpansion,
@@ -1914,6 +2326,8 @@ function buildQuadrantModel(rows, selectedId, scaleMode = 'focus') {
         expansionP66,
         maxWeekly,
         scaleMode: scale.mode,
+        scope: normalizedScope,
+        edgeMode: normalizedEdgeMode,
         scaleRange: scale.activeRange,
         focusRange: scale.focusRange,
         rawRange: scale.rawRange
@@ -1922,6 +2336,10 @@ function buildQuadrantModel(rows, selectedId, scaleMode = 'focus') {
 
 function renderQuadrantPanel(model) {
     if (!model) {
+        const scope = String(AppState.viewState.products?.quadrant?.scope || 'transition').toLowerCase();
+        if (scope === 'transition') {
+            return `<p class="empty-state">${escapeHtml(QUADRANT_TRANSITION_SCOPE_CRITERIA)} 범위를 전체로 전환하면 전체 상품 분포를 볼 수 있어요.</p>`;
+        }
         return '<p class="empty-state">4분면 계산 대상 상품이 없습니다.</p>';
     }
     const { selected, status } = model;
@@ -1939,9 +2357,19 @@ function renderQuadrantPanel(model) {
     const statusLegend = [
         { key: 'hero', label: '히어로 상품', color: '#3b82f6', guide: '메인 노출을 유지하고, 예산을 우선 배분해요.' },
         { key: 'phaseout', label: '정리 검토 구간', color: '#ef4444', guide: '재고/마진 기준으로 축소 또는 교체를 먼저 검토해요.' },
-        { key: 'entry-only', label: '유입 유도', color: '#14b8a6', guide: '첫 구매 유입은 강하니, 번들로 다음 구매를 연결해요.' },
+        { key: 'entry-only', label: '유입 유도', color: '#14b8a6', guide: '첫 구매 유입은 강하니, 번들로 다음 재구매를 유도해요.' },
         { key: 'expansion-only', label: '재구매 앵커', color: '#8b5cf6', guide: '재구매 전환은 강하니, 신규 유입 채널을 보강해요.' }
     ];
+    const transitionCta = selected.hasTransition
+        ? `<button class="btn-primary" type="button" onclick="openRetentionFlowModal('${escapeJs(selected.id)}')">90일 리텐션 흐름 보기</button>`
+        : `
+            <button class="btn-primary" type="button" disabled title="90일 리텐션 재구매 데이터가 없어 이동할 수 없음">90일 리텐션 흐름 보기</button>
+            <p class="pgm-link-help">구매 후 90일 내 리텐션 재구매 데이터가 없어 이동할 수 없어요.</p>
+        `;
+    const edgeModeLabel = model.edgeMode === 'both' ? '양방향 흐름' : '다음 재구매 흐름';
+    const edgeGuide = model.visibleEdges?.length
+        ? `이 상품 기준 상위 ${formatNumber(model.visibleEdges.length)}개 ${edgeModeLabel}을 시각화했어요.`
+        : '이 상품은 90일 내 재구매 흐름 연결이 없어 선이 표시되지 않아요.';
     return `
         <div class="pgm-side-summary">
             <span class="pgm-badge" style="background:${status.color}1f; color:${status.color}; border-color:${status.color}55;">${status.label}</span>
@@ -1952,7 +2380,7 @@ function renderQuadrantPanel(model) {
             <p class="pgm-summary">${escapeHtml(status.summary)}</p>
             <div class="pgm-metrics">
                 <div><label>첫구매 유입 점수</label><strong>${formatNumber(selected.entry, 3)}</strong><span>${entryLevel}</span></div>
-                <div><label>재구매 연결 점수</label><strong>${formatNumber(selected.expansion, 3)}</strong><span>${expansionLevel}</span></div>
+                <div><label>재구매 점수</label><strong>${formatNumber(selected.expansion, 3)}</strong><span>${expansionLevel}</span></div>
                 <div><label>주간 예상 판매량</label><strong>${formatNumber(selected.weeklyForecast, 1)}</strong><span>${memberMeta}</span></div>
             </div>
             <div class="pgm-actions">
@@ -1978,8 +2406,9 @@ function renderQuadrantPanel(model) {
                     `).join('')}
                 </div>
             </div>
+            <p class="pgm-edge-guide">${escapeHtml(edgeGuide)}</p>
             <div class="pgm-links">
-                <a class="btn-primary" href="transitions.html?focus=${encodeURIComponent(selected.id)}">전환 흐름 보기</a>
+                ${transitionCta}
                 <a class="btn-primary" href="cart.html?focus=${encodeURIComponent(selected.id)}">장바구니 보기</a>
             </div>
             <button class="btn-primary pgm-prev-btn" type="button" onclick="selectPreviousQuadrantItem()" ${hasHistory ? '' : 'disabled'}>이전 상품으로</button>
@@ -1988,21 +2417,49 @@ function renderQuadrantPanel(model) {
 }
 
 function renderProductQuadrant(model) {
-    const scaleMode = AppState.viewState.products.quadrant.scaleMode || 'focus';
+    const qState = AppState.viewState.products.quadrant || {};
+    const scaleMode = qState.scaleMode || 'focus';
+    const scopeMode = qState.scope === 'all' ? 'all' : 'transition';
+    const emptyChartMessage = scopeMode === 'transition'
+        ? `${QUADRANT_TRANSITION_SCOPE_CRITERIA} 범위를 전체로 바꿔 확인해 주세요.`
+        : '표시할 상품이 없습니다.';
     return `
         <div class="card pgm-quadrant-wrap animate-fade-in">
             <div class="pgm-quadrant-head">
                 <div>
                     <h3>상품 상태 4분면</h3>
-                    <p>첫구매 유입과 재구매 연결 상태를 한눈에 비교해요.</p>
+                    <p>첫구매 유입과 재구매 상태를 한눈에 비교해요.</p>
                 </div>
-                <div class="quadrant-scale-toggle">
-                    <button class="btn-primary ${scaleMode === 'focus' ? 'is-active' : ''}" type="button" onclick="setQuadrantScaleMode('focus')">집중뷰</button>
-                    <button class="btn-primary ${scaleMode === 'raw' ? 'is-active' : ''}" type="button" onclick="setQuadrantScaleMode('raw')">원본 보기</button>
+                <div class="quadrant-head-controls">
+                    <div class="quadrant-scope-toggle">
+                        <button
+                            class="btn-primary metric-tooltip-target ${scopeMode === 'transition' ? 'is-active' : ''}"
+                            type="button"
+                            data-metric-tooltip="실제 리텐션 재구매가 확인된 상품만 보여줘요."
+                            aria-label="실제 리텐션 재구매가 확인된 상품만 보여줘요."
+                            onclick="setQuadrantScopeMode('transition')"
+                        >리텐션 재구매 상품만</button>
+                        <button
+                            class="btn-primary metric-tooltip-target ${scopeMode === 'all' ? 'is-active' : ''}"
+                            type="button"
+                            data-metric-tooltip="점수 계산된 전체 상품을 보여주며 리텐션 재구매가 아직 없는 상품도 포함해요."
+                            aria-label="점수 계산된 전체 상품을 보여주며 리텐션 재구매가 아직 없는 상품도 포함해요."
+                            onclick="setQuadrantScopeMode('all')"
+                        >전체 상품 보기</button>
+                    </div>
+                    <span class="quadrant-control-sep" aria-hidden="true">|</span>
+                    <div class="quadrant-scale-toggle">
+                        <button class="btn-primary ${scaleMode === 'focus' ? 'is-active' : ''}" type="button" onclick="setQuadrantScaleMode('focus')">집중뷰</button>
+                        <button class="btn-primary ${scaleMode === 'raw' ? 'is-active' : ''}" type="button" onclick="setQuadrantScaleMode('raw')">원본 보기</button>
+                    </div>
                 </div>
             </div>
             <div class="pgm-quadrant-body">
-                <div class="pgm-chart card chart-card"><canvas id="pgmQuadrantChart"></canvas></div>
+                <div class="pgm-chart card chart-card">
+                    ${model
+        ? '<canvas id="pgmQuadrantChart"></canvas>'
+        : `<div class="quadrant-chart-empty"><p>${emptyChartMessage}</p></div>`}
+                </div>
                 <div class="pgm-side card">${renderQuadrantPanel(model)}</div>
             </div>
             ${scaleMode === 'focus' ? '<p class="quadrant-outlier-note">집중뷰에서는 일부 점이 경계에 압축돼요. 원본 보기를 누르면 전체 분포를 볼 수 있어요.</p>' : ''}
@@ -2076,7 +2533,7 @@ function renderQuadrantChart(model) {
                             return [
                                 `상태: ${raw.status?.label || '-'}`,
                                 `첫구매 유입 점수: ${formatNumber(raw.rawEntry, 3)}`,
-                                `재구매 연결 점수: ${formatNumber(raw.rawExpansion, 3)}`,
+                                `재구매 점수: ${formatNumber(raw.rawExpansion, 3)}`,
                                 raw.outlierMarker ? `집중뷰 경계 표시: ${raw.outlierMarker}` : '',
                                 `주간 예상 판매량: ${formatNumber(raw.weeklyForecast, 1)}`,
                                 `SKU 수: ${formatNumber(raw.memberCount, 0)}`
@@ -2104,7 +2561,7 @@ function renderQuadrantChart(model) {
                 y: {
                     min: range.yMin,
                     max: range.yMax,
-                    title: { display: true, text: '재구매 연결' },
+                    title: { display: true, text: '재구매' },
                     ticks: { display: false },
                     grid: { display: false, drawBorder: false }
                 }
@@ -2138,6 +2595,87 @@ function renderQuadrantChart(model) {
                 labels.forEach((label) => {
                     chartCtx.textAlign = label.align;
                     chartCtx.fillText(label.text, label.x, label.y);
+                });
+                chartCtx.restore();
+            }
+        }, {
+            id: 'selected-edges',
+            beforeDatasetsDraw: (chart) => {
+                const edges = model.visibleEdges || [];
+                if (!edges.length) return;
+                const dataset = chart.data?.datasets?.[0];
+                const meta = chart.getDatasetMeta(0);
+                if (!dataset || !meta) return;
+
+                const pointById = new Map();
+                (dataset.data || []).forEach((point, idx) => {
+                    if (!point) return;
+                    const element = meta.data[idx];
+                    if (!element) return;
+                    const props = element.getProps(['x', 'y', 'options'], true);
+                    pointById.set(point.productId, {
+                        x: props.x,
+                        y: props.y,
+                        r: toNumber(props.options?.radius, 8)
+                    });
+                });
+
+                const maxCustomers = Math.max(...edges.map((edge) => toNumber(edge.transitionCustomers, 0)), 1);
+                const { ctx: chartCtx } = chart;
+                chartCtx.save();
+                edges.forEach((edge) => {
+                    const from = pointById.get(edge.from);
+                    const to = pointById.get(edge.to);
+                    if (!from || !to) return;
+                    const dx = to.x - from.x;
+                    const dy = to.y - from.y;
+                    const dist = Math.hypot(dx, dy);
+                    if (!Number.isFinite(dist) || dist < 6) return;
+                    const ux = dx / dist;
+                    const uy = dy / dist;
+                    const startX = from.x + ux * (from.r + 3);
+                    const startY = from.y + uy * (from.r + 3);
+                    const endX = to.x - ux * (to.r + 5);
+                    const endY = to.y - uy * (to.r + 5);
+                    const bendSign = edge.direction === 'inbound' ? -1 : 1;
+                    const bend = Math.min(38, Math.max(12, dist * 0.18)) * bendSign;
+                    const cx = (startX + endX) / 2 + (-uy * bend);
+                    const cy = (startY + endY) / 2 + (ux * bend);
+                    const weight = toNumber(edge.transitionCustomers, 0) / maxCustomers;
+                    const isInbound = edge.direction === 'inbound';
+                    // 미니멀 모드: 단색 저채도 + 선스타일(실선/점선)로만 방향 구분
+                    const color = [100, 116, 139];
+                    const alpha = 0.08 + (weight * 0.16);
+
+                    chartCtx.beginPath();
+                    chartCtx.moveTo(startX, startY);
+                    chartCtx.quadraticCurveTo(cx, cy, endX, endY);
+                    chartCtx.strokeStyle = `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${alpha})`;
+                    chartCtx.lineWidth = 0.8 + (weight * 1.2);
+                    chartCtx.lineCap = 'round';
+                    chartCtx.setLineDash(isInbound ? [3, 5] : []);
+                    chartCtx.stroke();
+                    chartCtx.setLineDash([]);
+
+                    const tx = endX - cx;
+                    const ty = endY - cy;
+                    const tLen = Math.hypot(tx, ty);
+                    if (!Number.isFinite(tLen) || tLen <= 0.0001) return;
+                    const tux = tx / tLen;
+                    const tuy = ty / tLen;
+                    const arrowLen = 5 + (weight * 2);
+                    const arrowWidth = 2.6 + (weight * 1.1);
+                    const leftX = endX - tux * arrowLen + (-tuy * arrowWidth);
+                    const leftY = endY - tuy * arrowLen + (tux * arrowWidth);
+                    const rightX = endX - tux * arrowLen - (-tuy * arrowWidth);
+                    const rightY = endY - tuy * arrowLen - (tux * arrowWidth);
+                    chartCtx.beginPath();
+                    chartCtx.moveTo(endX, endY);
+                    chartCtx.lineTo(leftX, leftY);
+                    chartCtx.lineTo(rightX, rightY);
+                    chartCtx.closePath();
+                    chartCtx.fillStyle = `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${Math.min(0.3, alpha + 0.08)})`;
+                    chartCtx.fill();
                 });
                 chartCtx.restore();
             }
@@ -2504,7 +3042,6 @@ function renderGroupEditorStep1TableRows(rows, selectedIdsSet) {
                     <span class="group-status ${row.statusClass}">${escapeHtml(row.status)}</span>
                 </td>
                 <td title="${escapeHtml(groupText)}">${escapeHtml(truncateText(groupText, 46))}</td>
-                <td>${escapeHtml(row.rule || '-')}</td>
             </tr>
         `;
     }).join('');
@@ -2531,7 +3068,7 @@ function refreshGroupEditorStep1Results(state) {
     const tbody = modal.querySelector('#group-editor-table-body');
     if (tbody) {
         const rowsHtml = renderGroupEditorStep1TableRows(context.rows, selectedIdsSet);
-        tbody.innerHTML = rowsHtml || '<tr><td colspan="6" style="text-align:center;color:var(--text-muted)">검색 결과가 없습니다.</td></tr>';
+        tbody.innerHTML = rowsHtml || '<tr><td colspan="5" style="text-align:center;color:var(--text-muted)">검색 결과가 없습니다.</td></tr>';
     }
 
     const selectAll = modal.querySelector('#group-editor-select-all');
@@ -2603,10 +3140,9 @@ function renderGroupWizardStep(state, context) {
                             <th>상품명</th>
                             <th>적용 상태</th>
                             <th>현재 그룹</th>
-                            <th>규칙</th>
                         </tr>
                     </thead>
-                    <tbody id="group-editor-table-body">${tableRows || '<tr><td colspan="6" style="text-align:center;color:var(--text-muted)">검색 결과가 없습니다.</td></tr>'}</tbody>
+                    <tbody id="group-editor-table-body">${tableRows || '<tr><td colspan="5" style="text-align:center;color:var(--text-muted)">검색 결과가 없습니다.</td></tr>'}</tbody>
                 </table>
             </div>
             ${context.groupedEntities.length ? `
@@ -3045,6 +3581,9 @@ function renderProducts() {
     const container = document.getElementById('content-area');
     const data = AppState.data.anchorScored || [];
     const { sortCol, sortDesc, searchQuery } = AppState.viewState.products;
+    const qState = AppState.viewState.products.quadrant;
+    if (!['transition', 'all'].includes(qState.scope)) qState.scope = 'transition';
+    if (!['focus', 'raw'].includes(qState.scaleMode)) qState.scaleMode = 'focus';
     const focusEntityId = String(AppState.helpers.focusEntityId || '').trim();
 
     let filteredData = [...data];
@@ -3080,8 +3619,8 @@ function renderProducts() {
         first_customer_cnt: '첫구매 유입 고객수',
         AA_Score: '첫구매 유입 점수',
         AA_Primary_Type: '첫구매 유입 유형',
-        PCA_Score: '재구매 연결 점수',
-        PCA_Primary_Type: '재구매 연결 유형'
+        PCA_Score: '재구매 점수',
+        PCA_Primary_Type: '재구매 유형'
     };
     const sortLabel = sortLabelMap[sortCol] || sortCol;
 
@@ -3121,11 +3660,13 @@ function renderProducts() {
 
     const quadrantModel = buildQuadrantModel(
         sortedData,
-        AppState.viewState.products.quadrant.selectedId,
-        AppState.viewState.products.quadrant.scaleMode || 'focus'
+        qState.selectedId,
+        qState.scaleMode || 'focus',
+        qState.scope || 'transition',
+        'both'
     );
     if (quadrantModel) {
-        AppState.viewState.products.quadrant.selectedId = quadrantModel.selected.id;
+        qState.selectedId = quadrantModel.selected.id;
     }
 
     container.innerHTML = `
@@ -3142,8 +3683,8 @@ function renderProducts() {
                         <th onclick="handleProductSort('first_customer_cnt')">첫구매 유입 고객수${getSortIndicator('first_customer_cnt')}</th>
                         <th onclick="handleProductSort('AA_Score')">첫구매 유입 점수${getSortIndicator('AA_Score')}</th>
                         <th onclick="handleProductSort('AA_Primary_Type')">첫구매 유입 유형${getSortIndicator('AA_Primary_Type')}</th>
-                        <th onclick="handleProductSort('PCA_Score')">재구매 연결 점수${getSortIndicator('PCA_Score')}</th>
-                        <th onclick="handleProductSort('PCA_Primary_Type')">재구매 연결 유형${getSortIndicator('PCA_Primary_Type')}</th>
+                        <th onclick="handleProductSort('PCA_Score')">재구매 점수${getSortIndicator('PCA_Score')}</th>
+                        <th onclick="handleProductSort('PCA_Primary_Type')">재구매 유형${getSortIndicator('PCA_Primary_Type')}</th>
                     </tr></thead>
                     <tbody>${rows}</tbody>
                 </table>
@@ -3217,26 +3758,45 @@ function renderProducts() {
         AppState.viewState.products.quadrant.scaleMode = next;
         renderProducts();
     };
+
+    window.setQuadrantScopeMode = (mode) => {
+        const next = String(mode || '').toLowerCase() === 'all' ? 'all' : 'transition';
+        AppState.viewState.products.quadrant.scope = next;
+        renderProducts();
+    };
 }
 
 function renderTransitions() {
     destroyCarts();
     const container = document.getElementById('content-area');
-    const transitions = AppState.data.anchorTransition || [];
-    const { sortCol, sortDesc, searchQuery } = AppState.viewState.transitions;
-    const focusEntityId = String(AppState.helpers.focusEntityId || '').trim();
+    container.innerHTML = `
+        ${renderSearchUI('transitions', '상품명 또는 ID 검색', { includeModeSelect: true })}
+        <p class="chart-hint">${RETENTION_90D_FLOW_LABEL}을 기준으로 보여줘요.</p>
+        <div id="transitions-table-container"></div>
+    `;
+    applyFriendlyUi(container);
+    renderTransitionsTable();
+}
 
+function renderTransitionsTable() {
+    const tableContainer = document.getElementById('transitions-table-container');
+    if (!tableContainer) return;
+    const transitions = AppState.data.anchorTransition || [];
+    const { sortCol, sortDesc, searchQuery, searchMode } = AppState.viewState.transitions;
+    const focusEntityId = String(AppState.helpers.focusEntityId || '').trim();
     const getName = (id) => getProductName(id);
 
     let filteredData = [...transitions];
     if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        filteredData = transitions.filter((d) => {
-            const fromId = String(d.aa_product_id).toLowerCase();
-            const fromName = getName(d.aa_product_id).toLowerCase();
-            const toId = String(d.pca_product_id).toLowerCase();
-            const toName = getName(d.pca_product_id).toLowerCase();
-            return fromId.includes(q) || fromName.includes(q) || toId.includes(q) || toName.includes(q);
+        filteredData = transitions.filter((row) => {
+            const fromTokens = buildEntitySearchTokens(row.aa_product_id, getName);
+            const toTokens = buildEntitySearchTokens(row.pca_product_id, getName);
+            return matchesSearchQuery(
+                searchQuery,
+                searchMode,
+                [...fromTokens.ids, ...toTokens.ids],
+                [...fromTokens.names, ...toTokens.names]
+            );
         });
     }
 
@@ -3258,10 +3818,10 @@ function renderTransitions() {
     const getSortIndicator = (col) => sortCol === col ? (sortDesc ? ' ▼' : ' ▲') : '';
     const sortLabelMap = {
         aa_product_id: '첫구매 유입 상품',
-        pca_product_id: '재구매 연결 상품',
-        transition_customer_cnt: '전환 고객수',
-        avg_days_to_pca: '평균 전환 소요일',
-        transition_rate: '전환율'
+        pca_product_id: '재구매 상품',
+        transition_customer_cnt: '90일 재구매 고객수',
+        avg_days_to_pca: '평균 재구매 소요일',
+        transition_rate: '90일 재구매율'
     };
     const sortLabel = sortLabelMap[sortCol] || sortCol;
 
@@ -3274,25 +3834,28 @@ function renderTransitions() {
             <td>${formatPercent(row.transition_rate, 2)}</td>
         </tr>
     `).join('');
+    const emptyMessage = searchQuery
+        ? `검색 결과가 없습니다. (검색어: ${escapeHtml(searchQuery)})`
+        : '표시할 90일 리텐션 재구매 데이터가 없어요.';
+    const bodyRows = rows || `<tr><td colspan="5" style="text-align:center;color:var(--text-muted); padding:1rem;">${emptyMessage}</td></tr>`;
 
-    container.innerHTML = `
-        ${renderSearchUI('transitions', '첫구매 유입 상품 기준 검색')}
-        <div class="card animate-fade-in"><h3>상위 200개 전환 흐름 (정렬 기준: ${escapeHtml(sortLabel)})</h3>
+    tableContainer.innerHTML = `
+        <div class="card animate-fade-in"><h3>상위 200개 90일 리텐션 재구매 흐름 (정렬 기준: ${escapeHtml(sortLabel)})</h3>
             <div class="table-container">
                 <table class="data-table">
                     <thead><tr>
                         <th onclick="handleTransitionSort('aa_product_id')">첫구매 유입 상품${getSortIndicator('aa_product_id')}</th>
-                        <th onclick="handleTransitionSort('pca_product_id')">재구매 연결 상품${getSortIndicator('pca_product_id')}</th>
-                        <th onclick="handleTransitionSort('transition_customer_cnt')">전환 고객수${getSortIndicator('transition_customer_cnt')}</th>
-                        <th onclick="handleTransitionSort('avg_days_to_pca')">평균 전환 소요일${getSortIndicator('avg_days_to_pca')}</th>
-                        <th onclick="handleTransitionSort('transition_rate')">전환율${getSortIndicator('transition_rate')}</th>
+                        <th onclick="handleTransitionSort('pca_product_id')">재구매 상품${getSortIndicator('pca_product_id')}</th>
+                        <th onclick="handleTransitionSort('transition_customer_cnt')">90일 재구매 고객수${getSortIndicator('transition_customer_cnt')}</th>
+                        <th onclick="handleTransitionSort('avg_days_to_pca')">평균 재구매 소요일${getSortIndicator('avg_days_to_pca')}</th>
+                        <th onclick="handleTransitionSort('transition_rate')">90일 재구매율${getSortIndicator('transition_rate')}</th>
                     </tr></thead>
-                    <tbody>${rows}</tbody>
+                    <tbody>${bodyRows}</tbody>
                 </table>
             </div>
         </div>
     `;
-    applyFriendlyUi(container);
+    applyFriendlyUi(tableContainer);
 
     window.handleTransitionSort = (col) => {
         if (AppState.viewState.transitions.sortCol === col) AppState.viewState.transitions.sortDesc = !AppState.viewState.transitions.sortDesc;
@@ -3300,32 +3863,20 @@ function renderTransitions() {
             AppState.viewState.transitions.sortCol = col;
             AppState.viewState.transitions.sortDesc = true;
         }
-        renderTransitions();
+        renderTransitionsTable();
     };
 }
 
 function renderCartAnalysis() {
     destroyCarts();
     const container = document.getElementById('content-area');
-    const cartData = AppState.data.cartAnchor || [];
 
     AppState.helpers.productNameMap = buildProductNameMap();
     const getName = (id) => getProductName(id);
     AppState.helpers.getName = getName;
 
-    const sortedCart = [...cartData]
-        .sort((a, b) => toNumber(b.median_cart_size) - toNumber(a.median_cart_size))
-        .slice(0, 10);
-
-    const chartLabels = sortedCart.map((d) => {
-        const n = getName(d.product_id);
-        return n.length > 15 ? `${n.substring(0, 15)}...` : n;
-    });
-    const chartData = sortedCart.map((d) => toNumber(d.median_cart_size));
-
     container.innerHTML = `
-        ${renderSearchUI('cart', '상품 A/B 검색')}
-        <div class="stats-grid animate-fade-in"><div class="card" style="grid-column: span 2;"><canvas id="cartChart" style="height:300px;"></canvas></div></div>
+        ${renderSearchUI('cart', '상품명 또는 ID 검색', { includeModeSelect: true })}
         <div class="card animate-fade-in" style="margin-top:2rem;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
                 <h3>장바구니 동시구매 상세</h3><div id="pagination-info" style="color:var(--text-muted); font-size:0.9rem;"></div>
@@ -3335,32 +3886,6 @@ function renderCartAnalysis() {
         </div>
     `;
     applyFriendlyUi(container);
-
-    const ctx = document.getElementById('cartChart').getContext('2d');
-    AppState.charts.cart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: chartLabels,
-            datasets: [{
-                label: '중간 장바구니 크기',
-                data: chartData,
-                backgroundColor: 'rgba(236, 72, 153, 0.6)',
-                borderColor: 'rgba(236, 72, 153, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                title: { display: true, text: '중간 장바구니 크기 상위 10개 상품', color: '#1e293b' }
-            },
-            scales: {
-                y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(0,0,0,0.05)' } },
-                x: { ticks: { color: '#64748b' } }
-            }
-        }
-    });
 
     if (AppState.data.cartAnchorDetail && AppState.data.cartAnchorDetail.length > 0) renderCartDetailTable();
     else loadDetailData();
@@ -3380,19 +3905,21 @@ async function loadDetailData() {
 
 function renderCartDetailTable() {
     const { currentPage, rowsPerPage } = AppState.pagination.cartDetail;
-    const { sortCol, sortDesc, searchQuery } = AppState.viewState.cart;
-    const getName = AppState.helpers.getName;
+    const { sortCol, sortDesc, searchQuery, searchMode } = AppState.viewState.cart;
+    const getName = AppState.helpers.getName || ((id) => getProductName(id));
     const focusEntityId = String(AppState.helpers.focusEntityId || '').trim();
 
     let data = [...(AppState.data.cartAnchorDetail || [])];
     if (searchQuery) {
-        const q = searchQuery.toLowerCase();
         data = data.filter((d) => {
-            const idI = String(d.i).toLowerCase();
-            const idJ = String(d.j).toLowerCase();
-            const nameI = String(getName(d.i)).toLowerCase();
-            const nameJ = String(getName(d.j)).toLowerCase();
-            return idI.includes(q) || idJ.includes(q) || nameI.includes(q) || nameJ.includes(q);
+            const iTokens = buildEntitySearchTokens(d.i, getName);
+            const jTokens = buildEntitySearchTokens(d.j, getName);
+            return matchesSearchQuery(
+                searchQuery,
+                searchMode,
+                [...iTokens.ids, ...jTokens.ids],
+                [...iTokens.names, ...jTokens.names]
+            );
         });
     }
 
@@ -3613,7 +4140,12 @@ function buildInsightsModel() {
             bii365: bii365 ? toNumber(bii365.bii, null) : null,
             bii90: bii90 ? toNumber(bii90.bii, null) : null,
             selectedWindowBii: selectedWindowBii ? toNumber(selectedWindowBii.bii, null) : null,
-            bhi: bhiRow ? toNumber(bhiRow.Brand_Health_Index || bhiRow.BHI || bhiRow.brand_health_index || bhiRow.Brand_Health_Score, null) : null,
+            bhi: bhiRow ? toNumber(firstDefinedValue(
+                bhiRow.Brand_Health_Index,
+                bhiRow.BHI,
+                bhiRow.brand_health_index,
+                bhiRow.Brand_Health_Score
+            ), null) : null,
             confidence: (bii90 && bii90.confidence) || (bhiRow && bhiRow.Confidence_Index) || '-'
         },
         metrics,
@@ -3627,7 +4159,7 @@ function getInsightWarnings(model) {
         warnings.push(`재구매율 구간 역전 데이터 ${model.summaries.monotonicBreakCount}건 감지`);
     }
     if ((model.summaries.pca90 || 0) < 0.2 && model.summaries.cohortCustomers > 0) {
-        warnings.push('90일 재구매 연결 도달률이 낮아 첫구매 유입 이후 이탈 위험이 있습니다');
+        warnings.push('90일 재구매 도달률이 낮아 첫구매 유입 이후 이탈 위험이 있습니다');
     }
     if ((model.metrics.ca_pair_top1_share_max || 0) > 0.7) {
         warnings.push('장바구니 조합형 집중도가 높아 특정 조합 의존 리스크가 있습니다');
@@ -3663,10 +4195,10 @@ function getBuiltInActionCards(model) {
         cards.push({
             domain: 'marketing',
             priority: 1,
-            title: '대량 유입형 상품의 재구매 연결 연결 강화',
+            title: '대량 유입형 상품의 재구매 강화',
             action: '첫구매 유입 후 7일 이내 단골의 시작점 상품으로 이어지도록 CRM/리타게팅을 우선 배치합니다.',
-            impact: '재구매 연결 도달률 개선 및 유입 낭비 축소',
-            evidence: `${TERM_LABELS.AA}-${AA_TYPE_LABELS.BROAD} 비중 ${formatPercent(m.aa_broad_ratio, 1)} / 90일 재구매 연결 도달률 ${formatPercent(m.pca_transition_90d_rate, 1)}`
+            impact: '재구매 도달률 개선 및 유입 낭비 축소',
+            evidence: `${TERM_LABELS.AA}-${AA_TYPE_LABELS.BROAD} 비중 ${formatPercent(m.aa_broad_ratio, 1)} / 90일 재구매 도달률 ${formatPercent(m.pca_transition_90d_rate, 1)}`
         });
     }
 
@@ -3675,7 +4207,7 @@ function getBuiltInActionCards(model) {
             domain: 'marketing',
             priority: 2,
             title: '전이 경로 과집중 완화 실험',
-            action: '상위 재구매 연결 상품 편중 경로를 유지하되 대체 상품 노출 A/B 테스트를 병행합니다.',
+            action: '상위 재구매 상품 편중 경로를 유지하되 대체 상품 노출 A/B 테스트를 병행합니다.',
             impact: '경로 리스크 분산 및 안정적 확장',
             evidence: `전이 상위 3경로 비중 ${formatPercent(m.transition_top3_share, 1)}`
         });
@@ -3685,7 +4217,7 @@ function getBuiltInActionCards(model) {
         cards.push({
             domain: 'marketing',
             priority: 1,
-            title: '재구매 연결 도달 속도 개선',
+            title: '재구매 도달 속도 개선',
             action: '첫구매 유입 후 메시지 발화 시점을 앞당기고, 3~7일 구간 혜택을 강화합니다.',
             impact: '평균 전이 소요일 단축',
             evidence: `평균 days_to_pca ${formatNumber(m.avg_days_to_pca, 1)}일`
@@ -3785,13 +4317,12 @@ function getFitnessTrend(ratio) {
         direction: '위험',
         status: '즉시 대응 필요',
         problem: '최근 건강도가 장기 기준 대비 크게 약화된 상태입니다.',
-        action: '재구매 연결 상품 노출과 핵심 재고 방어를 최우선으로 전환하세요.',
+        action: '재구매 상품 노출과 핵심 재고 방어를 최우선으로 전환하세요.',
         tone: 'critical'
     };
 }
 
 function renderHeroStory(model) {
-    const warnings = getInsightWarnings(model);
     const selectedWindow = toNumber(model.filters.windowDays, 90);
     const selectedWindowRow = model.biiMap.get(selectedWindow);
     const ratio = (model.summaries.bii365 && model.summaries.bii90)
@@ -3827,9 +4358,6 @@ function renderHeroStory(model) {
                     <label>신뢰도</label>
                     <strong>${escapeHtml(String(confidence))}</strong>
                 </div>
-            </div>
-            <div class="warning-list">
-                ${warnings.length ? warnings.map((w) => `<span class="warning-chip">${escapeHtml(w)}</span>`).join('') : '<span class="warning-chip neutral">경고 없음</span>'}
             </div>
             <p class="insight-note">메인 지표는 ${TERM_LABELS.BII} 중심으로 보여줍니다. ${TERM_LABELS.BHI}는 하단 참고값에서만 확인하세요.</p>
         </section>
@@ -3885,11 +4413,11 @@ function renderAAJourney(model) {
                     <span>${formatPercent(s.repeat90, 1)}</span>
                 </div>
                 <div class="journey-kpi">
-                    <label>90일 재구매 연결 도달률</label>
+                    <label>90일 재구매 도달률</label>
                     <strong>${formatPercent(s.pca90, 1)}</strong>
                 </div>
                 <div class="journey-kpi">
-                    <label>재구매 연결까지 평균 일수</label>
+                    <label>재구매까지 평균 일수</label>
                     <strong>${formatNumber(s.avgDaysToPca, 1)}일</strong>
                 </div>
             </div>
@@ -3904,7 +4432,7 @@ function renderAAJourney(model) {
                             <th>Entry 유형</th>
                             <th>대상 고객수</th>
                             <th>90일 재구매율</th>
-                            <th>90일 재구매 연결 도달률</th>
+                            <th>90일 재구매 도달률</th>
                             <th>90일 가치</th>
                             <th>평균 소요일</th>
                         </tr>
@@ -3918,7 +4446,7 @@ function renderAAJourney(model) {
 
 function renderAATransition(model) {
     if (!model.transitionRowsAll.length) {
-        return renderMissingSection('재구매 연결 전환 흐름', `${REQUIRED_FILES.aaTransitionPath.filename} 데이터가 없어 전환 흐름을 표시할 수 없습니다.`);
+        return renderMissingSection('90일 리텐션 재구매 흐름', `${REQUIRED_FILES.aaTransitionPath.filename} 데이터가 없어 첫 구매 후 90일 리텐션 흐름을 표시할 수 없습니다.`);
     }
 
     const rows = model.topTransitionRows.map((row) => `
@@ -3934,8 +4462,8 @@ function renderAATransition(model) {
     return `
         <section id="aa-transition" class="insight-section card animate-fade-in">
             <div class="section-headline">
-                <h2>재구매 연결 전환 흐름</h2>
-                <p>첫구매 유입 상품별 재구매 연결 상품 도달 구조와 속도</p>
+                <h2>90일 리텐션 재구매 흐름</h2>
+                <p>첫 구매 후 90일 안에 다음 구매로 이어진 경로와 속도를 보여줘요.</p>
             </div>
             <div class="journey-grid">
                 <div class="journey-kpi">
@@ -3943,7 +4471,7 @@ function renderAATransition(model) {
                     <strong>${formatPercent(model.summaries.top3TransitionShare, 1)}</strong>
                 </div>
                 <div class="journey-kpi">
-                    <label>평균 90일 전이율</label>
+                    <label>평균 90일 재구매율</label>
                     <strong>${formatPercent(model.summaries.pca90, 1)}</strong>
                 </div>
             </div>
@@ -3954,9 +4482,9 @@ function renderAATransition(model) {
                     <thead>
                         <tr>
                             <th>첫구매 유입 상품</th>
-                            <th>재구매 연결 상품</th>
-                            <th>전이 고객수</th>
-                            <th>전이율</th>
+                            <th>재구매 상품</th>
+                            <th>90일 재구매 고객수</th>
+                            <th>90일 재구매율</th>
                             <th>평균 소요일</th>
                         </tr>
                     </thead>
@@ -4059,7 +4587,12 @@ function renderBrandFitness(model) {
 
     const trend = getFitnessTrend(ratio);
 
-    const bhiValue = brand ? toNumber(brand.Brand_Health_Index || brand.BHI || brand.brand_health_index || brand.Brand_Health_Score, null) : null;
+    const bhiValue = brand ? toNumber(firstDefinedValue(
+        brand.Brand_Health_Index,
+        brand.BHI,
+        brand.brand_health_index,
+        brand.Brand_Health_Score
+    ), null) : null;
     const aaBroadRatio = brand ? toNumber(brand.AA_Broad_Ratio, null) : null;
     const aaQualifiedRatio = brand ? toNumber(brand.AA_Qualified_Ratio, null) : null;
     const aaHeavyRatio = brand ? toNumber(brand.AA_Heavy_Ratio, null) : null;
@@ -4128,38 +4661,53 @@ function renderBrandFitness(model) {
         </tr>
     `).join('');
 
+    // 고객 노출 정책상 임시 비활성화: fitness-summary-grid
+    const fitnessSummaryBlock = '';
+    /*
+    const fitnessSummaryBlock = `
+        <div class="fitness-summary-grid">
+            <div class="fitness-summary-card tone-${trend.tone}">
+                <label>건강도 방향</label>
+                <strong>${escapeHtml(trend.direction)}</strong>
+                <span>${escapeHtml(trend.status)}</span>
+            </div>
+            <div class="fitness-summary-card">
+                <label>최근 기준 건강도</label>
+                <strong>${selectedWindowBii !== null ? formatNumber(selectedWindowBii, 3) : '-'}</strong>
+                <span>${selectedWindow}일 기준 · 현재 단계 ${escapeHtml(String(selectedStage))}</span>
+            </div>
+            <div class="fitness-summary-card">
+                <label>90일 대비 연간 흐름</label>
+                <strong>${ratio !== null ? formatNumber(ratio, 2) : '-'}</strong>
+                <span>${escapeHtml(trend.status)}</span>
+            </div>
+            <div class="fitness-summary-card">
+                <label>신뢰도</label>
+                <strong>${escapeHtml(String(confidence))}</strong>
+                <span>현재 기준 데이터 신뢰도</span>
+            </div>
+        </div>
+    `;
+    */
+
+    // 고객 노출 정책상 임시 비활성화: fitness-explain tone-critical
+    const fitnessExplainBlock = trend.tone === 'critical'
+        ? ''
+        : `
+            <div class="fitness-explain tone-${trend.tone}">
+                <p><strong>해석:</strong> ${escapeHtml(trend.problem)}</p>
+                <p><strong>바로 실행:</strong> ${escapeHtml(trend.action)}</p>
+            </div>
+        `;
+
     return `
         <section id="brand-fitness" class="insight-section card animate-fade-in">
             <div class="section-headline">
                 <h2>브랜드 건강도</h2>
                 <p>최근 건강도가 장기 흐름 대비 개선 중인지 먼저 확인하고, 필요하면 원인 상세를 펼쳐서 봅니다</p>
             </div>
-            <div class="fitness-summary-grid">
-                <div class="fitness-summary-card tone-${trend.tone}">
-                    <label>건강도 방향</label>
-                    <strong>${escapeHtml(trend.direction)}</strong>
-                    <span>${escapeHtml(trend.status)}</span>
-                </div>
-                <div class="fitness-summary-card">
-                    <label>최근 기준 건강도</label>
-                    <strong>${selectedWindowBii !== null ? formatNumber(selectedWindowBii, 3) : '-'}</strong>
-                    <span>${selectedWindow}일 기준 · 현재 단계 ${escapeHtml(String(selectedStage))}</span>
-                </div>
-                <div class="fitness-summary-card">
-                    <label>90일 대비 연간 흐름</label>
-                    <strong>${ratio !== null ? formatNumber(ratio, 2) : '-'}</strong>
-                    <span>${escapeHtml(trend.status)}</span>
-                </div>
-                <div class="fitness-summary-card">
-                    <label>신뢰도</label>
-                    <strong>${escapeHtml(String(confidence))}</strong>
-                    <span>현재 기준 데이터 신뢰도</span>
-                </div>
-            </div>
-            <div class="fitness-explain tone-${trend.tone}">
-                <p><strong>해석:</strong> ${escapeHtml(trend.problem)}</p>
-                <p><strong>바로 실행:</strong> ${escapeHtml(trend.action)}</p>
-            </div>
+            ${fitnessSummaryBlock}
+            ${fitnessExplainBlock}
             <div class="structure-block">
                 <h3>브랜드 구조 건강도의 3개 구조</h3>
                 ${hasStructureData ? `
@@ -4181,7 +4729,7 @@ function renderBrandFitness(model) {
                     <div class="structure-item">
                         <label>${STRUCTURE_LABELS.expansion}</label>
                         <strong>${csPct !== null ? formatNumber(csPct, 1) : '-'}${csPct !== null ? '%' : ''}</strong>
-                        <span>재구매 연결이 특정 경로에 과집중되지 않는지</span>
+                        <span>재구매가 특정 경로에 과집중되지 않는지</span>
                     </div>
                     <div class="structure-item">
                         <label>${STRUCTURE_LABELS.valueReadiness}</label>
@@ -4210,7 +4758,7 @@ function renderBrandFitness(model) {
                         <div class="value-driver-item ${chainStatus.tone}">
                             <label>${STRUCTURE_LABELS.expansion}</label>
                             <strong>${csPct !== null ? formatNumber(csPct, 1) : '-'}${csPct !== null ? '%' : ''}</strong>
-                        <span>${chainStatus.label} · 높을수록 재구매 연결 안정</span>
+                        <span>${chainStatus.label} · 높을수록 재구매 안정</span>
                         </div>
                     </div>
                     <p class="chart-hint">현재 파일에서는 영향 요소를 구조 관점으로 표시합니다. VAI/VQI/VCR 세부 분해값이 제공되면 이 영역을 더 정밀하게 확장할 수 있습니다.</p>
@@ -4300,7 +4848,7 @@ function renderActionCenter(model) {
         <section id="action-center" class="insight-section card animate-fade-in">
             <div class="section-headline">
                 <h2>실행 카드</h2>
-                <p>지표를 마케팅/MD 실행안으로 바로 연결합니다</p>
+                <p>지표를 바탕으로 마케팅/MD 실행안을 바로 제안합니다</p>
             </div>
             <div class="action-grid">
                 <div>
@@ -4353,7 +4901,7 @@ function renderInsightFilters(model) {
                 <nav class="filter-jump-nav">
                     <a href="#brand-fitness">브랜드 건강도</a>
                     <a href="#aa-journey">첫구매 유입 고객 흐름</a>
-                    <a href="#aa-transition">재구매 연결 전환</a>
+                    <a href="#aa-transition">재구매 전환</a>
                     <a href="#cart-ca">장바구니 확장</a>
                     <a href="#action-center">실행 카드</a>
                 </nav>
@@ -4408,7 +4956,7 @@ function renderInsightsCharts(model) {
                         fill: true
                     },
                     {
-                        label: '재구매 연결 도달률',
+                        label: '재구매 도달률',
                         data: [toNumber(s.pca30, 0) * 100, toNumber(s.pca90, 0) * 100, toNumber(s.pca90, 0) * 100],
                         borderColor: '#ec4899',
                         backgroundColor: 'rgba(236,72,153,0.12)',
@@ -4988,8 +5536,10 @@ function applyFocusFromUrl(pageId) {
         AppState.viewState.products.quadrant.selectedId = focusEntity;
     } else if (pageId === 'page-transitions') {
         AppState.viewState.transitions.searchQuery = focusEntity;
+        AppState.viewState.transitions.searchMode = 'id';
     } else if (pageId === 'page-cart') {
         AppState.viewState.cart.searchQuery = focusEntity;
+        AppState.viewState.cart.searchMode = 'id';
     }
 }
 
@@ -5068,11 +5618,13 @@ async function init() {
             renderOverview();
             applyFriendlyUi(document.body);
         } else if (pageId === 'page-products') {
-            const [s, groupMap] = await Promise.all([
+            const [s, t, groupMap] = await Promise.all([
                 loadDataFromDB(REQUIRED_FILES.anchorScored),
+                loadOptionalDataFromDB(REQUIRED_FILES.anchorTransition, []),
                 loadOptionalDataFromDB(REQUIRED_FILES.productGroupMap, [])
             ]);
             AppState.rawData.anchorScored = s;
+            AppState.rawData.anchorTransition = t;
             AppState.rawData.productGroupMap = groupMap;
             rebuildDerivedData();
             applyFocusFromUrl(pageId);

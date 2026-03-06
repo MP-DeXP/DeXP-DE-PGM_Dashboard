@@ -311,6 +311,34 @@ body {
     display: none !important;
 }
 
+.metric-tooltip-target {
+    cursor: help;
+    position: relative;
+    text-decoration: underline dotted rgba(51, 65, 85, 0.45);
+    text-underline-offset: 2px;
+}
+
+.metric-tooltip-target:hover::after,
+.metric-tooltip-target:focus-visible::after {
+    content: attr(data-metric-tooltip);
+    position: absolute;
+    left: 0;
+    bottom: calc(100% + 8px);
+    max-width: min(320px, 70vw);
+    background: rgba(15, 23, 42, 0.96);
+    color: #f8fafc;
+    border-radius: 8px;
+    padding: 0.4rem 0.55rem;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    font-weight: 500;
+    text-decoration: none;
+    white-space: normal;
+    z-index: 120;
+    box-shadow: 0 8px 20px rgba(2, 6, 23, 0.26);
+    pointer-events: none;
+}
+
 .spinner {
     width: 40px;
     height: 40px;
@@ -349,9 +377,31 @@ body {
     margin-bottom: 1.5rem;
 }
 
+.search-combo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
 .search-wrapper {
     position: relative;
     width: 300px;
+}
+
+.search-select {
+    border: 1.5px solid var(--border-color);
+    border-radius: 12px;
+    background: white;
+    color: var(--text-main);
+    padding: 0.74rem 2rem 0.74rem 0.8rem;
+    font-size: 0.86rem;
+    min-width: 108px;
+    outline: none;
+}
+
+.search-select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px var(--primary-glow);
 }
 
 .search-wrapper i {
@@ -515,10 +565,10 @@ body {
 
 .pgm-quadrant-head {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
-    gap: 0.9rem;
-    margin-bottom: 0.9rem;
+    gap: 0.7rem;
+    margin-bottom: 0.65rem;
 }
 
 .pgm-quadrant-head h3 {
@@ -533,13 +583,57 @@ body {
 
 .quadrant-scale-toggle {
     display: inline-flex;
-    gap: 0.35rem;
+    gap: 0.28rem;
+}
+
+.quadrant-head-controls {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.28rem;
+}
+
+.quadrant-control-sep {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    font-size: 0.74rem;
+    font-weight: 700;
+    line-height: 1;
+    padding: 0 0.1rem;
+}
+
+.quadrant-scope-toggle {
+    display: inline-flex;
+    gap: 0.28rem;
 }
 
 .quadrant-scale-toggle .btn-primary {
-    font-size: 0.78rem;
-    padding: 0.42rem 0.7rem;
+    font-size: 0.74rem;
+    padding: 0.34rem 0.56rem;
     opacity: 0.72;
+}
+
+.quadrant-scope-toggle .btn-primary {
+    font-size: 0.74rem;
+    padding: 0.34rem 0.56rem;
+    opacity: 0.72;
+}
+
+.quadrant-scope-toggle .btn-primary.is-active {
+    opacity: 1;
+    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+}
+
+.quadrant-scope-toggle .metric-tooltip-target:hover::after,
+.quadrant-scope-toggle .metric-tooltip-target:focus-visible::after {
+    left: auto;
+    right: 0;
+    bottom: auto;
+    top: calc(100% + 8px);
+    max-width: min(360px, 86vw);
 }
 
 .quadrant-scale-toggle .btn-primary.is-active {
@@ -773,10 +867,47 @@ body {
     text-decoration: none;
 }
 
+.pgm-link-help {
+    margin-top: -0.15rem;
+    margin-bottom: 0.1rem;
+    color: var(--text-muted);
+    font-size: 0.74rem;
+    line-height: 1.35;
+}
+
+.pgm-edge-guide {
+    margin-top: 0.5rem;
+    margin-bottom: 0.05rem;
+    padding: 0.5rem 0.55rem;
+    border: 1px dashed var(--border-color);
+    border-radius: 10px;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    line-height: 1.4;
+    background: #fbfdff;
+}
+
 .pgm-prev-btn {
     margin-top: 0.6rem;
     width: 100%;
     font-size: 0.8rem;
+}
+
+.quadrant-chart-empty {
+    height: 100%;
+    min-height: 320px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 1rem;
+}
+
+.quadrant-chart-empty p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.45;
+    max-width: 320px;
 }
 
 .quadrant-outlier-note {
@@ -786,11 +917,15 @@ body {
 }
 
 .pgm-group-modal {
-    width: min(1120px, 94vw);
-    max-width: 94vw;
-    max-height: 90vh;
+    width: min(1360px, 96vw);
+    max-width: 96vw;
+    max-height: 94vh;
     display: flex;
     flex-direction: column;
+}
+
+.pgm-group-modal .modal-body {
+    padding: 1.35rem 1.5rem;
 }
 
 .pgm-group-summary {
@@ -1023,7 +1158,7 @@ body {
 }
 
 .group-editor-table-wrap {
-    max-height: 52vh;
+    max-height: 62vh;
     overflow: auto;
 }
 
@@ -1124,6 +1259,27 @@ body {
     justify-content: flex-end;
     gap: 0.45rem;
     background: #f8fafc;
+}
+
+.retention-flow-modal-card {
+    width: min(1240px, 96vw);
+    max-width: 96vw;
+    max-height: 90vh;
+}
+
+.retention-flow-summary {
+    margin-bottom: 0.7rem;
+    border: 1px solid #dbeafe;
+    background: #eff6ff;
+    color: #1e3a8a;
+    border-radius: 10px;
+    padding: 0.55rem 0.7rem;
+    font-size: 0.82rem;
+}
+
+.retention-flow-table-wrap {
+    max-height: 62vh;
+    overflow: auto;
 }
 
 .settings-modal-card {
@@ -1567,10 +1723,12 @@ body {
     background: #fffbeb;
 }
 
+/* 임시 비노출 정책: tone-critical 카드는 현재 고객 화면에서 사용하지 않습니다.
 .fitness-summary-card.tone-critical {
     border-color: #fecaca;
     background: #fef2f2;
 }
+*/
 
 .fitness-summary-card.tone-neutral {
     border-color: var(--border-color);
@@ -1595,11 +1753,17 @@ body {
     margin-top: 0.35rem;
 }
 
-.fitness-explain.tone-warning,
+.fitness-explain.tone-warning {
+    border-color: #fecaca;
+    background: #fff5f5;
+}
+
+/* 임시 비노출 정책: tone-critical 설명 박스는 현재 고객 화면에서 사용하지 않습니다.
 .fitness-explain.tone-critical {
     border-color: #fecaca;
     background: #fff5f5;
 }
+*/
 
 .fitness-explain.tone-positive {
     border-color: #bbf7d0;
@@ -2067,9 +2231,47 @@ body {
         grid-template-columns: 1fr;
     }
 
+    .search-container {
+        justify-content: stretch;
+    }
+
+    .search-combo {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .search-wrapper,
+    .search-select {
+        width: 100%;
+    }
+
     .pgm-group-toolbar {
         flex-direction: column;
         align-items: stretch;
+    }
+
+    .pgm-group-modal {
+        width: 98vw;
+        max-width: 98vw;
+        max-height: 92vh;
+    }
+
+    .pgm-group-modal .modal-body {
+        padding: 1rem;
+    }
+
+    .group-editor-table-wrap {
+        max-height: 48vh;
+    }
+
+    .retention-flow-modal-card {
+        width: min(96vw, 96vw);
+        max-height: 92vh;
+    }
+
+    .retention-flow-table-wrap {
+        max-height: 52vh;
     }
 
     .pgm-group-meta {
@@ -2102,8 +2304,26 @@ body {
         width: 100%;
     }
 
+    .quadrant-head-controls {
+        width: 100%;
+        flex-wrap: wrap;
+        align-items: stretch;
+    }
+
+    .quadrant-scope-toggle {
+        width: 100%;
+    }
+
     .quadrant-scale-toggle .btn-primary {
         flex: 1;
+    }
+
+    .quadrant-scope-toggle .btn-primary {
+        flex: 1;
+    }
+
+    .quadrant-control-sep {
+        display: none;
     }
 
     .settings-tabs {
