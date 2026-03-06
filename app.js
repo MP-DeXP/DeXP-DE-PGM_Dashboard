@@ -61,8 +61,6 @@ const REQUIRED_FILES = {
     }
 };
 
-const AUTOLOAD_DIRECTORIES = ['data', ''];
-
 // --- App State ---
 const AppState = {
     data: {
@@ -337,7 +335,7 @@ const UI_TERM_REPLACEMENTS = [
 const METRIC_TOOLTIP_RULES = [
     { pattern: /^첫구매 유입 점수$/, description: '이 상품이 신규 고객 첫 구매를 얼마나 잘 만드는지 보여줘요. 높을수록 유입에 강해요.' },
     { pattern: /^재구매 점수$/, description: '첫 구매 뒤 다음 구매로 이어지게 하는 힘이에요. 높을수록 재구매가 좋아요.' },
-    { pattern: /^주간 예상 판매량$/, description: '최근 흐름 기준으로 본 주간 판매 예상치예요.' },
+    { pattern: /^주간 예상 수요량$/, description: '최근 흐름 기준으로 본 주간 수요 예상치예요.' },
     { pattern: /^첫구매 유입 고객수$/, description: '이 상품을 통해 처음 들어온 고객 수예요.' },
     { pattern: /^7일 재구매$/, description: '첫 구매 후 7일 안에 다시 산 고객 비율이에요.' },
     { pattern: /^30일 재구매$/, description: '첫 구매 후 30일 안에 다시 산 고객 비율이에요.' },
@@ -1413,82 +1411,6 @@ const preprocessUploadRows = (config, filename, rows) => {
     return normalizeCsvRows(rows);
 };
 
-const listAutoLoadCandidates = (config) => {
-    const names = [config.filename, ...(config.aliases || []), `${config.key}.csv`]
-        .map((name) => String(name || '').trim())
-        .filter(Boolean);
-    return Array.from(new Set(names));
-};
-
-const parseCsvText = (text) => {
-    return new Promise((resolve, reject) => {
-        Papa.parse(text, {
-            header: true,
-            dynamicTyping: true,
-            skipEmptyLines: true,
-            complete: (result) => resolve(result.data || []),
-            error: reject
-        });
-    });
-};
-
-const fetchCsvRowsForConfig = async (config, directories = AUTOLOAD_DIRECTORIES) => {
-    const candidates = listAutoLoadCandidates(config);
-    for (const dir of directories) {
-        for (const name of candidates) {
-            const path = dir ? `${dir}/${name}` : name;
-            try {
-                const response = await fetch(path, { cache: 'no-store' });
-                if (!response.ok) continue;
-                const text = await response.text();
-                const parsedRows = await parseCsvText(text);
-                const rows = preprocessUploadRows(config, name, parsedRows);
-                return { rows, source: path };
-            } catch (_) {
-                // file:// 보안 제한 또는 미존재 파일은 다음 후보로 진행
-            }
-        }
-    }
-    return null;
-};
-
-const syncDataFromLocalCsv = async (existingKeys = []) => {
-    const existingSet = new Set(existingKeys || []);
-    const loaded = [];
-
-    // 1) data 폴더는 항상 우선 반영(기존 데이터 덮어쓰기)
-    for (const config of Object.values(REQUIRED_FILES)) {
-        const found = await fetchCsvRowsForConfig(config, ['data']);
-        if (!found) continue;
-        const mode = existingSet.has(config.key) ? 'reloaded' : 'loaded';
-        await DB.save(config.key, found.rows);
-        existingSet.add(config.key);
-        loaded.push({
-            key: config.key,
-            source: found.source,
-            rows: found.rows.length,
-            mode
-        });
-    }
-
-    // 2) data에 없는 키는 루트에서 보충
-    const missingConfigs = Object.values(REQUIRED_FILES).filter((config) => !existingSet.has(config.key));
-    for (const config of missingConfigs) {
-        const found = await fetchCsvRowsForConfig(config, ['']);
-        if (!found) continue;
-        await DB.save(config.key, found.rows);
-        existingSet.add(config.key);
-        loaded.push({
-            key: config.key,
-            source: found.source,
-            rows: found.rows.length,
-            mode: 'loaded'
-        });
-    }
-
-    return { loadedCount: loaded.length, loaded };
-};
-
 const getUploadPriority = (config, filename) => {
     const lowerName = String(filename || '').toLowerCase();
     const primaryName = String(config.filename || '').toLowerCase();
@@ -2072,51 +1994,51 @@ function getQuadrantStatus(entry, expansion, centerEntry, centerExpansion) {
     if (highEntry && highExpansion) {
         return {
             key: 'hero',
-            label: '히어로 상품',
+            label: '우선 확대 대상',
             color: '#3b82f6',
-            summary: '메인 노출을 유지하고, 예산을 우선 배분해요.',
-            guide: '메인 노출을 유지하고, 예산을 우선 배분해요.',
+            summary: '신규 유입과 재구매가 모두 강해 우선 확대가 필요한 상품이에요.',
+            guide: '신규 유입과 재구매가 모두 높아, 노출·예산·재고를 우선 확대할 대상이에요.',
             actions: [
-                '히어로 슬롯을 고정해 유입과 재구매 모멘텀을 유지해요.',
-                '재고와 배송 가용성을 우선 보호해 성장 기회를 놓치지 않게 해요.'
+                '핵심 지면과 캠페인에서 상시 노출해 성장 모멘텀을 키워요.',
+                '재고와 배송 가용성을 우선 보호해 품절 손실을 줄여요.'
             ]
         };
     }
     if (!highEntry && !highExpansion) {
         return {
             key: 'phaseout',
-            label: '정리 검토 구간',
+            label: '개선 필요',
             color: '#ef4444',
-            summary: '재고/마진 기준으로 축소 또는 교체를 먼저 검토해요.',
-            guide: '재고/마진 기준으로 축소 또는 교체를 먼저 검토해요.',
+            summary: '신규 유입과 재구매가 모두 낮아 개선 또는 교체 검토가 필요한 상태예요.',
+            guide: '신규 유입과 재구매가 모두 낮아, 개선 실험 후 유지 여부를 판단할 대상이에요.',
             actions: [
-                '재고·마진 기준으로 유지 여부를 빠르게 판정해요.',
-                '단독 운영보다 대체 상품 테스트 슬롯으로 전환해요.'
+                '가격·구성·메시지 개선 실험으로 반응 회복 가능성을 먼저 확인해요.',
+                '개선 반응이 낮으면 축소 또는 대체 상품으로 전환해요.'
             ]
         };
     }
     if (highEntry && !highExpansion) {
         return {
             key: 'entry-only',
-            label: '유입 유도',
+            label: '첫구매 강점 상품',
             color: '#14b8a6',
-            summary: '첫 구매 유입은 강하니, 번들로 다음 재구매를 유도해요.',
-            guide: '첫 구매 유입은 강하니, 번들로 다음 재구매를 유도해요.',
+            summary: '첫구매 유입은 강하지만 재구매 연결이 약해 후속 전환 보강이 필요해요.',
+            guide: '첫구매 유입은 높지만 재구매 연결이 약해, 재구매 전환 장치가 필요한 대상이에요.',
             actions: [
-                '번들/세트 제안을 전면에 배치해 재구매 진입 장벽을 낮춰요.',
-                '첫 구매 후 7일 내 리마인드 CRM을 집중 운영해요.'
+                '첫구매 직후 재구매 유도 번들/세트를 전면 배치해 연결을 강화해요.',
+                '첫 구매 후 3~7일 CRM 리마인드로 다음 구매 전환을 높여요.'
             ]
         };
     }
     return {
         key: 'expansion-only',
-        label: '재구매 앵커',
+        label: '재구매 강점 상품',
         color: '#8b5cf6',
-        summary: '재구매 전환은 강하니, 신규 유입 채널을 보강해요.',
-        guide: '재구매 전환은 강하니, 신규 유입 채널을 보강해요.',
+        summary: '재구매 전환은 강하지만 신규 유입이 약해 유입 확대가 필요해요.',
+        guide: '재구매는 강하지만 신규 유입이 약해, 유입 채널 보강이 필요한 대상이에요.',
         actions: [
-            '신규 유입 채널과 크리에이티브를 확장해 모수부터 키워요.',
-            '첫구매 유입 상품과의 동시 노출 구성을 강화해요.'
+            '신규 유입 채널과 크리에이티브를 확장해 첫구매 모수를 늘려요.',
+            '첫구매 강점 상품과의 동시 노출로 유입 구간을 보강해요.'
         ]
     };
 }
@@ -2354,10 +2276,10 @@ function renderQuadrantPanel(model) {
         : '';
     const hasHistory = (AppState.viewState.products.quadrant.history || []).length > 0;
     const statusLegend = [
-        { key: 'hero', label: '히어로 상품', color: '#3b82f6', guide: '메인 노출을 유지하고, 예산을 우선 배분해요.' },
-        { key: 'phaseout', label: '정리 검토 구간', color: '#ef4444', guide: '재고/마진 기준으로 축소 또는 교체를 먼저 검토해요.' },
-        { key: 'entry-only', label: '유입 유도', color: '#14b8a6', guide: '첫 구매 유입은 강하니, 번들로 다음 재구매를 유도해요.' },
-        { key: 'expansion-only', label: '재구매 앵커', color: '#8b5cf6', guide: '재구매 전환은 강하니, 신규 유입 채널을 보강해요.' }
+        { key: 'hero', label: '우선 확대 대상', color: '#3b82f6', guide: '신규 유입과 재구매가 모두 높아, 노출·예산·재고를 우선 확대할 대상이에요.' },
+        { key: 'phaseout', label: '개선 필요', color: '#ef4444', guide: '신규 유입과 재구매가 모두 낮아, 개선 실험 후 유지 여부를 판단할 대상이에요.' },
+        { key: 'entry-only', label: '첫구매 강점 상품', color: '#14b8a6', guide: '첫구매 유입은 높지만 재구매 연결이 약해, 재구매 전환 장치가 필요한 대상이에요.' },
+        { key: 'expansion-only', label: '재구매 강점 상품', color: '#8b5cf6', guide: '재구매는 강하지만 신규 유입이 약해, 유입 채널 보강이 필요한 대상이에요.' }
     ];
     const transitionCta = selected.hasTransition
         ? `<button class="btn-primary" type="button" onclick="openRetentionFlowModal('${escapeJs(selected.id)}')">90일 리텐션 흐름 보기</button>`
@@ -2380,7 +2302,7 @@ function renderQuadrantPanel(model) {
             <div class="pgm-metrics">
                 <div><label>첫구매 유입 점수</label><strong>${formatNumber(selected.entry, 3)}</strong><span>${entryLevel}</span></div>
                 <div><label>재구매 점수</label><strong>${formatNumber(selected.expansion, 3)}</strong><span>${expansionLevel}</span></div>
-                <div><label>주간 예상 판매량</label><strong>${formatNumber(selected.weeklyForecast, 1)}</strong><span>${memberMeta}</span></div>
+                <div><label>주간 예상 수요량</label><strong>${formatNumber(selected.weeklyForecast, 1)}</strong><span>${memberMeta}</span></div>
             </div>
             <div class="pgm-actions">
                 <h4>추천 액션</h4>
@@ -2390,7 +2312,7 @@ function renderQuadrantPanel(model) {
                 </ul>
             </div>
             <div class="pgm-status-guide">
-                <h4>상태 해석 가이드</h4>
+                <h4>상태 정의</h4>
                 <p class="pgm-status-current" style="border-color:${status.color}66; background:${status.color}12;">
                     <strong style="color:${status.color};">${status.label}</strong>
                     <span>${escapeHtml(status.guide || status.summary)}</span>
@@ -2427,7 +2349,7 @@ function renderProductQuadrant(model) {
             <div class="pgm-quadrant-head">
                 <div>
                     <h3>상품 상태 4분면</h3>
-                    <p>첫구매 유입과 재구매 상태를 한눈에 비교해요.</p>
+                    <p>첫구매 강점과 재구매 강점을 한눈에 비교해요.</p>
                 </div>
                 <div class="quadrant-head-controls">
                     <div class="quadrant-scope-toggle">
@@ -2464,10 +2386,10 @@ function renderProductQuadrant(model) {
             ${scaleMode === 'focus' ? '<p class="quadrant-outlier-note">집중뷰에서는 일부 점이 경계에 압축돼요. 원본 보기를 누르면 전체 분포를 볼 수 있어요.</p>' : ''}
             <p
                 class="quadrant-bubble-note metric-tooltip-target"
-                title="버블 크기는 주간 예상 판매량(최근 1년 주문수 ÷ 52)의 상대 크기예요."
-                data-metric-tooltip="버블 크기는 주간 예상 판매량(최근 1년 주문수 ÷ 52)의 상대 크기예요."
-                aria-label="버블 크기는 주간 예상 판매량(최근 1년 주문수 ÷ 52)의 상대 크기예요."
-            >버블 크기 기준: 주간 예상 판매량(최근 1년 주문수 ÷ 52)</p>
+                title="버블 크기는 주간 예상 수요량(최근 1년 주문수 ÷ 52)의 상대 크기예요."
+                data-metric-tooltip="버블 크기는 주간 예상 수요량(최근 1년 주문수 ÷ 52)의 상대 크기예요."
+                aria-label="버블 크기는 주간 예상 수요량(최근 1년 주문수 ÷ 52)의 상대 크기예요."
+            >버블 크기 기준: 주간 예상 수요량(최근 1년 주문수 ÷ 52)</p>
         </div>
     `;
 }
@@ -2545,7 +2467,7 @@ function renderQuadrantChart(model) {
                                 `첫구매 유입 점수: ${formatNumber(raw.rawEntry, 3)}`,
                                 `재구매 점수: ${formatNumber(raw.rawExpansion, 3)}`,
                                 raw.outlierMarker ? `집중뷰 경계 표시: ${raw.outlierMarker}` : '',
-                                `주간 예상 판매량: ${formatNumber(raw.weeklyForecast, 1)}`,
+                                `주간 예상 수요량: ${formatNumber(raw.weeklyForecast, 1)}`,
                                 `SKU 수: ${formatNumber(raw.memberCount, 0)}`
                             ].filter(Boolean);
                         }
@@ -2564,14 +2486,14 @@ function renderQuadrantChart(model) {
                 x: {
                     min: range.xMin,
                     max: range.xMax,
-                    title: { display: true, text: '첫구매 유입' },
+                    title: { display: true, text: '첫구매 강점' },
                     ticks: { display: false },
                     grid: { display: false, drawBorder: false }
                 },
                 y: {
                     min: range.yMin,
                     max: range.yMax,
-                    title: { display: true, text: '재구매' },
+                    title: { display: true, text: '재구매 강점' },
                     ticks: { display: false },
                     grid: { display: false, drawBorder: false }
                 }
@@ -2585,10 +2507,10 @@ function renderQuadrantChart(model) {
                 const xCenter = scales.x.getPixelForValue(centerX);
                 const yCenter = scales.y.getPixelForValue(centerY);
                 const labels = [
-                    { text: '재구매 앵커', x: chartArea.left + 12, y: chartArea.top + 10, align: 'left' },
-                    { text: '히어로 상품', x: chartArea.right - 12, y: chartArea.top + 10, align: 'right' },
-                    { text: '정리 검토 구간', x: chartArea.left + 12, y: chartArea.bottom - 10, align: 'left' },
-                    { text: '유입 유도', x: chartArea.right - 12, y: chartArea.bottom - 10, align: 'right' }
+                    { text: '재구매 강점 상품', x: chartArea.left + 12, y: chartArea.top + 10, align: 'left' },
+                    { text: '우선 확대 대상', x: chartArea.right - 12, y: chartArea.top + 10, align: 'right' },
+                    { text: '개선 필요', x: chartArea.left + 12, y: chartArea.bottom - 10, align: 'left' },
+                    { text: '첫구매 강점 상품', x: chartArea.right - 12, y: chartArea.bottom - 10, align: 'right' }
                 ];
                 chartCtx.save();
                 chartCtx.fillStyle = 'rgba(139, 92, 246, 0.2)';
@@ -5276,10 +5198,9 @@ function renderSettingsTabs() {
     const dataPanel = `
         <div class="settings-panel ${activeTab === 'data' ? 'active' : ''}">
             <h4>데이터 관리</h4>
-            <p>데이터를 다시 불러오거나 업로드하고, 필요하면 로컬 저장 데이터를 초기화할 수 있어요.</p>
+            <p>CSV를 업로드하고, 필요하면 로컬 저장 데이터를 초기화할 수 있어요.</p>
             <div class="settings-actions">
                 <button class="btn-primary" type="button" onclick="showUploadModal()">CSV 업로드</button>
-                <button class="btn-primary" type="button" onclick="resyncLocalCsvFromSettings()">로컬 파일 다시 불러오기</button>
                 <button class="btn-primary danger" type="button" onclick="clearIndexedDbFromSettings()">저장 데이터 초기화</button>
             </div>
         </div>
@@ -5335,13 +5256,6 @@ window.switchSettingsTab = (tab) => {
 window.openGroupEditorFromSettings = () => {
     window.closeSettingsModal();
     window.showGroupEditorModal();
-};
-
-window.resyncLocalCsvFromSettings = async () => {
-    const keys = await DB.getAllKeys();
-    const result = await syncDataFromLocalCsv(keys);
-    alert(`로컬 동기화가 끝났어요. ${result.loadedCount}개 파일을 반영했어요.`);
-    location.reload();
 };
 
 window.clearIndexedDbFromSettings = async () => {
@@ -5474,15 +5388,7 @@ async function init() {
     }
 
     try {
-        let keys = await DB.getAllKeys();
-        const bootstrap = await syncDataFromLocalCsv(keys);
-        if (bootstrap.loadedCount > 0) {
-            console.info(
-                '[PGM] 로컬 CSV 동기화 완료:',
-                bootstrap.loaded.map((item) => `${item.key} <= ${item.source} (${item.rows} rows, ${item.mode})`).join(', ')
-            );
-        }
-        keys = await DB.getAllKeys();
+        const keys = await DB.getAllKeys();
         if (keys.length === 0) {
             document.getElementById('content-area').innerHTML = `
                 <div class="card animate-fade-in" style="text-align:center; padding:4rem;">
