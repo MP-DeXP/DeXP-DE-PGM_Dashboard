@@ -5488,8 +5488,7 @@ async function init() {
                 <div class="card animate-fade-in" style="text-align:center; padding:4rem;">
                     <i class="ph ph-database" style="font-size:4rem; color:var(--text-muted); margin-bottom:1rem;"></i>
                     <h3>데이터 없음</h3>
-                    <p style="color:var(--text-muted); margin-bottom:0.6rem;">기본 CSV 자동 로드를 시도했지만 불러오지 못했습니다.</p>
-                    <p style="color:var(--text-muted); margin-bottom:2rem;"><code>data/</code> 경로에 CSV를 두거나 수동 업로드를 진행해 주세요.</p>
+                    <p style="color:var(--text-muted); margin-bottom:2rem;">데이터를 업로드 해 주세요.</p>
                     <button class="btn-primary" onclick="showUploadModal()">지금 업로드</button>
                 </div>
             `;
