@@ -454,6 +454,35 @@ body {
     font-weight: 600;
 }
 
+.data-table tr.row-retention-muted td {
+    color: #8a96a8;
+    background: #fbfcfe;
+}
+
+.data-table tr.row-retention-muted:hover td {
+    background: #f4f7fb !important;
+}
+
+.retention-status-chip {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.14rem 0.46rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.retention-status-chip.is-retained {
+    background: rgba(37, 99, 235, 0.12);
+    color: #1d4ed8;
+}
+
+.retention-status-chip.is-muted {
+    background: rgba(148, 163, 184, 0.16);
+    color: #64748b;
+}
+
 /* Modal System */
 .modal-overlay {
     position: fixed;
@@ -808,6 +837,12 @@ body {
     margin-bottom: 0.55rem;
 }
 
+.pgm-insight-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+}
+
 .pgm-insight-actions .btn-primary {
     width: 100%;
     text-align: center;
@@ -1114,6 +1149,11 @@ body {
     box-shadow: inset 0 0 0 1px rgba(49, 83, 143, 0.08);
 }
 
+.demand-driver-row.is-muted {
+    background: #fbfcfe;
+    border-color: rgba(203, 213, 225, 0.72);
+}
+
 .demand-driver-row-head {
     display: flex;
     justify-content: space-between;
@@ -1126,6 +1166,14 @@ body {
     font-size: 0.8rem;
     line-height: 1.35;
     color: var(--text-main);
+}
+
+.demand-driver-head-tags {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.22rem;
 }
 
 .demand-driver-row-meta {
@@ -1151,6 +1199,26 @@ body {
 .demand-driver-badge {
     background: rgba(37, 99, 235, 0.12);
     color: #1d4ed8;
+}
+
+.demand-driver-status-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.12rem 0.42rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.demand-driver-status-badge.is-retained {
+    background: rgba(14, 165, 233, 0.12);
+    color: #0369a1;
+}
+
+.demand-driver-status-badge.is-muted {
+    background: rgba(148, 163, 184, 0.16);
+    color: #64748b;
 }
 
 .demand-driver-rank {
@@ -2557,6 +2625,10 @@ body {
     }
 
     .pgm-insight-metrics {
+        grid-template-columns: 1fr;
+    }
+
+    .pgm-insight-actions {
         grid-template-columns: 1fr;
     }
 

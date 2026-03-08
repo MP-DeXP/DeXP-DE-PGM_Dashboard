@@ -100,7 +100,7 @@ const AppState = {
                 filters: {},
                 groupingEditorOpen: false,
                 scaleMode: 'focus',
-                scope: 'transition'
+                scope: 'retention-emphasis'
             }
         },
         transitions: { sortCol: 'transition_customer_cnt', sortDesc: true, searchQuery: '', searchMode: 'all' },
@@ -2214,9 +2214,9 @@ function buildVisibleQuadrantEdges(points, selectedId, edgeMode = 'both') {
         .slice(0, QUADRANT_EDGE_TOP_N);
 }
 
-function buildQuadrantModel(rows, selectedId, scaleMode = 'focus', scope = 'transition', edgeMode = 'both') {
+function buildQuadrantModel(rows, selectedId, scaleMode = 'focus', scope = 'retention-emphasis', edgeMode = 'both') {
     const transitionEntitySet = buildTransitionEntitySet();
-    const normalizedScope = String(scope || '').toLowerCase() === 'all' ? 'all' : 'transition';
+    const normalizedScope = String(scope || '').toLowerCase() === 'all' ? 'all' : 'retention-emphasis';
     const normalizedEdgeMode = String(edgeMode || '').toLowerCase() === 'outbound' ? 'outbound' : 'both';
     const allPoints = (rows || [])
         .map((row) => {
@@ -2247,9 +2247,7 @@ function buildQuadrantModel(rows, selectedId, scaleMode = 'focus', scope = 'tran
         .filter(Boolean)
         .sort((a, b) => b.revenue90d - a.revenue90d);
 
-    const points = normalizedScope === 'transition'
-        ? allPoints.filter((point) => point.hasTransition)
-        : allPoints;
+    const points = allPoints;
 
     if (!points.length) return null;
 
@@ -2404,10 +2402,6 @@ function buildQuadrantStrategyModel(model) {
 
 function renderQuadrantPanel(model) {
     if (!model) {
-        const scope = String(AppState.viewState.products?.quadrant?.scope || 'transition').toLowerCase();
-        if (scope === 'transition') {
-            return `<p class="empty-state">${escapeHtml(QUADRANT_TRANSITION_SCOPE_CRITERIA)} 범위를 전체로 전환하면 전체 상품 분포를 볼 수 있어요.</p>`;
-        }
         return '<p class="empty-state">4분면 계산 대상 상품이 없습니다.</p>';
     }
     const { selected, status } = model;
@@ -2452,6 +2446,7 @@ function renderQuadrantPanel(model) {
                     <div><label>구매 지속 가능성</label><strong>${formatPercent(selected.repurchaseRate90d, 1)}</strong><span>구매 후 90일 기준</span></div>
                 </div>
                 <div class="pgm-insight-actions">
+                    <button class="btn-primary" type="button" onclick="openCartFlowModal('${escapeJs(selected.id)}')">장바구니 보기</button>
                     ${transitionCta}
                 </div>
             </div>
@@ -2503,9 +2498,6 @@ function renderQuadrantPanel(model) {
                 </div>
             </div>
             <p class="pgm-edge-guide">${escapeHtml(edgeGuide)}</p>
-            <div class="pgm-links">
-                <button class="btn-primary" type="button" onclick="openCartFlowModal('${escapeJs(selected.id)}')">장바구니 보기</button>
-            </div>
             <button class="btn-primary pgm-prev-btn" type="button" onclick="selectPreviousQuadrantItem()" ${hasHistory ? '' : 'disabled'}>이전 상품으로</button>
         </div>
     `;
@@ -2514,10 +2506,8 @@ function renderQuadrantPanel(model) {
 function renderProductQuadrant(model, demandDriverModel = null) {
     const qState = AppState.viewState.products.quadrant || {};
     const scaleMode = qState.scaleMode || 'focus';
-    const scopeMode = qState.scope === 'all' ? 'all' : 'transition';
-    const emptyChartMessage = scopeMode === 'transition'
-        ? `${QUADRANT_TRANSITION_SCOPE_CRITERIA} 범위를 전체로 바꿔 확인해 주세요.`
-        : '표시할 상품이 없습니다.';
+    const scopeMode = qState.scope === 'all' ? 'all' : 'retention-emphasis';
+    const emptyChartMessage = '표시할 상품이 없습니다.';
     const demandHeadline = demandDriverModel && demandDriverModel.intersection.length > 0
         ? `${formatNumber(demandDriverModel.intersection.length, 0)}개 상품이 핵심 수요를 만들고 있어요.`
         : '';
@@ -2532,17 +2522,17 @@ function renderProductQuadrant(model, demandDriverModel = null) {
                 <div class="quadrant-head-controls">
                     <div class="quadrant-scope-toggle">
                         <button
-                            class="btn-primary metric-tooltip-target ${scopeMode === 'transition' ? 'is-active' : ''}"
+                            class="btn-primary metric-tooltip-target ${scopeMode === 'retention-emphasis' ? 'is-active' : ''}"
                             type="button"
-                            data-metric-tooltip="실제 리텐션이 확인된 상품만 보여줘요."
-                            aria-label="실제 리텐션이 확인된 상품만 보여줘요."
-                            onclick="setQuadrantScopeMode('transition')"
-                        >리텐션 상품만</button>
+                            data-metric-tooltip="전체 상품을 보여주되 리텐션 발생 상품을 더 선명하게 강조해요."
+                            aria-label="전체 상품을 보여주되 리텐션 발생 상품을 더 선명하게 강조해요."
+                            onclick="setQuadrantScopeMode('retention-emphasis')"
+                        >리텐션 발생 상품 강조</button>
                         <button
                             class="btn-primary metric-tooltip-target ${scopeMode === 'all' ? 'is-active' : ''}"
                             type="button"
-                            data-metric-tooltip="점수 계산된 전체 상품을 보여주며 리텐션이 아직 없는 상품도 포함해요."
-                            aria-label="점수 계산된 전체 상품을 보여주며 리텐션이 아직 없는 상품도 포함해요."
+                            data-metric-tooltip="전체 상품을 동일한 강조 수준으로 보여줘요."
+                            aria-label="전체 상품을 동일한 강조 수준으로 보여줘요."
                             onclick="setQuadrantScopeMode('all')"
                         >전체 상품 보기</button>
                     </div>
@@ -2584,6 +2574,18 @@ function renderQuadrantChart(model) {
     const baseRadius = 7 * bubbleScale;
     const radiusSpread = 24 * bubbleScale;
     const maxRadius = 42;
+    const mutedFillPalette = {
+        hero: 'rgba(147, 197, 253, 0.34)',
+        'entry-only': 'rgba(153, 246, 228, 0.3)',
+        'expansion-only': 'rgba(216, 180, 254, 0.32)',
+        phaseout: 'rgba(253, 186, 186, 0.3)'
+    };
+    const mutedBorderPalette = {
+        hero: 'rgba(96, 165, 250, 0.54)',
+        'entry-only': 'rgba(45, 212, 191, 0.5)',
+        'expansion-only': 'rgba(196, 181, 253, 0.56)',
+        phaseout: 'rgba(252, 165, 165, 0.5)'
+    };
 
     const range = model.scaleRange;
     const chartPoints = model.points.map((p) => {
@@ -2603,6 +2605,7 @@ function renderQuadrantChart(model) {
             outlierMarker: projected.marker,
             status,
             memberCount: p.memberCount,
+            hasTransition: p.hasTransition,
             isSelected
         };
     }).sort((a, b) => Number(a.isSelected) - Number(b.isSelected));
@@ -2618,10 +2621,24 @@ function renderQuadrantChart(model) {
                     backgroundColor: (ctx2) => {
                         const raw = ctx2.raw || {};
                         const base = raw.status?.color || '#64748b';
-                        return raw.isSelected ? base : `${base}cc`;
+                        if (model.scope === 'retention-emphasis' && !raw.hasTransition) {
+                            return raw.isSelected ? base : (mutedFillPalette[raw.status?.key] || 'rgba(148, 163, 184, 0.22)');
+                        }
+                        return raw.isSelected ? base : `${base}d9`;
                     },
-                    borderColor: '#ffffff',
-                    borderWidth: (ctx2) => ((ctx2.raw && ctx2.raw.isSelected) ? 2.4 : 1.2),
+                    borderColor: (ctx2) => {
+                        const raw = ctx2.raw || {};
+                        if (model.scope === 'retention-emphasis' && !raw.hasTransition) {
+                            return raw.isSelected ? '#ffffff' : (mutedBorderPalette[raw.status?.key] || 'rgba(148, 163, 184, 0.42)');
+                        }
+                        return model.scope === 'retention-emphasis' ? 'rgba(255, 255, 255, 0.96)' : '#ffffff';
+                    },
+                    borderWidth: (ctx2) => {
+                        const raw = ctx2.raw || {};
+                        if (raw.isSelected) return 2.6;
+                        if (model.scope === 'retention-emphasis' && !raw.hasTransition) return 0.9;
+                        return 1.4;
+                    },
                     hoverBorderWidth: 1.8
                 }
             ]
@@ -2646,6 +2663,7 @@ function renderQuadrantChart(model) {
                                 `재구매 점수: ${formatNumber(raw.rawExpansion, 3)}`,
                                 raw.outlierMarker ? `집중뷰 경계 표시: ${raw.outlierMarker}` : '',
                                 `주간 예상 수요량: ${formatNumber(raw.weeklyForecast, 1)}`,
+                                `리텐션 상태: ${raw.hasTransition ? '발생' : '없음'}`,
                                 `SKU 수: ${formatNumber(raw.memberCount, 0)}`
                             ].filter(Boolean);
                         }
@@ -3703,15 +3721,11 @@ function getProductsSortLabel(sortCol) {
 }
 
 function getProductsScopeMode() {
-    return String(AppState.viewState.products?.quadrant?.scope || 'transition').toLowerCase() === 'all' ? 'all' : 'transition';
+    return String(AppState.viewState.products?.quadrant?.scope || 'retention-emphasis').toLowerCase() === 'all' ? 'all' : 'retention-emphasis';
 }
 
 function getScopedProductsData() {
-    const data = AppState.data.anchorScored || [];
-    const scopeMode = getProductsScopeMode();
-    if (scopeMode !== 'transition') return [...data];
-    const transitionEntitySet = buildTransitionEntitySet();
-    return data.filter((row) => transitionEntitySet.has(String(row.product_id || '').trim()));
+    return [...(AppState.data.anchorScored || [])];
 }
 
 function buildDemandContributionSet(rows, valueKey, threshold = 0.8) {
@@ -3754,6 +3768,7 @@ function buildDemandContributionSet(rows, valueKey, threshold = 0.8) {
 
 function buildDemandDriverModel() {
     const scopedRows = getScopedProductsData();
+    const transitionEntitySet = buildTransitionEntitySet();
     const entry = buildDemandContributionSet(scopedRows, 'first_customer_cnt', 0.8);
     const expansion = buildDemandContributionSet(scopedRows, 'repurchase_customer_cnt_90d', 0.8);
     const entryMap = new Map(entry.items.map((item) => [item.product_id, item]));
@@ -3771,6 +3786,7 @@ function buildDemandDriverModel() {
                 first_customer_cnt: entryItem.first_customer_cnt,
                 repurchase_customer_cnt_90d: expansionItem.repurchase_customer_cnt_90d,
                 repurchase_rate_90d: expansionItem.repurchase_rate_90d,
+                hasTransition: transitionEntitySet.has(id),
                 combinedScore: (entryItem.share + expansionItem.share) / 2
             };
         })
@@ -3781,11 +3797,13 @@ function buildDemandDriverModel() {
         item.isIntersection = intersectionIdSet.has(item.product_id);
         item.isEntryLeader = true;
         item.isExpansionLeader = false;
+        item.hasTransition = transitionEntitySet.has(item.product_id);
     });
     expansion.items.forEach((item) => {
         item.isIntersection = intersectionIdSet.has(item.product_id);
         item.isEntryLeader = false;
         item.isExpansionLeader = true;
+        item.hasTransition = transitionEntitySet.has(item.product_id);
     });
 
     return {
@@ -3797,19 +3815,23 @@ function buildDemandDriverModel() {
     };
 }
 
-function renderDemandDriverRows(items, mode, activeId) {
+function renderDemandDriverRows(items, mode, activeId, emphasisMode = 'retention-emphasis') {
     if (!items.length) {
         return '<div class="demand-driver-empty">지금 범위에서는 표시할 핵심 상품이 없어요.</div>';
     }
     return items.map((item, index) => {
         const isActive = activeId && activeId === item.product_id;
+        const isMuted = emphasisMode === 'retention-emphasis' && !item.hasTransition;
         const intersectionBadge = item.isIntersection ? '<span class="demand-driver-badge">공통 핵심</span>' : '';
+        const retentionBadge = item.hasTransition
+            ? '<span class="demand-driver-status-badge is-retained">리텐션 발생</span>'
+            : '<span class="demand-driver-status-badge is-muted">리텐션 없음</span>';
         if (mode === 'intersection') {
             return `
-                <button class="demand-driver-row ${isActive ? 'is-active' : ''}" type="button" onclick="focusQuadrantFromDemandDriver('${escapeJs(item.product_id)}')">
+                <button class="demand-driver-row ${isActive ? 'is-active' : ''} ${isMuted ? 'is-muted' : ''}" type="button" onclick="focusQuadrantFromDemandDriver('${escapeJs(item.product_id)}')">
                     <div class="demand-driver-row-head">
                         <strong title="${escapeHtml(item.product_name_latest)}">${escapeHtml(item.product_name_latest)}</strong>
-                        ${intersectionBadge || '<span class="demand-driver-rank">공통</span>'}
+                        <span class="demand-driver-head-tags">${retentionBadge}</span>
                     </div>
                     <div class="demand-driver-row-meta">
                         <span>첫구매 기여 ${formatPercent(item.entryShare, 1)}</span>
@@ -3824,15 +3846,14 @@ function renderDemandDriverRows(items, mode, activeId) {
             ? `<span>재구매율 ${formatPercent(item.repurchase_rate_90d, 1)}</span>`
             : '';
         return `
-            <button class="demand-driver-row ${isActive ? 'is-active' : ''}" type="button" onclick="focusQuadrantFromDemandDriver('${escapeJs(item.product_id)}')">
+            <button class="demand-driver-row ${isActive ? 'is-active' : ''} ${isMuted ? 'is-muted' : ''}" type="button" onclick="focusQuadrantFromDemandDriver('${escapeJs(item.product_id)}')">
                 <div class="demand-driver-row-head">
                     <strong title="${escapeHtml(item.product_name_latest)}">${escapeHtml(item.product_name_latest)}</strong>
-                    ${intersectionBadge || `<span class="demand-driver-rank">#${index + 1}</span>`}
+                    <span class="demand-driver-head-tags">${intersectionBadge || `<span class="demand-driver-rank">#${index + 1}</span>`}${retentionBadge}</span>
                 </div>
                 <div class="demand-driver-row-meta">
                     <span>${metricLabel} ${formatNumber(item.metricValue)}</span>
                     <span>비중 ${formatPercent(item.share, 1)}</span>
-                    <span>누적 비중 ${formatPercent(item.cumulativeShare, 1)}</span>
                     ${qualityText}
                 </div>
             </button>
@@ -3843,7 +3864,7 @@ function renderDemandDriverRows(items, mode, activeId) {
 function renderDemandDriverCards(model = null) {
     const resolvedModel = model || buildDemandDriverModel();
     const activeId = String(AppState.viewState.products?.quadrant?.selectedId || AppState.helpers.focusEntityId || '').trim();
-    const scopeLabel = resolvedModel.scopeMode === 'transition' ? '현재 화면: 리텐션 상품만' : '현재 화면: 전체 상품';
+    const scopeLabel = resolvedModel.scopeMode === 'retention-emphasis' ? '현재 화면: 리텐션 발생 상품 강조' : '현재 화면: 전체 상품 보기';
 
     return `
         <div class="demand-driver-wrap card animate-fade-in">
@@ -3861,7 +3882,7 @@ function renderDemandDriverCards(model = null) {
                         <p>첫구매 고객의 ${formatPercent(resolvedModel.entry.achievedShare, 1)}를 만든 상품 ${formatNumber(resolvedModel.entry.items.length, 0)}개 (전체 판매 상품 중 ${formatPercent(resolvedModel.scopedProductCount > 0 ? resolvedModel.entry.items.length / resolvedModel.scopedProductCount : 0, 1)})</p>
                     </div>
                     <div class="demand-driver-list">
-                        ${renderDemandDriverRows(resolvedModel.entry.items, 'entry', activeId)}
+                        ${renderDemandDriverRows(resolvedModel.entry.items, 'entry', activeId, resolvedModel.scopeMode)}
                     </div>
                 </section>
                 <section class="demand-driver-card">
@@ -3870,7 +3891,7 @@ function renderDemandDriverCards(model = null) {
                         <p>첫구매와 재구매 모두에서 중요한 상품 ${formatNumber(resolvedModel.intersection.length, 0)}개</p>
                     </div>
                     <div class="demand-driver-list">
-                        ${renderDemandDriverRows(resolvedModel.intersection, 'intersection', activeId)}
+                        ${renderDemandDriverRows(resolvedModel.intersection, 'intersection', activeId, resolvedModel.scopeMode)}
                     </div>
                 </section>
                 <section class="demand-driver-card">
@@ -3879,7 +3900,7 @@ function renderDemandDriverCards(model = null) {
                         <p>재구매 고객의 ${formatPercent(resolvedModel.expansion.achievedShare, 1)}를 만든 상품 ${formatNumber(resolvedModel.expansion.items.length, 0)}개 (전체 판매 상품 중 ${formatPercent(resolvedModel.scopedProductCount > 0 ? resolvedModel.expansion.items.length / resolvedModel.scopedProductCount : 0, 1)})</p>
                     </div>
                     <div class="demand-driver-list">
-                        ${renderDemandDriverRows(resolvedModel.expansion.items, 'expansion', activeId)}
+                        ${renderDemandDriverRows(resolvedModel.expansion.items, 'expansion', activeId, resolvedModel.scopeMode)}
                     </div>
                 </section>
             </div>
@@ -3912,9 +3933,12 @@ function getFilteredSortedProductsData() {
     return { sortedData, sortCol, sortDesc };
 }
 
-function buildProductsRowsHtml(displayData, focusEntityId) {
+function buildProductsRowsHtml(displayData, focusEntityId, emphasisMode = 'retention-emphasis') {
+    const transitionEntitySet = buildTransitionEntitySet();
     return displayData.map((row) => {
         const isFocused = focusEntityId && String(row.product_id) === focusEntityId;
+        const hasTransition = transitionEntitySet.has(String(row.product_id || '').trim());
+        const isMuted = emphasisMode === 'retention-emphasis' && !hasTransition;
         const meta = getEntityMeta(row.product_id);
         const groupedIdCell = meta.memberCount > 1
             ? `
@@ -3926,7 +3950,7 @@ function buildProductsRowsHtml(displayData, focusEntityId) {
                 <span>${escapeHtml(row.product_id)}</span>
             `;
         return `
-        <tr class="clickable ${isFocused ? 'row-focused' : ''}" onclick="focusQuadrantFromTable('${escapeHtml(row.product_id)}')">
+        <tr class="clickable ${isFocused ? 'row-focused' : ''} ${isMuted ? 'row-retention-muted' : ''}" onclick="focusQuadrantFromTable('${escapeHtml(row.product_id)}')">
             <td>
                 ${groupedIdCell}
             </td>
@@ -3937,6 +3961,7 @@ function buildProductsRowsHtml(displayData, focusEntityId) {
             <td><span class="badge">${escapeHtml(toAaTypeLabel(row.AA_Primary_Type || '-'))}</span></td>
             <td>${formatNumber(row.PCA_Score, 4)}</td>
             <td><span class="badge" style="background: rgba(236, 72, 153, 0.2); color: #f472b6;">${escapeHtml(toPcaTypeLabel(row.PCA_Primary_Type || '-'))}</span></td>
+            <td><span class="retention-status-chip ${hasTransition ? 'is-retained' : 'is-muted'}">${hasTransition ? '리텐션 발생' : '리텐션 없음'}</span></td>
         </tr>
     `;
     }).join('');
@@ -3950,10 +3975,11 @@ function renderProductsTableOnly() {
     const { sortedData, sortCol, sortDesc } = getFilteredSortedProductsData();
     const qSelectedId = String(AppState.viewState.products?.quadrant?.selectedId || '').trim();
     const focusEntityId = String(AppState.helpers.focusEntityId || qSelectedId).trim();
+    const emphasisMode = getProductsScopeMode();
     const displayData = sortedData.slice(0, 50);
     const getSortIndicator = (col) => sortCol === col ? (sortDesc ? ' ▼' : ' ▲') : '';
     const sortLabel = getProductsSortLabel(sortCol);
-    const rows = buildProductsRowsHtml(displayData, focusEntityId);
+    const rows = buildProductsRowsHtml(displayData, focusEntityId, emphasisMode);
 
     summaryCard.innerHTML = `
         <h3>상위 50개 핵심 상품 (정렬 기준: ${escapeHtml(sortLabel)})</h3>
@@ -3968,6 +3994,7 @@ function renderProductsTableOnly() {
                     <th onclick="handleProductSort('AA_Primary_Type')">첫구매 유입 유형${getSortIndicator('AA_Primary_Type')}</th>
                     <th onclick="handleProductSort('PCA_Score')">재구매 점수${getSortIndicator('PCA_Score')}</th>
                     <th onclick="handleProductSort('PCA_Primary_Type')">재구매 유형${getSortIndicator('PCA_Primary_Type')}</th>
+                    <th>리텐션 상태</th>
                 </tr></thead>
                 <tbody>${rows}</tbody>
             </table>
@@ -3980,7 +4007,7 @@ function renderProducts() {
     destroyCarts();
     const container = document.getElementById('content-area');
     const qState = AppState.viewState.products.quadrant;
-    if (!['transition', 'all'].includes(qState.scope)) qState.scope = 'transition';
+    if (!['retention-emphasis', 'all'].includes(qState.scope)) qState.scope = 'retention-emphasis';
     if (!['focus', 'raw'].includes(qState.scaleMode)) qState.scaleMode = 'focus';
 
     const { sortedData } = getFilteredSortedProductsData();
@@ -3988,7 +4015,7 @@ function renderProducts() {
         sortedData,
         qState.selectedId,
         qState.scaleMode || 'focus',
-        qState.scope || 'transition',
+        qState.scope || 'retention-emphasis',
         'both'
     );
     const demandDriverModel = buildDemandDriverModel();
@@ -4034,12 +4061,6 @@ function renderProducts() {
     window.focusQuadrantFromTable = (entityId) => {
         const targetId = String(entityId || '').trim();
         if (!targetId) return;
-        const qState = AppState.viewState.products?.quadrant || {};
-        const scopeMode = String(qState.scope || 'transition').toLowerCase();
-        if (scopeMode === 'transition') {
-            const transitionEntitySet = buildTransitionEntitySet();
-            if (!transitionEntitySet.has(targetId)) return;
-        }
         if (typeof window.selectQuadrantItem === 'function') {
             window.selectQuadrantItem(targetId);
         }
@@ -4051,12 +4072,6 @@ function renderProducts() {
     window.focusQuadrantFromDemandDriver = (entityId) => {
         const targetId = String(entityId || '').trim();
         if (!targetId) return;
-        const qState = AppState.viewState.products?.quadrant || {};
-        const scopeMode = String(qState.scope || 'transition').toLowerCase();
-        if (scopeMode === 'transition') {
-            const transitionEntitySet = buildTransitionEntitySet();
-            if (!transitionEntitySet.has(targetId)) return;
-        }
         if (typeof window.selectQuadrantItem === 'function') {
             window.selectQuadrantItem(targetId);
         }
@@ -4079,7 +4094,7 @@ function renderProducts() {
     };
 
     window.setQuadrantScopeMode = (mode) => {
-        const next = String(mode || '').toLowerCase() === 'all' ? 'all' : 'transition';
+        const next = String(mode || '').toLowerCase() === 'all' ? 'all' : 'retention-emphasis';
         AppState.viewState.products.quadrant.scope = next;
         renderProducts();
     };
