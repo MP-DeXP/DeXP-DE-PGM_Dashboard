@@ -724,6 +724,13 @@ body {
     margin-bottom: 0.4rem;
 }
 
+.pgm-panel-helper {
+    margin-bottom: 0.45rem;
+    color: var(--text-muted);
+    font-size: 0.74rem;
+    line-height: 1.4;
+}
+
 .pgm-badge {
     display: inline-flex;
     align-items: center;
@@ -771,6 +778,73 @@ body {
 .pgm-metrics span {
     color: var(--text-muted);
     font-size: 0.72rem;
+}
+
+.pgm-insight-section {
+    margin-bottom: 0.75rem;
+}
+
+.pgm-insight-section h4 {
+    margin-bottom: 0.35rem;
+    font-size: 0.83rem;
+    color: var(--text-main);
+}
+
+.pgm-insight-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-bottom: 0.55rem;
+}
+
+.pgm-insight-actions .btn-primary {
+    width: 100%;
+    text-align: center;
+    font-size: 0.82rem;
+    text-decoration: none;
+}
+
+.pgm-demand-share-section {
+    margin-bottom: 0.75rem;
+}
+
+.pgm-demand-share-section h4 {
+    margin-bottom: 0.35rem;
+    font-size: 0.83rem;
+    color: var(--text-main);
+}
+
+.pgm-demand-share-grid {
+    margin-top: 0.55rem;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+}
+
+.pgm-demand-share-card {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 0.55rem 0.6rem;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.pgm-demand-share-card label {
+    display: block;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+}
+
+.pgm-demand-share-card strong {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 0.96rem;
+    font-family: var(--font-heading);
+    color: var(--text-main);
+}
+
+.pgm-demand-share-card span {
+    display: block;
+    margin-top: 0.14rem;
+    color: var(--text-muted);
+    font-size: 0.7rem;
 }
 
 .pgm-actions h4 {
@@ -2440,6 +2514,14 @@ body {
     .search-wrapper,
     .search-select {
         width: 100%;
+    }
+
+    .pgm-demand-share-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .pgm-insight-metrics {
+        grid-template-columns: 1fr;
     }
 
     .pgm-group-toolbar {

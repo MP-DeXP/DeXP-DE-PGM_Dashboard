@@ -876,7 +876,7 @@ function transformAnchorScoredRows(rows) {
     ];
     const weightedFields = [
         'AA_Score', 'PCA_Score', 'Entry_Gravity_Score', 'Expansion_Gravity_Score',
-        'repurchase_rate_90d', 'first_customer_ratio', 'p50_addl_order_cnt_90d',
+        'first_customer_ratio', 'p50_addl_order_cnt_90d',
         'p75_addl_order_cnt_90d', 'p90_addl_order_cnt_90d', 'addl_order_rate_90d',
         'p75_retention_days', 'PrimaryAnchorScore'
     ];
@@ -913,11 +913,13 @@ function transformAnchorScoredRows(rows) {
         finalizeWeightedFields(acc, weightedFields);
         const aaPrimary = determinePrimaryType(acc.aaTypeScores, 'Broad');
         const pcaPrimary = determinePrimaryType(acc.pcaTypeScores, 'Core');
+        const firstCustomerCnt = toNumber(acc.first_customer_cnt, 0);
+        const repurchaseCustomerCnt90d = toNumber(acc.repurchase_customer_cnt_90d, 0);
         return {
             product_id: acc.product_id,
             product_name_latest: acc.product_name_latest,
-            first_customer_cnt: toNumber(acc.first_customer_cnt, 0),
-            repurchase_customer_cnt_90d: toNumber(acc.repurchase_customer_cnt_90d, 0),
+            first_customer_cnt: firstCustomerCnt,
+            repurchase_customer_cnt_90d: repurchaseCustomerCnt90d,
             product_order_cnt_1y: toNumber(acc.product_order_cnt_1y, 0),
             product_unit_qty_1y: toNumber(acc.product_unit_qty_1y, 0),
             revenue_90d: toNumber(acc.revenue_90d, 0),
@@ -925,7 +927,8 @@ function transformAnchorScoredRows(rows) {
             PCA_Score: acc.PCA_Score,
             Entry_Gravity_Score: acc.Entry_Gravity_Score,
             Expansion_Gravity_Score: acc.Expansion_Gravity_Score,
-            repurchase_rate_90d: acc.repurchase_rate_90d,
+            // 90일 추가구매 가능성은 raw count 기준으로 다시 계산해야 그룹 상품에서도 왜곡되지 않습니다.
+            repurchase_rate_90d: firstCustomerCnt > 0 ? repurchaseCustomerCnt90d / firstCustomerCnt : 0,
             first_customer_ratio: acc.first_customer_ratio,
             p50_addl_order_cnt_90d: acc.p50_addl_order_cnt_90d,
             p75_addl_order_cnt_90d: acc.p75_addl_order_cnt_90d,
@@ -2230,6 +2233,11 @@ function buildQuadrantModel(rows, selectedId, scaleMode = 'focus', scope = 'tran
                 entry,
                 expansion,
                 weeklyForecast,
+                firstCustomerCnt: toNumber(row.first_customer_cnt, 0),
+                repurchaseCustomerCnt90d: toNumber(row.repurchase_customer_cnt_90d, 0),
+                repurchaseRate90d: toNumber(row.first_customer_cnt, 0) > 0
+                    ? toNumber(row.repurchase_customer_cnt_90d, 0) / toNumber(row.first_customer_cnt, 0)
+                    : 0,
                 revenue90d: toNumber(row.revenue_90d, 0),
                 memberCount,
                 groupEntityId: entityMeta.entityId || id,
@@ -2255,13 +2263,20 @@ function buildQuadrantModel(rows, selectedId, scaleMode = 'focus', scope = 'tran
     const expansionP33 = percentile(expansions, 0.33);
     const expansionP66 = percentile(expansions, 0.66);
     const maxWeekly = Math.max(...weekly, 1);
+    const totalFirstCustomerCnt = points.reduce((sum, point) => sum + toNumber(point.firstCustomerCnt, 0), 0);
+    const totalRepurchaseCustomerCnt90d = points.reduce((sum, point) => sum + toNumber(point.repurchaseCustomerCnt90d, 0), 0);
 
     let activeId = selectedId && points.some((p) => p.id === selectedId) ? selectedId : '';
     if (!activeId && AppState.helpers.focusEntityId && points.some((p) => p.id === AppState.helpers.focusEntityId)) {
         activeId = AppState.helpers.focusEntityId;
     }
     if (!activeId) activeId = points[0].id;
-    const selected = points.find((p) => p.id === activeId) || points[0];
+    const selectedPoint = points.find((p) => p.id === activeId) || points[0];
+    const selected = {
+        ...selectedPoint,
+        entryDemandShare: totalFirstCustomerCnt > 0 ? toNumber(selectedPoint.firstCustomerCnt, 0) / totalFirstCustomerCnt : 0,
+        expansionDemandShare: totalRepurchaseCustomerCnt90d > 0 ? toNumber(selectedPoint.repurchaseCustomerCnt90d, 0) / totalRepurchaseCustomerCnt90d : 0
+    };
     const status = getQuadrantStatus(selected.entry, selected.expansion, centerEntry, centerExpansion);
     const scale = buildQuadrantScaleModel(points, selected, scaleMode);
     const visibleEdges = buildVisibleQuadrantEdges(points, selected.id, normalizedEdgeMode);
@@ -2314,10 +2329,10 @@ function renderQuadrantPanel(model) {
         { key: 'expansion-only', label: '재구매 강점 상품', color: '#8b5cf6', guide: '재구매는 강하지만 신규 유입이 약해, 유입 채널 보강이 필요한 대상이에요.' }
     ];
     const transitionCta = selected.hasTransition
-        ? `<button class="btn-primary" type="button" onclick="openRetentionFlowModal('${escapeJs(selected.id)}')">90일 리텐션 흐름 보기</button>`
+        ? `<button class="btn-primary" type="button" onclick="openRetentionFlowModal('${escapeJs(selected.id)}')">90일 추가구매 흐름 보기</button>`
         : `
-            <button class="btn-primary" type="button" disabled title="90일 리텐션 데이터가 없어 이동할 수 없음">90일 리텐션 흐름 보기</button>
-            <p class="pgm-link-help">구매 후 90일 내 리텐션 데이터가 없어 이동할 수 없어요.</p>
+            <button class="btn-primary" type="button" disabled title="90일 추가구매 데이터가 없어 이동할 수 없음">90일 추가구매 흐름 보기</button>
+            <p class="pgm-link-help">구매 후 90일 내 추가구매 데이터가 없어 이동할 수 없어요.</p>
         `;
     const edgeModeLabel = model.edgeMode === 'both' ? '양방향 흐름' : '다음 재구매 흐름';
     const edgeGuide = model.visibleEdges?.length
@@ -2330,8 +2345,29 @@ function renderQuadrantPanel(model) {
                 <h3 title="${escapeHtml(selected.name)}">${escapeHtml(selected.name)}</h3>
                 ${groupedLabel}
             </div>
-            <div class="pgm-metrics">
-                <div><label>주간 예상 수요량</label><strong>${formatNumber(selected.weeklyForecast, 1)}</strong><span>${memberMeta}</span></div>
+            <p class="pgm-panel-helper">최근 1년 내 판매 이력이 있고, 최근 90일에도 실제 판매가 이어진 핵심 수요 상품 기준이에요.</p>
+            <div class="pgm-insight-section">
+                <h4>수요 인사이트</h4>
+                <div class="pgm-metrics pgm-insight-metrics">
+                    <div><label>주간 예상 수요량</label><strong>${formatNumber(selected.weeklyForecast, 1)}</strong><span>${memberMeta}</span></div>
+                    <div><label>구매 유지 가능성</label><strong>${formatPercent(selected.repurchaseRate90d, 1)}</strong><span>구매 후 90일 기준</span></div>
+                </div>
+                <div class="pgm-insight-actions">
+                    ${transitionCta}
+                </div>
+            </div>
+            <div class="pgm-demand-share-section">
+                <h4>수요 기여 비중</h4>
+                <div class="pgm-demand-share-grid">
+                    <div class="pgm-demand-share-card">
+                        <label>첫구매 기여 비중</label>
+                        <strong>${formatPercent(selected.entryDemandShare, 1)}</strong>
+                    </div>
+                    <div class="pgm-demand-share-card">
+                        <label>재구매 기여 비중</label>
+                        <strong>${formatPercent(selected.expansionDemandShare, 1)}</strong>
+                    </div>
+                </div>
             </div>
             <div class="pgm-actions">
                 <h4>운영 전략</h4>
@@ -2358,7 +2394,6 @@ function renderQuadrantPanel(model) {
             </div>
             <p class="pgm-edge-guide">${escapeHtml(edgeGuide)}</p>
             <div class="pgm-links">
-                ${transitionCta}
                 <button class="btn-primary" type="button" onclick="openCartFlowModal('${escapeJs(selected.id)}')">장바구니 보기</button>
             </div>
             <button class="btn-primary pgm-prev-btn" type="button" onclick="selectPreviousQuadrantItem()" ${hasHistory ? '' : 'disabled'}>이전 상품으로</button>
@@ -3698,8 +3733,7 @@ function renderDemandDriverCards() {
             <div class="demand-driver-head">
                 <div>
                     <h3>최근 90일 핵심 수요 활성 상품군</h3>
-                    <p>최근에도 실제로 팔리고 있으면서, 첫구매와 재구매 수요 대부분을 만드는 핵심 상품을 보여줘요.</p>
-                    <p class="demand-driver-helper">최근 1년 안에 판매 이력이 있고, 최근 90일에도 실제 판매가 이어진 상품군 기준이에요.</p>
+                    <p>최근 1년 내 판매 이력이 있고, 최근 90일에도 실제 판매가 이어진 핵심 수요 상품을 보여줘요.</p>
                 </div>
                 <span class="demand-driver-scope">${scopeLabel}</span>
             </div>
