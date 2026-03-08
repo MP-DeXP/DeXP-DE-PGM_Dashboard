@@ -871,7 +871,7 @@ function transformAnchorScoredRows(rows) {
     const src = rows || [];
     const groupMap = new Map();
     const sumFieldsList = [
-        'first_customer_cnt', 'product_order_cnt_1y', 'product_unit_qty_1y',
+        'first_customer_cnt', 'product_order_cnt_1y', 'product_unit_qty_1y', 'repurchase_customer_cnt_90d',
         'revenue_90d', 'AA_Broad', 'AA_Heavy', 'AA_Qualified', 'PCA_Core', 'PCA_Deep', 'PCA_Scale'
     ];
     const weightedFields = [
@@ -917,6 +917,7 @@ function transformAnchorScoredRows(rows) {
             product_id: acc.product_id,
             product_name_latest: acc.product_name_latest,
             first_customer_cnt: toNumber(acc.first_customer_cnt, 0),
+            repurchase_customer_cnt_90d: toNumber(acc.repurchase_customer_cnt_90d, 0),
             product_order_cnt_1y: toNumber(acc.product_order_cnt_1y, 0),
             product_unit_qty_1y: toNumber(acc.product_unit_qty_1y, 0),
             revenue_90d: toNumber(acc.revenue_90d, 0),
@@ -1673,7 +1674,7 @@ window.handleGlobalSearch = (viewName, query, selectionStart = null, selectionEn
     if (window.searchTimeouts[viewName]) clearTimeout(window.searchTimeouts[viewName]);
     window.searchTimeouts[viewName] = setTimeout(() => {
         if (viewName === 'products') {
-            renderProductsTableAndChartOnly();
+            renderProductsTableOnly();
         } else if (viewName === 'transitions') {
             renderTransitionsTable();
         }
@@ -2329,14 +2330,11 @@ function renderQuadrantPanel(model) {
                 <h3 title="${escapeHtml(selected.name)}">${escapeHtml(selected.name)}</h3>
                 ${groupedLabel}
             </div>
-            <p class="pgm-summary">${escapeHtml(status.summary)}</p>
             <div class="pgm-metrics">
-                <div><label>첫구매 유입 점수</label><strong>${formatNumber(selected.entry, 3)}</strong><span>${entryLevel}</span></div>
-                <div><label>재구매 점수</label><strong>${formatNumber(selected.expansion, 3)}</strong><span>${expansionLevel}</span></div>
                 <div><label>주간 예상 수요량</label><strong>${formatNumber(selected.weeklyForecast, 1)}</strong><span>${memberMeta}</span></div>
             </div>
             <div class="pgm-actions">
-                <h4>추천 액션</h4>
+                <h4>운영 전략</h4>
                 <ul>
                     <li>${escapeHtml(status.actions[0])}</li>
                     <li>${escapeHtml(status.actions[1])}</li>
@@ -3552,14 +3550,198 @@ function getProductsSortLabel(sortCol) {
     return sortLabelMap[sortCol] || sortCol;
 }
 
-function getFilteredSortedProductsData() {
-    const data = AppState.data.anchorScored || [];
-    const { sortCol, sortDesc, searchQuery } = AppState.viewState.products;
+function getProductsScopeMode() {
+    return String(AppState.viewState.products?.quadrant?.scope || 'transition').toLowerCase() === 'all' ? 'all' : 'transition';
+}
 
-    let filteredData = [...data];
+function getScopedProductsData() {
+    const data = AppState.data.anchorScored || [];
+    const scopeMode = getProductsScopeMode();
+    if (scopeMode !== 'transition') return [...data];
+    const transitionEntitySet = buildTransitionEntitySet();
+    return data.filter((row) => transitionEntitySet.has(String(row.product_id || '').trim()));
+}
+
+function buildDemandContributionSet(rows, valueKey, threshold = 0.8) {
+    const sorted = [...(rows || [])]
+        .filter((row) => toNumber(row[valueKey], 0) > 0)
+        .sort((a, b) => toNumber(b[valueKey], 0) - toNumber(a[valueKey], 0));
+    const total = sorted.reduce((acc, row) => acc + toNumber(row[valueKey], 0), 0);
+    if (total <= 0) {
+        return { total: 0, items: [], achievedShare: 0 };
+    }
+
+    let cumulativeValue = 0;
+    const items = [];
+    sorted.forEach((row) => {
+        if (items.length && cumulativeValue / total >= threshold) return;
+        const value = toNumber(row[valueKey], 0);
+        cumulativeValue += value;
+        const share = value / total;
+        const cumulativeShare = cumulativeValue / total;
+        items.push({
+            product_id: String(row.product_id || '').trim(),
+            product_name_latest: row.product_name_latest || getProductName(row.product_id),
+            first_customer_cnt: toNumber(row.first_customer_cnt, 0),
+            repurchase_customer_cnt_90d: toNumber(row.repurchase_customer_cnt_90d, 0),
+            repurchase_rate_90d: toNumber(row.repurchase_rate_90d, 0),
+            revenue_90d: toNumber(row.revenue_90d, 0),
+            metricKey: valueKey,
+            metricValue: value,
+            share,
+            cumulativeShare
+        });
+    });
+
+    return {
+        total,
+        items,
+        achievedShare: items.length ? items[items.length - 1].cumulativeShare : 0
+    };
+}
+
+function buildDemandDriverModel() {
+    const scopedRows = getScopedProductsData();
+    const entry = buildDemandContributionSet(scopedRows, 'first_customer_cnt', 0.8);
+    const expansion = buildDemandContributionSet(scopedRows, 'repurchase_customer_cnt_90d', 0.8);
+    const entryMap = new Map(entry.items.map((item) => [item.product_id, item]));
+    const expansionMap = new Map(expansion.items.map((item) => [item.product_id, item]));
+    const intersection = Array.from(entryMap.keys())
+        .filter((id) => expansionMap.has(id))
+        .map((id) => {
+            const entryItem = entryMap.get(id);
+            const expansionItem = expansionMap.get(id);
+            return {
+                product_id: id,
+                product_name_latest: entryItem.product_name_latest || expansionItem.product_name_latest,
+                entryShare: entryItem.share,
+                expansionShare: expansionItem.share,
+                first_customer_cnt: entryItem.first_customer_cnt,
+                repurchase_customer_cnt_90d: expansionItem.repurchase_customer_cnt_90d,
+                repurchase_rate_90d: expansionItem.repurchase_rate_90d,
+                combinedScore: (entryItem.share + expansionItem.share) / 2
+            };
+        })
+        .sort((a, b) => b.combinedScore - a.combinedScore);
+
+    const intersectionIdSet = new Set(intersection.map((item) => item.product_id));
+    entry.items.forEach((item) => {
+        item.isIntersection = intersectionIdSet.has(item.product_id);
+        item.isEntryLeader = true;
+        item.isExpansionLeader = false;
+    });
+    expansion.items.forEach((item) => {
+        item.isIntersection = intersectionIdSet.has(item.product_id);
+        item.isEntryLeader = false;
+        item.isExpansionLeader = true;
+    });
+
+    return {
+        scopeMode: getProductsScopeMode(),
+        scopedProductCount: scopedRows.length,
+        entry,
+        expansion,
+        intersection
+    };
+}
+
+function renderDemandDriverRows(items, mode, activeId) {
+    if (!items.length) {
+        return '<div class="demand-driver-empty">지금 범위에서는 표시할 핵심 상품이 없어요.</div>';
+    }
+    return items.map((item, index) => {
+        const isActive = activeId && activeId === item.product_id;
+        const intersectionBadge = item.isIntersection ? '<span class="demand-driver-badge">공통 핵심</span>' : '';
+        if (mode === 'intersection') {
+            return `
+                <button class="demand-driver-row ${isActive ? 'is-active' : ''}" type="button" onclick="focusQuadrantFromDemandDriver('${escapeJs(item.product_id)}')">
+                    <div class="demand-driver-row-head">
+                        <strong title="${escapeHtml(item.product_name_latest)}">${escapeHtml(item.product_name_latest)}</strong>
+                        ${intersectionBadge || '<span class="demand-driver-rank">공통</span>'}
+                    </div>
+                    <div class="demand-driver-row-meta">
+                        <span>첫구매 기여 ${formatPercent(item.entryShare, 1)}</span>
+                        <span>재구매 기여 ${formatPercent(item.expansionShare, 1)}</span>
+                    </div>
+                </button>
+            `;
+        }
+
+        const metricLabel = mode === 'entry' ? '첫구매 고객수' : '재구매 고객수';
+        const qualityText = mode === 'expansion'
+            ? `<span>재구매율 ${formatPercent(item.repurchase_rate_90d, 1)}</span>`
+            : '';
+        return `
+            <button class="demand-driver-row ${isActive ? 'is-active' : ''}" type="button" onclick="focusQuadrantFromDemandDriver('${escapeJs(item.product_id)}')">
+                <div class="demand-driver-row-head">
+                    <strong title="${escapeHtml(item.product_name_latest)}">${escapeHtml(item.product_name_latest)}</strong>
+                    ${intersectionBadge || `<span class="demand-driver-rank">#${index + 1}</span>`}
+                </div>
+                <div class="demand-driver-row-meta">
+                    <span>${metricLabel} ${formatNumber(item.metricValue)}</span>
+                    <span>비중 ${formatPercent(item.share, 1)}</span>
+                    <span>누적 비중 ${formatPercent(item.cumulativeShare, 1)}</span>
+                    ${qualityText}
+                </div>
+            </button>
+        `;
+    }).join('');
+}
+
+function renderDemandDriverCards() {
+    const model = buildDemandDriverModel();
+    const activeId = String(AppState.viewState.products?.quadrant?.selectedId || AppState.helpers.focusEntityId || '').trim();
+    const scopeLabel = model.scopeMode === 'transition' ? '현재 화면: 리텐션 상품만' : '현재 화면: 전체 상품';
+
+    return `
+        <div class="demand-driver-wrap card animate-fade-in">
+            <div class="demand-driver-head">
+                <div>
+                    <h3>최근 90일 핵심 수요 활성 상품군</h3>
+                    <p>최근에도 실제로 팔리고 있으면서, 첫구매와 재구매 수요 대부분을 만드는 핵심 상품을 보여줘요.</p>
+                    <p class="demand-driver-helper">최근 1년 안에 판매 이력이 있고, 최근 90일에도 실제 판매가 이어진 상품군 기준이에요.</p>
+                </div>
+                <span class="demand-driver-scope">${scopeLabel}</span>
+            </div>
+            <div class="demand-driver-grid">
+                <section class="demand-driver-card">
+                    <div class="demand-driver-card-head">
+                        <h4>첫구매를 만든 핵심 상품</h4>
+                        <p>첫구매 고객의 ${formatPercent(model.entry.achievedShare, 1)}를 만든 상품 ${formatNumber(model.entry.items.length, 0)}개 (전체 판매 상품 중 ${formatPercent(model.scopedProductCount > 0 ? model.entry.items.length / model.scopedProductCount : 0, 1)})</p>
+                    </div>
+                    <div class="demand-driver-list">
+                        ${renderDemandDriverRows(model.entry.items, 'entry', activeId)}
+                    </div>
+                </section>
+                <section class="demand-driver-card">
+                    <div class="demand-driver-card-head">
+                        <h4>공통 핵심 상품</h4>
+                        <p>첫구매와 재구매 모두에서 중요한 상품 ${formatNumber(model.intersection.length, 0)}개</p>
+                    </div>
+                    <div class="demand-driver-list">
+                        ${renderDemandDriverRows(model.intersection, 'intersection', activeId)}
+                    </div>
+                </section>
+                <section class="demand-driver-card">
+                    <div class="demand-driver-card-head">
+                        <h4>재구매를 만든 핵심 상품</h4>
+                        <p>재구매 고객의 ${formatPercent(model.expansion.achievedShare, 1)}를 만든 상품 ${formatNumber(model.expansion.items.length, 0)}개 (전체 판매 상품 중 ${formatPercent(model.scopedProductCount > 0 ? model.expansion.items.length / model.scopedProductCount : 0, 1)})</p>
+                    </div>
+                    <div class="demand-driver-list">
+                        ${renderDemandDriverRows(model.expansion.items, 'expansion', activeId)}
+                    </div>
+                </section>
+            </div>
+        </div>
+    `;
+}
+
+function getFilteredSortedProductsData() {
+    const { sortCol, sortDesc, searchQuery } = AppState.viewState.products;
+    let filteredData = getScopedProductsData();
     if (searchQuery) {
         const q = searchQuery.toLowerCase();
-        filteredData = data.filter((d) =>
+        filteredData = filteredData.filter((d) =>
             String(d.product_id || '').toLowerCase().includes(q) ||
             String(d.member_ids || '').toLowerCase().includes(q) ||
             (d.product_name_latest && String(d.product_name_latest).toLowerCase().includes(q))
@@ -3609,18 +3791,15 @@ function buildProductsRowsHtml(displayData, focusEntityId) {
     }).join('');
 }
 
-function renderProductsTableAndChartOnly() {
+function renderProductsTableOnly() {
     if (document.body.id !== 'page-products') return;
     const summaryCard = document.getElementById('products-summary-card');
-    const chartCanvas = document.getElementById('productsChart');
-    if (!summaryCard || !chartCanvas) return;
+    if (!summaryCard) return;
 
     const { sortedData, sortCol, sortDesc } = getFilteredSortedProductsData();
-    const focusEntityId = String(AppState.helpers.focusEntityId || '').trim();
+    const qSelectedId = String(AppState.viewState.products?.quadrant?.selectedId || '').trim();
+    const focusEntityId = String(AppState.helpers.focusEntityId || qSelectedId).trim();
     const displayData = sortedData.slice(0, 50);
-    const top10 = sortedData.slice(0, 10);
-    const chartLabels = top10.map((d) => `${(d.product_name_latest || d.product_id || '').substring(0, 15)}...`);
-    const chartData = top10.map((d) => toNumber(d[sortCol]));
     const getSortIndicator = (col) => sortCol === col ? (sortDesc ? ' ▼' : ' ▲') : '';
     const sortLabel = getProductsSortLabel(sortCol);
     const rows = buildProductsRowsHtml(displayData, focusEntityId);
@@ -3644,55 +3823,6 @@ function renderProductsTableAndChartOnly() {
         </div>
     `;
     applyFriendlyUi(summaryCard);
-
-    const existing = AppState.charts.products;
-    if (existing && existing.canvas === chartCanvas) {
-        existing.data.labels = chartLabels;
-        if (!existing.data.datasets?.length) {
-            existing.data.datasets = [{
-                label: sortCol,
-                data: chartData,
-                backgroundColor: 'rgba(99, 102, 241, 0.6)',
-                borderColor: 'rgba(99, 102, 241, 1)',
-                borderWidth: 1
-            }];
-        } else {
-            existing.data.datasets[0].label = sortCol;
-            existing.data.datasets[0].data = chartData;
-        }
-        if (!existing.options.plugins) existing.options.plugins = {};
-        if (!existing.options.plugins.title) existing.options.plugins.title = { display: true };
-        existing.options.plugins.title.text = `정렬 기준 상위 10개 상품: ${sortLabel}`;
-        existing.options.plugins.title.color = '#1e293b';
-        existing.update('none');
-    } else {
-        if (existing) existing.destroy();
-        const ctx = chartCanvas.getContext('2d');
-        AppState.charts.products = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: chartLabels,
-                datasets: [{
-                    label: sortCol,
-                    data: chartData,
-                    backgroundColor: 'rgba(99, 102, 241, 0.6)',
-                    borderColor: 'rgba(99, 102, 241, 1)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    title: { display: true, text: `정렬 기준 상위 10개 상품: ${sortLabel}`, color: '#1e293b' }
-                },
-                scales: {
-                    y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(0,0,0,0.05)' } },
-                    x: { ticks: { color: '#64748b' } }
-                }
-            }
-        });
-    }
 }
 
 function renderProducts() {
@@ -3716,14 +3846,16 @@ function renderProducts() {
 
     container.innerHTML = `
         ${renderProductQuadrant(quadrantModel)}
-        ${renderSearchUI('products', '상품 ID 또는 이름 검색')}
-        <div class="controls-area animate-fade-in" style="margin-bottom:2rem;"><div class="card" style="height:400px;"><canvas id="productsChart"></canvas></div></div>
-        <div id="products-summary-card" class="card animate-fade-in"></div>
+        ${renderDemandDriverCards()}
+        <div class="animate-fade-in">
+            ${renderSearchUI('products', '상품 ID 또는 이름 검색')}
+            <div id="products-summary-card" class="card animate-fade-in"></div>
+        </div>
     `;
     applyFriendlyUi(container);
 
     renderQuadrantChart(quadrantModel);
-    renderProductsTableAndChartOnly();
+    renderProductsTableOnly();
 
     window.handleProductSort = (col) => {
         if (AppState.viewState.products.sortCol === col) AppState.viewState.products.sortDesc = !AppState.viewState.products.sortDesc;
@@ -3731,7 +3863,7 @@ function renderProducts() {
             AppState.viewState.products.sortCol = col;
             AppState.viewState.products.sortDesc = true;
         }
-        renderProducts();
+        renderProductsTableOnly();
     };
 
     window.selectQuadrantItem = (entityId) => {
@@ -3764,6 +3896,20 @@ function renderProducts() {
         }, 0);
     };
 
+    window.focusQuadrantFromDemandDriver = (entityId) => {
+        const targetId = String(entityId || '').trim();
+        if (!targetId) return;
+        const qState = AppState.viewState.products?.quadrant || {};
+        const scopeMode = String(qState.scope || 'transition').toLowerCase();
+        if (scopeMode === 'transition') {
+            const transitionEntitySet = buildTransitionEntitySet();
+            if (!transitionEntitySet.has(targetId)) return;
+        }
+        if (typeof window.selectQuadrantItem === 'function') {
+            window.selectQuadrantItem(targetId);
+        }
+    };
+
     window.selectPreviousQuadrantItem = () => {
         const qState = AppState.viewState.products.quadrant;
         if (!qState.history.length) return;
@@ -3785,6 +3931,7 @@ function renderProducts() {
         AppState.viewState.products.quadrant.scope = next;
         renderProducts();
     };
+
 }
 
 function renderTransitions() {

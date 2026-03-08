@@ -820,7 +820,7 @@ body {
 }
 
 .pgm-status-legend {
-    display: grid;
+    display: none;
     gap: 0.35rem;
 }
 
@@ -900,6 +900,168 @@ body {
     font-size: 0.8rem;
 }
 
+.demand-driver-wrap {
+    margin-bottom: 2rem;
+}
+
+.demand-driver-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.demand-driver-head h3 {
+    margin-bottom: 0.2rem;
+    font-size: 1rem;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.demand-driver-head p {
+    color: var(--text-muted);
+    font-size: 0.84rem;
+    line-height: 1.45;
+}
+
+.demand-driver-helper {
+    margin-top: 0.3rem;
+    font-size: 0.76rem;
+    color: #6b7a90;
+}
+
+.demand-driver-scope {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.22rem 0.55rem;
+    background: #eef4ff;
+    color: #31538f;
+    font-size: 0.74rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.demand-driver-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.9rem;
+}
+
+.demand-driver-card {
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+    padding: 0.8rem;
+    min-height: 0;
+}
+
+.demand-driver-card-head {
+    margin-bottom: 0.7rem;
+}
+
+.demand-driver-card-head h4 {
+    margin-bottom: 0.2rem;
+    font-size: 0.88rem;
+    color: var(--text-main);
+}
+
+.demand-driver-card-head p {
+    color: var(--text-muted);
+    font-size: 0.74rem;
+    line-height: 1.4;
+}
+
+.demand-driver-list {
+    display: grid;
+    gap: 0.45rem;
+    max-height: 340px;
+    overflow: auto;
+    padding-right: 0.1rem;
+}
+
+.demand-driver-row {
+    width: 100%;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: #ffffff;
+    padding: 0.58rem 0.62rem;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.demand-driver-row:hover {
+    border-color: rgba(49, 83, 143, 0.28);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+}
+
+.demand-driver-row.is-active {
+    border-color: rgba(49, 83, 143, 0.45);
+    background: #f6faff;
+    box-shadow: inset 0 0 0 1px rgba(49, 83, 143, 0.08);
+}
+
+.demand-driver-row-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 0.28rem;
+}
+
+.demand-driver-row-head strong {
+    font-size: 0.8rem;
+    line-height: 1.35;
+    color: var(--text-main);
+}
+
+.demand-driver-row-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.28rem 0.5rem;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    line-height: 1.35;
+}
+
+.demand-driver-badge,
+.demand-driver-rank {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.12rem 0.42rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.demand-driver-badge {
+    background: rgba(37, 99, 235, 0.12);
+    color: #1d4ed8;
+}
+
+.demand-driver-rank {
+    background: rgba(148, 163, 184, 0.16);
+    color: #475569;
+}
+
+.demand-driver-empty {
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    border: 1px dashed var(--border-color);
+    border-radius: 12px;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    padding: 1rem;
+    background: #fcfdff;
+}
+
 .quadrant-chart-empty {
     height: 100%;
     min-height: 560px;
@@ -928,6 +1090,26 @@ body {
     margin-top: 0.65rem;
     color: var(--text-muted);
     font-size: 0.82rem;
+}
+
+@media (max-width: 1100px) {
+    .demand-driver-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .demand-driver-list {
+        max-height: 280px;
+    }
+}
+
+@media (max-width: 720px) {
+    .demand-driver-head {
+        flex-direction: column;
+    }
+
+    .demand-driver-scope {
+        white-space: normal;
+    }
 }
 
 .pgm-group-modal {
