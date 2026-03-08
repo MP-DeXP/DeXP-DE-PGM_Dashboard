@@ -2031,8 +2031,8 @@ function getQuadrantStatus(entry, expansion, centerEntry, centerExpansion) {
             key: 'hero',
             label: '우선 확대 대상',
             color: '#3b82f6',
-            summary: '신규 유입과 재구매가 모두 강해 우선 확대가 필요한 상품이에요.',
-            guide: '신규 유입과 재구매가 모두 높아, 노출·예산·재고를 우선 확대할 대상이에요.',
+            summary: '현재 화면에서 신규 유입 강점과 재구매 강점이 모두 상대적으로 높아 우선 확대를 검토할 수 있는 상품이에요.',
+            guide: '현재 화면에서 신규 유입 강점과 재구매 강점이 모두 상대적으로 높은 구간이에요. 우선적으로 노출·예산·재고 확대를 검토할 수 있어요.',
             actions: [
                 '핵심 지면과 캠페인에서 상시 노출해 성장 모멘텀을 키워요.',
                 '재고와 배송 가용성을 우선 보호해 품절 손실을 줄여요.'
@@ -2044,8 +2044,8 @@ function getQuadrantStatus(entry, expansion, centerEntry, centerExpansion) {
             key: 'phaseout',
             label: '개선 필요',
             color: '#ef4444',
-            summary: '신규 유입과 재구매가 모두 낮아 개선 또는 교체 검토가 필요한 상태예요.',
-            guide: '신규 유입과 재구매가 모두 낮아, 개선 실험 후 유지 여부를 판단할 대상이에요.',
+            summary: '현재 화면에서 신규 유입 강점과 재구매 강점이 모두 상대적으로 낮아 개선 여부를 점검할 필요가 있는 상태예요.',
+            guide: '현재 화면에서 신규 유입 강점과 재구매 강점이 모두 상대적으로 낮은 구간이에요. 개선 실험 후 유지 여부를 판단할 수 있어요.',
             actions: [
                 '가격·구성·메시지 개선 실험으로 반응 회복 가능성을 먼저 확인해요.',
                 '개선 반응이 낮으면 축소 또는 대체 상품으로 전환해요.'
@@ -2057,8 +2057,8 @@ function getQuadrantStatus(entry, expansion, centerEntry, centerExpansion) {
             key: 'entry-only',
             label: '첫구매 강점 상품',
             color: '#14b8a6',
-            summary: '첫구매 유입은 강하지만 재구매 연결이 약해 후속 전환 보강이 필요해요.',
-            guide: '첫구매 유입은 높지만 재구매 연결이 약해, 재구매 전환 장치가 필요한 대상이에요.',
+            summary: '현재 화면에서 첫구매 강점은 상대적으로 높지만 재구매 강점은 상대적으로 낮아 후속 전환 보강이 필요해요.',
+            guide: '현재 화면에서 신규 유입 강점은 상대적으로 높지만, 재구매 강점은 상대적으로 낮은 구간이에요. 재구매 전환 장치 보강이 필요해요.',
             actions: [
                 '첫구매 직후 재구매 유도 번들/세트를 전면 배치해 연결을 강화해요.',
                 '첫 구매 후 3~7일 CRM 리마인드로 다음 구매 전환을 높여요.'
@@ -2069,8 +2069,8 @@ function getQuadrantStatus(entry, expansion, centerEntry, centerExpansion) {
         key: 'expansion-only',
         label: '재구매 강점 상품',
         color: '#8b5cf6',
-        summary: '재구매 전환은 강하지만 신규 유입이 약해 유입 확대가 필요해요.',
-        guide: '재구매는 강하지만 신규 유입이 약해, 유입 채널 보강이 필요한 대상이에요.',
+        summary: '현재 화면에서 재구매 강점은 상대적으로 높지만 신규 유입 강점은 상대적으로 낮아 유입 확대가 필요해요.',
+        guide: '현재 화면에서 재구매 강점은 상대적으로 높지만, 신규 유입 강점은 상대적으로 낮은 구간이에요. 신규 유입 채널 보강이 필요해요.',
         actions: [
             '신규 유입 채널과 크리에이티브를 확장해 첫구매 모수를 늘려요.',
             '첫구매 강점 상품과의 동시 노출로 유입 구간을 보강해요.'
@@ -2265,24 +2265,24 @@ function buildQuadrantModel(rows, selectedId, scaleMode = 'focus', scope = 'tran
     const maxWeekly = Math.max(...weekly, 1);
     const totalFirstCustomerCnt = points.reduce((sum, point) => sum + toNumber(point.firstCustomerCnt, 0), 0);
     const totalRepurchaseCustomerCnt90d = points.reduce((sum, point) => sum + toNumber(point.repurchaseCustomerCnt90d, 0), 0);
+    const pointsWithDemandShare = points.map((point) => ({
+        ...point,
+        entryDemandShare: totalFirstCustomerCnt > 0 ? toNumber(point.firstCustomerCnt, 0) / totalFirstCustomerCnt : 0,
+        expansionDemandShare: totalRepurchaseCustomerCnt90d > 0 ? toNumber(point.repurchaseCustomerCnt90d, 0) / totalRepurchaseCustomerCnt90d : 0
+    }));
 
-    let activeId = selectedId && points.some((p) => p.id === selectedId) ? selectedId : '';
-    if (!activeId && AppState.helpers.focusEntityId && points.some((p) => p.id === AppState.helpers.focusEntityId)) {
+    let activeId = selectedId && pointsWithDemandShare.some((p) => p.id === selectedId) ? selectedId : '';
+    if (!activeId && AppState.helpers.focusEntityId && pointsWithDemandShare.some((p) => p.id === AppState.helpers.focusEntityId)) {
         activeId = AppState.helpers.focusEntityId;
     }
-    if (!activeId) activeId = points[0].id;
-    const selectedPoint = points.find((p) => p.id === activeId) || points[0];
-    const selected = {
-        ...selectedPoint,
-        entryDemandShare: totalFirstCustomerCnt > 0 ? toNumber(selectedPoint.firstCustomerCnt, 0) / totalFirstCustomerCnt : 0,
-        expansionDemandShare: totalRepurchaseCustomerCnt90d > 0 ? toNumber(selectedPoint.repurchaseCustomerCnt90d, 0) / totalRepurchaseCustomerCnt90d : 0
-    };
+    if (!activeId) activeId = pointsWithDemandShare[0].id;
+    const selected = pointsWithDemandShare.find((p) => p.id === activeId) || pointsWithDemandShare[0];
     const status = getQuadrantStatus(selected.entry, selected.expansion, centerEntry, centerExpansion);
     const scale = buildQuadrantScaleModel(points, selected, scaleMode);
-    const visibleEdges = buildVisibleQuadrantEdges(points, selected.id, normalizedEdgeMode);
+    const visibleEdges = buildVisibleQuadrantEdges(pointsWithDemandShare, selected.id, normalizedEdgeMode);
 
     return {
-        points,
+        points: pointsWithDemandShare,
         selected,
         visibleEdges,
         status,
@@ -2302,6 +2302,106 @@ function buildQuadrantModel(rows, selectedId, scaleMode = 'focus', scope = 'tran
     };
 }
 
+function getRelativeLevelFromRows(value, rows, field) {
+    const values = (rows || []).map((row) => toNumber(row?.[field], NaN)).filter((v) => Number.isFinite(v));
+    if (!values.length) return '보통';
+    return getLevelText(value, percentile(values, 0.33), percentile(values, 0.66));
+}
+
+function buildQuadrantStrategyModel(model) {
+    if (!model?.selected) return null;
+    const selected = model.selected;
+    const selectedId = String(selected.id || '').trim();
+    const scopedPoints = model.points || [];
+    const pointIdSet = new Set(scopedPoints.map((point) => String(point.id || '').trim()).filter(Boolean));
+    const scopedCaRows = (AppState.data.caProfile || []).filter((row) => pointIdSet.has(String(row.product_id || '').trim()));
+    const selectedCa = scopedCaRows.find((row) => String(row.product_id || '').trim() === selectedId) || null;
+    const cartRowsForLevel = selectedCa ? scopedCaRows : [];
+
+    const levels = {
+        weeklyForecast: getRelativeLevelFromRows(selected.weeklyForecast, scopedPoints, 'weeklyForecast'),
+        repurchaseRate90d: getRelativeLevelFromRows(selected.repurchaseRate90d, scopedPoints, 'repurchaseRate90d'),
+        entryDemandShare: getRelativeLevelFromRows(selected.entryDemandShare, scopedPoints, 'entryDemandShare'),
+        expansionDemandShare: getRelativeLevelFromRows(selected.expansionDemandShare, scopedPoints, 'expansionDemandShare'),
+        attachRate: selectedCa ? getRelativeLevelFromRows(selectedCa.attach_rate, cartRowsForLevel, 'attach_rate') : '-',
+        breadthLift: selectedCa ? getRelativeLevelFromRows(selectedCa.breadth_lift, cartRowsForLevel, 'breadth_lift') : '-',
+        top1Share: selectedCa ? getRelativeLevelFromRows(selectedCa.top1_share, cartRowsForLevel, 'top1_share') : '-'
+    };
+
+    const statusKey = String(model.status?.key || '');
+    const highDemand = levels.weeklyForecast === '높음';
+    const mediumDemand = levels.weeklyForecast === '보통';
+    const lowDemand = levels.weeklyForecast === '낮음';
+    const highContinuity = levels.repurchaseRate90d === '높음';
+    const lowContinuity = levels.repurchaseRate90d === '낮음';
+    const highEntryContribution = levels.entryDemandShare === '높음';
+    const highExpansionContribution = levels.expansionDemandShare === '높음';
+    const lowContribution = levels.entryDemandShare === '낮음' && levels.expansionDemandShare === '낮음';
+    const hasCartSignal = Boolean(selectedCa);
+    const highCartExpansion = hasCartSignal && (levels.attachRate === '높음' || levels.breadthLift === '높음');
+    const highCartConcentration = hasCartSignal && levels.top1Share === '높음';
+    const cartType = String(selectedCa?.ca_type || '').toLowerCase();
+
+    let roleText = '현재 반응을 점검할 필요가 있는 상품';
+    if (highEntryContribution && highExpansionContribution) {
+        roleText = '신규 유입과 재구매를 함께 만드는 핵심 상품';
+    } else if (highExpansionContribution && (highContinuity || statusKey === 'expansion-only')) {
+        roleText = '재구매를 지키는 유지형 핵심 상품';
+    } else if (highEntryContribution && (highDemand || statusKey === 'entry-only')) {
+        roleText = '신규 유입을 크게 만드는 확장 후보';
+    } else if (highCartExpansion) {
+        roleText = '장바구니 연결력이 있는 보조 상품';
+    } else if (highDemand || mediumDemand) {
+        roleText = '수요 반응을 확인할 가치가 있는 상품';
+    }
+
+    let goalText = '현재 강점을 유지하면서 다음 성장 포인트를 확인해요.';
+    if (highDemand && (highEntryContribution || highExpansionContribution) && lowContinuity) {
+        goalText = '유입된 수요가 다음 구매로 이어지도록 유지 흐름을 보강해요.';
+    } else if (highContinuity && !highEntryContribution) {
+        goalText = '안정적인 재구매 반응을 바탕으로 신규 유입 모수를 넓혀요.';
+    } else if (highCartExpansion && (mediumDemand || highDemand)) {
+        goalText = '장바구니 연계 노출로 보조 수요를 더 크게 만들어봐요.';
+    } else if (highEntryContribution && !highExpansionContribution) {
+        goalText = '첫 구매 이후 다음 구매 전환을 높이는 구조를 만들어요.';
+    } else if (highExpansionContribution && !highEntryContribution) {
+        goalText = '재구매 강점을 유지하면서 신규 유입을 보강해요.';
+    } else if (lowDemand && lowContribution) {
+        goalText = '작게 검증하면서 반응 회복 가능성을 확인해요.';
+    }
+
+    let actionText = '지금 반응이 좋은 지점은 유지하고 약한 신호 한 가지를 정해 보강 여부를 확인해봐요.';
+    if (highDemand && (highEntryContribution || highExpansionContribution) && lowContinuity) {
+        actionText = '상세·CRM·재구매 혜택을 묶어 첫 구매 후 3~7일 전환 장치를 우선 보강해봐요.';
+    } else if (highContinuity && !highEntryContribution) {
+        actionText = '구매 지속 반응이 좋은 만큼 대표 진입 지면과 신규 유입 캠페인에서 노출 확대를 검토해봐요.';
+    } else if (highCartExpansion) {
+        if (highCartConcentration) {
+            actionText = '상위 조합은 유지하되 한 조합 쏠림을 점검하면서 함께 구매·세트 노출을 넓혀봐요.';
+        } else if (cartType === 'set' || levels.breadthLift === '높음') {
+            actionText = '세트 제안과 함께 구매 영역을 보강해 장바구니 확장을 검토해봐요.';
+        } else {
+            actionText = '상세 교차노출과 장바구니 추천 영역을 보강해 연관 구매 연결을 키워봐요.';
+        }
+    } else if (lowDemand && lowContribution) {
+        actionText = '가격·구성·메시지를 작게 바꿔보며 반응 개선 여부를 먼저 확인해봐요.';
+    } else if (highEntryContribution && !highExpansionContribution) {
+        actionText = '첫 구매 직후 번들 제안과 리마인드 CRM을 붙여 다음 구매 연결을 강화해봐요.';
+    } else if (highExpansionContribution && !highEntryContribution) {
+        actionText = '재구매 강점은 유지하면서 신규 유입 채널과 대표 소재 확장을 함께 검토해봐요.';
+    } else if (highDemand) {
+        actionText = '핵심 지면 노출과 재고 운영을 우선 점검해 현재 수요 흐름이 꺾이지 않게 관리해봐요.';
+    }
+
+    return {
+        roleText,
+        goalText,
+        actionText,
+        reasonTags: levels,
+        selectedCa
+    };
+}
+
 function renderQuadrantPanel(model) {
     if (!model) {
         const scope = String(AppState.viewState.products?.quadrant?.scope || 'transition').toLowerCase();
@@ -2311,8 +2411,7 @@ function renderQuadrantPanel(model) {
         return '<p class="empty-state">4분면 계산 대상 상품이 없습니다.</p>';
     }
     const { selected, status } = model;
-    const entryLevel = getLevelText(selected.entry, model.entryP33, model.entryP66);
-    const expansionLevel = getLevelText(selected.expansion, model.expansionP33, model.expansionP66);
+    const strategy = buildQuadrantStrategyModel(model);
     const memberMeta = selected.memberCount > 1 ? `그룹 상품 (${selected.memberCount}개 SKU)` : '단일 상품';
     const groupedLabel = selected.memberCount > 1
         ? `
@@ -2323,10 +2422,10 @@ function renderQuadrantPanel(model) {
         : '';
     const hasHistory = (AppState.viewState.products.quadrant.history || []).length > 0;
     const statusLegend = [
-        { key: 'hero', label: '우선 확대 대상', color: '#3b82f6', guide: '신규 유입과 재구매가 모두 높아, 노출·예산·재고를 우선 확대할 대상이에요.' },
-        { key: 'phaseout', label: '개선 필요', color: '#ef4444', guide: '신규 유입과 재구매가 모두 낮아, 개선 실험 후 유지 여부를 판단할 대상이에요.' },
-        { key: 'entry-only', label: '첫구매 강점 상품', color: '#14b8a6', guide: '첫구매 유입은 높지만 재구매 연결이 약해, 재구매 전환 장치가 필요한 대상이에요.' },
-        { key: 'expansion-only', label: '재구매 강점 상품', color: '#8b5cf6', guide: '재구매는 강하지만 신규 유입이 약해, 유입 채널 보강이 필요한 대상이에요.' }
+        { key: 'hero', label: '우선 확대 대상', color: '#3b82f6', guide: '현재 화면에서 신규 유입 강점과 재구매 강점이 모두 상대적으로 높은 구간이에요. 우선적으로 노출·예산·재고 확대를 검토할 수 있어요.' },
+        { key: 'phaseout', label: '개선 필요', color: '#ef4444', guide: '현재 화면에서 신규 유입 강점과 재구매 강점이 모두 상대적으로 낮은 구간이에요. 개선 실험 후 유지 여부를 판단할 수 있어요.' },
+        { key: 'entry-only', label: '첫구매 강점 상품', color: '#14b8a6', guide: '현재 화면에서 신규 유입 강점은 상대적으로 높지만, 재구매 강점은 상대적으로 낮은 구간이에요. 재구매 전환 장치 보강이 필요해요.' },
+        { key: 'expansion-only', label: '재구매 강점 상품', color: '#8b5cf6', guide: '현재 화면에서 재구매 강점은 상대적으로 높지만, 신규 유입 강점은 상대적으로 낮은 구간이에요. 신규 유입 채널 보강이 필요해요.' }
     ];
     const transitionCta = selected.hasTransition
         ? `<button class="btn-primary" type="button" onclick="openRetentionFlowModal('${escapeJs(selected.id)}')">90일 추가구매 흐름 보기</button>`
@@ -2350,7 +2449,7 @@ function renderQuadrantPanel(model) {
                 <h4>수요 인사이트</h4>
                 <div class="pgm-metrics pgm-insight-metrics">
                     <div><label>주간 예상 수요량</label><strong>${formatNumber(selected.weeklyForecast, 1)}</strong><span>${memberMeta}</span></div>
-                    <div><label>구매 유지 가능성</label><strong>${formatPercent(selected.repurchaseRate90d, 1)}</strong><span>구매 후 90일 기준</span></div>
+                    <div><label>구매 지속 가능성</label><strong>${formatPercent(selected.repurchaseRate90d, 1)}</strong><span>구매 후 90일 기준</span></div>
                 </div>
                 <div class="pgm-insight-actions">
                     ${transitionCta}
@@ -2371,13 +2470,24 @@ function renderQuadrantPanel(model) {
             </div>
             <div class="pgm-actions">
                 <h4>운영 전략</h4>
-                <ul>
-                    <li>${escapeHtml(status.actions[0])}</li>
-                    <li>${escapeHtml(status.actions[1])}</li>
-                </ul>
+                <div class="pgm-action-list">
+                    <div class="pgm-action-row">
+                        <label>상품 역할</label>
+                        <p>${escapeHtml(strategy?.roleText || '-')}</p>
+                    </div>
+                    <div class="pgm-action-row">
+                        <label>전략 목표</label>
+                        <p>${escapeHtml(strategy?.goalText || '-')}</p>
+                    </div>
+                    <div class="pgm-action-row">
+                        <label>실행 방법</label>
+                        <p>${escapeHtml(strategy?.actionText || '-')}</p>
+                    </div>
+                </div>
             </div>
             <div class="pgm-status-guide">
                 <h4>상태 정의</h4>
+                <p class="pgm-status-helper">이 상태는 현재 화면의 상품들끼리 비교한 상대 위치 기준이에요.</p>
                 <p class="pgm-status-current" style="border-color:${status.color}66; background:${status.color}12;">
                     <strong style="color:${status.color};">${status.label}</strong>
                     <span>${escapeHtml(status.guide || status.summary)}</span>
@@ -2401,19 +2511,23 @@ function renderQuadrantPanel(model) {
     `;
 }
 
-function renderProductQuadrant(model) {
+function renderProductQuadrant(model, demandDriverModel = null) {
     const qState = AppState.viewState.products.quadrant || {};
     const scaleMode = qState.scaleMode || 'focus';
     const scopeMode = qState.scope === 'all' ? 'all' : 'transition';
     const emptyChartMessage = scopeMode === 'transition'
         ? `${QUADRANT_TRANSITION_SCOPE_CRITERIA} 범위를 전체로 바꿔 확인해 주세요.`
         : '표시할 상품이 없습니다.';
+    const demandHeadline = demandDriverModel && demandDriverModel.intersection.length > 0
+        ? `${formatNumber(demandDriverModel.intersection.length, 0)}개 상품이 핵심 수요를 만들고 있어요.`
+        : '';
     return `
         <div class="card pgm-quadrant-wrap animate-fade-in">
             <div class="pgm-quadrant-head">
                 <div>
                     <h3>상품 상태 4분면</h3>
                     <p>첫구매 강점과 재구매 강점을 한눈에 비교해요.</p>
+                    ${demandHeadline ? `<span class="pgm-head-highlight">${escapeHtml(demandHeadline)}</span>` : ''}
                 </div>
                 <div class="quadrant-head-controls">
                     <div class="quadrant-scope-toggle">
@@ -2571,10 +2685,10 @@ function renderQuadrantChart(model) {
                 const xCenter = scales.x.getPixelForValue(centerX);
                 const yCenter = scales.y.getPixelForValue(centerY);
                 const labels = [
-                    { text: '재구매 강점 상품', x: chartArea.left + 12, y: chartArea.top + 10, align: 'left' },
-                    { text: '우선 확대 대상', x: chartArea.right - 12, y: chartArea.top + 10, align: 'right' },
-                    { text: '개선 필요', x: chartArea.left + 12, y: chartArea.bottom - 10, align: 'left' },
-                    { text: '첫구매 강점 상품', x: chartArea.right - 12, y: chartArea.bottom - 10, align: 'right' }
+                    { text: '재구매 강점 상품', helper: '상대적으로 재구매 강점 높음', x: chartArea.left + 12, y: chartArea.top + 10, align: 'left', helperOffset: 12 },
+                    { text: '우선 확대 대상', helper: '상대적으로 두 강점 모두 높음', x: chartArea.right - 12, y: chartArea.top + 10, align: 'right', helperOffset: 12 },
+                    { text: '개선 필요', helper: '상대적으로 두 강점 모두 낮음', x: chartArea.left + 12, y: chartArea.bottom - 22, align: 'left', helperOffset: 12 },
+                    { text: '첫구매 강점 상품', helper: '상대적으로 첫구매 강점 높음', x: chartArea.right - 12, y: chartArea.bottom - 22, align: 'right', helperOffset: 12 }
                 ];
                 chartCtx.save();
                 chartCtx.fillStyle = 'rgba(139, 92, 246, 0.2)';
@@ -2585,12 +2699,15 @@ function renderQuadrantChart(model) {
                 chartCtx.fillRect(chartArea.left, yCenter, Math.max(0, xCenter - chartArea.left), Math.max(0, chartArea.bottom - yCenter));
                 chartCtx.fillStyle = 'rgba(20, 184, 166, 0.2)';
                 chartCtx.fillRect(xCenter, yCenter, Math.max(0, chartArea.right - xCenter), Math.max(0, chartArea.bottom - yCenter));
-                chartCtx.font = '700 10px Inter, sans-serif';
-                chartCtx.fillStyle = '#334155';
                 chartCtx.textBaseline = 'middle';
                 labels.forEach((label) => {
                     chartCtx.textAlign = label.align;
+                    chartCtx.font = '700 10px Inter, sans-serif';
+                    chartCtx.fillStyle = '#334155';
                     chartCtx.fillText(label.text, label.x, label.y);
+                    chartCtx.font = '500 9px Inter, sans-serif';
+                    chartCtx.fillStyle = 'rgba(51, 65, 85, 0.78)';
+                    chartCtx.fillText(label.helper, label.x, label.y + label.helperOffset);
                 });
                 chartCtx.restore();
             }
@@ -3723,10 +3840,10 @@ function renderDemandDriverRows(items, mode, activeId) {
     }).join('');
 }
 
-function renderDemandDriverCards() {
-    const model = buildDemandDriverModel();
+function renderDemandDriverCards(model = null) {
+    const resolvedModel = model || buildDemandDriverModel();
     const activeId = String(AppState.viewState.products?.quadrant?.selectedId || AppState.helpers.focusEntityId || '').trim();
-    const scopeLabel = model.scopeMode === 'transition' ? '현재 화면: 리텐션 상품만' : '현재 화면: 전체 상품';
+    const scopeLabel = resolvedModel.scopeMode === 'transition' ? '현재 화면: 리텐션 상품만' : '현재 화면: 전체 상품';
 
     return `
         <div class="demand-driver-wrap card animate-fade-in">
@@ -3741,28 +3858,28 @@ function renderDemandDriverCards() {
                 <section class="demand-driver-card">
                     <div class="demand-driver-card-head">
                         <h4>첫구매를 만든 핵심 상품</h4>
-                        <p>첫구매 고객의 ${formatPercent(model.entry.achievedShare, 1)}를 만든 상품 ${formatNumber(model.entry.items.length, 0)}개 (전체 판매 상품 중 ${formatPercent(model.scopedProductCount > 0 ? model.entry.items.length / model.scopedProductCount : 0, 1)})</p>
+                        <p>첫구매 고객의 ${formatPercent(resolvedModel.entry.achievedShare, 1)}를 만든 상품 ${formatNumber(resolvedModel.entry.items.length, 0)}개 (전체 판매 상품 중 ${formatPercent(resolvedModel.scopedProductCount > 0 ? resolvedModel.entry.items.length / resolvedModel.scopedProductCount : 0, 1)})</p>
                     </div>
                     <div class="demand-driver-list">
-                        ${renderDemandDriverRows(model.entry.items, 'entry', activeId)}
+                        ${renderDemandDriverRows(resolvedModel.entry.items, 'entry', activeId)}
                     </div>
                 </section>
                 <section class="demand-driver-card">
                     <div class="demand-driver-card-head">
                         <h4>공통 핵심 상품</h4>
-                        <p>첫구매와 재구매 모두에서 중요한 상품 ${formatNumber(model.intersection.length, 0)}개</p>
+                        <p>첫구매와 재구매 모두에서 중요한 상품 ${formatNumber(resolvedModel.intersection.length, 0)}개</p>
                     </div>
                     <div class="demand-driver-list">
-                        ${renderDemandDriverRows(model.intersection, 'intersection', activeId)}
+                        ${renderDemandDriverRows(resolvedModel.intersection, 'intersection', activeId)}
                     </div>
                 </section>
                 <section class="demand-driver-card">
                     <div class="demand-driver-card-head">
                         <h4>재구매를 만든 핵심 상품</h4>
-                        <p>재구매 고객의 ${formatPercent(model.expansion.achievedShare, 1)}를 만든 상품 ${formatNumber(model.expansion.items.length, 0)}개 (전체 판매 상품 중 ${formatPercent(model.scopedProductCount > 0 ? model.expansion.items.length / model.scopedProductCount : 0, 1)})</p>
+                        <p>재구매 고객의 ${formatPercent(resolvedModel.expansion.achievedShare, 1)}를 만든 상품 ${formatNumber(resolvedModel.expansion.items.length, 0)}개 (전체 판매 상품 중 ${formatPercent(resolvedModel.scopedProductCount > 0 ? resolvedModel.expansion.items.length / resolvedModel.scopedProductCount : 0, 1)})</p>
                     </div>
                     <div class="demand-driver-list">
-                        ${renderDemandDriverRows(model.expansion.items, 'expansion', activeId)}
+                        ${renderDemandDriverRows(resolvedModel.expansion.items, 'expansion', activeId)}
                     </div>
                 </section>
             </div>
@@ -3874,13 +3991,14 @@ function renderProducts() {
         qState.scope || 'transition',
         'both'
     );
+    const demandDriverModel = buildDemandDriverModel();
     if (quadrantModel) {
         qState.selectedId = quadrantModel.selected.id;
     }
 
     container.innerHTML = `
-        ${renderProductQuadrant(quadrantModel)}
-        ${renderDemandDriverCards()}
+        ${renderProductQuadrant(quadrantModel, demandDriverModel)}
+        ${renderDemandDriverCards(demandDriverModel)}
         <div class="animate-fade-in">
             ${renderSearchUI('products', '상품 ID 또는 이름 검색')}
             <div id="products-summary-card" class="card animate-fade-in"></div>
