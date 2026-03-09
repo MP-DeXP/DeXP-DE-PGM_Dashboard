@@ -1,67 +1,18 @@
 <!DOCTYPE html>
 <html lang="ko">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PGM 대시보드 - 상품 분석</title>
-
-    <!-- Google Fonts: Inter & Outfit -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700&display=swap"
-        rel="stylesheet">
-
-    <!-- Phosphor Icons -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <!-- PapaParse -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-
-    <!-- Custom Styles -->
-    <link rel="stylesheet" href="style.css">
+    <script>
+        (function redirectToProductsApp() {
+            var query = window.location.search || '';
+            var hash = window.location.hash || '';
+            window.location.replace('apps/products/' + query + hash);
+        })();
+    </script>
 </head>
-
-<body id="page-products">
-    <div class="app-container">
-        <!-- Sidebar Navigation -->
-        <nav class="sidebar">
-            <div class="logo-area">
-                <i class="ph-fill ph-chart-polar"></i>
-                <span>PGM 대시보드</span>
-            </div>
-
-            <ul class="nav-links">
-                <li class="active" onclick="window.location.href='products.html'">
-                    <i class="ph ph-tag"></i>
-                    <span>상품 분석</span>
-                </li>
-            </ul>
-
-            <div class="user-profile"></div>
-        </nav>
-
-        <!-- Main Content Area -->
-        <main class="main-content">
-            <header class="top-bar">
-                <h1 id="page-title">상품 분석</h1>
-            </header>
-
-            <div id="content-area">
-                <div id="loading-indicator" class="loading hidden">
-                    <div class="spinner"></div>
-                    <p>상품 데이터를 불러오는 중...</p>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- App Logic -->
-    <script src="app.js"></script>
+<body>
+    <p style="font-family: sans-serif; color: #475569; padding: 1rem;">상품 분석 앱으로 이동 중입니다...</p>
 </body>
-
 </html>

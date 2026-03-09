@@ -5,15 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PGM 대시보드 - 이동 중</title>
     <script>
-        (function redirectToProducts() {
-            var params = new URLSearchParams(window.location.search || '');
-            var focus = params.get('focus');
-            var target = focus ? ('products.html?focus=' + encodeURIComponent(focus)) : 'products.html';
+        (function redirectToProductsApp() {
+            var query = window.location.search || '';
+            var hash = window.location.hash || '';
+            var target = 'apps/products/' + query + hash;
             window.location.replace(target);
         })();
     </script>
 </head>
 <body>
-    <p style="font-family: sans-serif; color: #475569; padding: 1rem;">상품 분석 화면으로 이동 중입니다...</p>
+    <p style="font-family: sans-serif; color: #475569; padding: 1rem;">상품 분석 앱으로 이동 중입니다...</p>
 </body>
 </html>
