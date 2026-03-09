@@ -26,7 +26,7 @@
     <link rel="stylesheet" href="style.css">
     <script>
         if (!new URLSearchParams(window.location.search).has('overview')) {
-            window.location.replace('insights.html');
+            window.location.replace('products.html');
         }
     </script>
 </head>
@@ -41,10 +41,6 @@
             </div>
 
             <ul class="nav-links">
-                <li onclick="window.location.href='insights.html'">
-                    <i class="ph ph-rocket-launch"></i>
-                    <span>인사이트 스튜디오</span>
-                </li>
                 <li onclick="window.location.href='products.html'">
                     <i class="ph ph-tag"></i>
                     <span>상품 분석</span>
@@ -60,10 +56,6 @@
         <main class="main-content">
             <header class="top-bar">
                 <h1 id="page-title">대시보드 개요</h1>
-                <div class="controls">
-                    <button class="btn-icon"><i class="ph ph-bell"></i></button>
-                    <button class="btn-icon"><i class="ph ph-gear"></i></button>
-                </div>
             </header>
 
             <div id="content-area">
