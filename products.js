@@ -415,15 +415,15 @@ function renderQuadrantPanel(model) {
         { key: 'expansion-only', label: '재구매 강점 상품', color: '#8b5cf6', guide: '현재 화면에서 재구매 강점은 상대적으로 높지만, 신규 유입 강점은 상대적으로 낮은 구간이에요. 신규 유입 채널 보강이 필요해요.' }
     ];
     const transitionCta = selected.hasTransition
-        ? `<button class="btn-primary" type="button" onclick="openRetentionFlowModal('${escapeJs(selected.id)}')">90일 추가구매 흐름 보기</button>`
+        ? `<button class="btn-primary" type="button" onclick="openRetentionFlowModal('${escapeJs(selected.id)}')">90일 추가구매 상품 보기</button>`
         : `
-            <button class="btn-primary" type="button" disabled title="90일 추가구매 데이터가 없어 이동할 수 없음">90일 추가구매 흐름 보기</button>
+            <button class="btn-primary" type="button" disabled title="90일 추가구매 데이터가 없어 이동할 수 없음">90일 추가구매 상품 보기</button>
             <p class="pgm-link-help">구매 후 90일 내 추가구매 데이터가 없어 이동할 수 없어요.</p>
         `;
     const edgeModeLabel = model.edgeMode === 'both' ? '양방향 흐름' : '다음 재구매 흐름';
     const edgeGuide = model.visibleEdges?.length
         ? `이 상품 기준 상위 ${formatNumber(model.visibleEdges.length)}개 ${edgeModeLabel}을 시각화했어요.`
-        : '이 상품은 90일 내 재구매 흐름 연결이 없어 선이 표시되지 않아요.';
+        : '이 상품은 90일 내 재구매 상품 연결이 없어 선이 표시되지 않아요.';
     return `
         <div class="pgm-side-summary">
             <span class="pgm-badge" style="background:${status.color}1f; color:${status.color}; border-color:${status.color}55;">${status.label}</span>
@@ -439,7 +439,7 @@ function renderQuadrantPanel(model) {
                     <div><label>구매 지속 가능성</label><strong>${formatPercent(selected.repurchaseRate90d, 1)}</strong><span>구매 후 90일 기준</span></div>
                 </div>
                 <div class="pgm-insight-actions">
-                    <button class="btn-primary" type="button" onclick="openCartFlowModal('${escapeJs(selected.id)}')">장바구니 보기</button>
+                    <button class="btn-primary" type="button" onclick="openCartFlowModal('${escapeJs(selected.id)}')">동시에 구매한 상품</button>
                     ${transitionCta}
                 </div>
             </div>
