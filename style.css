@@ -724,9 +724,40 @@ body {
 }
 
 .pgm-chart.chart-card {
+    display: flex;
+    flex-direction: column;
     height: clamp(560px, 90vh, 980px);
     min-height: 560px;
     max-height: 100vh;
+}
+
+.pgm-chart.chart-card.is-demand-graph-view {
+    height: clamp(560px, 90vh, 980px);
+    min-height: 560px;
+    max-height: 100vh;
+}
+
+.pgm-chart-stage {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.pgm-chart-stage.is-demand-graph-view {
+    display: flex;
+    flex-direction: column;
+}
+
+.pgm-chart-stage canvas {
+    display: block;
+    width: 100% !important;
+    max-width: 100%;
+    height: 100% !important;
+}
+
+.pgm-chart.chart-card canvas {
+    display: block;
+    width: 100% !important;
+    max-width: 100%;
 }
 
 .pgm-center-line {
@@ -1339,6 +1370,324 @@ button.pgm-role-chip:focus-visible {
     gap: 1rem;
 }
 
+.demand-graph-wrap {
+    display: grid;
+    gap: 0.9rem;
+}
+
+.demand-graph-wrap.is-inline {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    height: 100%;
+    gap: 0.7rem;
+    min-height: 0;
+}
+
+.demand-graph-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.demand-graph-head h3 {
+    margin-bottom: 0.2rem;
+    font-size: 1rem;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.demand-graph-head p {
+    color: var(--text-muted);
+    font-size: 0.84rem;
+    line-height: 1.45;
+}
+
+.demand-graph-tabs {
+    display: inline-flex;
+    gap: 0.34rem;
+    flex-wrap: wrap;
+}
+
+.demand-graph-tabs .btn-primary {
+    font-size: 0.76rem;
+    padding: 0.36rem 0.68rem;
+    opacity: 0.74;
+}
+
+.demand-graph-tabs .btn-primary.is-active {
+    opacity: 1;
+    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.26);
+}
+
+.demand-graph-helper {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    line-height: 1.5;
+}
+
+.demand-graph-network-panel {
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: #fbfdff;
+    padding: 0.9rem;
+}
+
+.demand-graph-network-panel.is-inline {
+    display: flex;
+    flex: 1 1 auto;
+    height: 100%;
+    min-height: 0;
+    border: 0;
+    background: transparent;
+    padding: 0.15rem 0 0;
+}
+
+.pgm-chart-toggle {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-bottom: 0.9rem;
+}
+
+.demand-graph-empty {
+    border: 1px dashed var(--border-color);
+    border-radius: 12px;
+    padding: 1rem;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    line-height: 1.55;
+    background: #fcfdff;
+    text-align: center;
+}
+
+.demand-graph-scene {
+    position: relative;
+    flex: 1 1 auto;
+    height: 100%;
+    min-height: 460px;
+    border-radius: 12px;
+    background: #ffffff;
+    overflow: hidden;
+}
+
+.demand-graph-svg,
+.demand-graph-node-layer,
+.demand-graph-label-layer {
+    position: absolute;
+    inset: 0;
+}
+
+.demand-graph-svg {
+    width: 100%;
+    height: 100%;
+}
+
+.demand-graph-anchor-port {
+    position: absolute;
+    top: 50%;
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 3;
+}
+
+.demand-graph-anchor-port::before,
+.demand-graph-anchor-port::after {
+    content: "";
+    position: absolute;
+    border-radius: inherit;
+}
+
+.demand-graph-anchor-port::before {
+    inset: 0;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.98), 0 0 0 3px rgba(255, 255, 255, 0.22);
+}
+
+.demand-graph-anchor-port::after {
+    inset: 2px;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.18);
+}
+
+.demand-graph-anchor-port.is-left {
+    left: 37.5%;
+    background: linear-gradient(90deg, rgba(91, 147, 234, 0.96), rgba(141, 167, 207, 0.9));
+}
+
+.demand-graph-anchor-port.is-right {
+    left: 62.5%;
+    background: linear-gradient(90deg, rgba(141, 167, 207, 0.9), rgba(62, 183, 166, 0.96));
+}
+
+.demand-graph-line-glow {
+    fill: none;
+    stroke-linecap: round;
+    stroke-opacity: 0.14;
+    filter: blur(1px);
+}
+
+.demand-graph-line-glow.is-incoming {
+    stroke: url(#demandFlowIncomingGradient);
+}
+
+.demand-graph-line-glow.is-outgoing {
+    stroke: url(#demandFlowOutgoingGradient);
+}
+
+.demand-graph-line-glow.is-basket {
+    stroke: rgba(139, 160, 191, 0.25);
+}
+
+.demand-graph-line {
+    fill: none;
+    stroke: #7f8fa9;
+    stroke-opacity: 0.86;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 3 5;
+}
+
+.demand-graph-line.is-incoming {
+    stroke: url(#demandFlowIncomingGradient);
+    animation: demandGraphFlowShift 1.6s linear infinite;
+}
+
+.demand-graph-line.is-outgoing {
+    stroke: url(#demandFlowOutgoingGradient);
+    animation: demandGraphFlowShift 1.6s linear infinite;
+}
+
+.demand-graph-line.is-basket {
+    stroke: #8ba0bf;
+    stroke-dasharray: 3 5;
+}
+
+.demand-graph-line.is-incoming,
+.demand-graph-line.is-outgoing {
+    filter: drop-shadow(0 1px 1px rgba(99, 102, 241, 0.1));
+}
+
+@keyframes demandGraphFlowShift {
+    from {
+        stroke-dashoffset: 18;
+    }
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+.demand-graph-node-layer,
+.demand-graph-label-layer {
+    pointer-events: none;
+}
+
+.demand-graph-node-layer {
+    z-index: 4;
+}
+
+.demand-graph-label-layer {
+    z-index: 5;
+}
+
+.demand-graph-node {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    display: grid;
+    gap: 0.16rem;
+    width: min(180px, 26%);
+    text-align: left;
+    border: 1px solid #dbe6f5;
+    border-radius: 14px;
+    background: #ffffff;
+    padding: 0.72rem 0.78rem;
+    box-shadow: 0 10px 28px rgba(148, 163, 184, 0.1);
+    transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+    pointer-events: auto;
+    z-index: 2;
+}
+
+.demand-graph-node strong {
+    color: var(--text-main);
+    font-size: 0.82rem;
+    line-height: 1.35;
+}
+
+.demand-graph-node span,
+.demand-graph-node em,
+.demand-graph-node b {
+    font-size: 0.7rem;
+    line-height: 1.35;
+}
+
+.demand-graph-node span,
+.demand-graph-node em {
+    color: var(--text-muted);
+}
+
+.demand-graph-node em {
+    font-style: normal;
+    color: #5b6c85;
+    font-weight: 700;
+}
+
+.demand-graph-node b {
+    color: #39517d;
+    font-weight: 800;
+}
+
+.demand-graph-node:hover,
+.demand-graph-node:focus-visible {
+    transform: translate(-50%, calc(-50% - 1px));
+    border-color: #b9d0ff;
+    outline: none;
+}
+
+.demand-graph-node.is-anchor {
+    width: min(220px, 31%);
+    min-width: 180px;
+    border-color: rgba(59, 130, 246, 0.32);
+    background: linear-gradient(180deg, rgba(59, 130, 246, 0.1) 0%, rgba(255, 255, 255, 0.98) 100%);
+    box-shadow: 0 18px 34px rgba(59, 130, 246, 0.18);
+}
+
+.demand-graph-edge-label {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    padding: 0.18rem 0.34rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(219, 230, 245, 0.78);
+    box-shadow: 0 4px 8px rgba(148, 163, 184, 0.1);
+    text-align: center;
+    pointer-events: none;
+}
+
+.demand-graph-edge-label span {
+    font-size: 0.66rem;
+    line-height: 1.2;
+    color: #6b7280;
+    font-weight: 700;
+}
+
+.demand-graph-edge-label.is-incoming span {
+    color: #3569c6;
+}
+
+.demand-graph-edge-label.is-outgoing span {
+    color: #0f8f7f;
+}
+
+.demand-graph-edge-label.is-basket span {
+    color: #586b86;
+}
+
 .core-demand-head {
     display: flex;
     justify-content: space-between;
@@ -1537,9 +1886,31 @@ button.pgm-role-chip:focus-visible {
         white-space: normal;
     }
 
+    .demand-graph-head,
     .core-demand-head,
     .core-demand-controls {
+        grid-template-columns: 1fr;
         flex-direction: column;
+    }
+
+    .demand-graph-tabs {
+        width: 100%;
+    }
+
+    .demand-graph-tabs .btn-primary {
+        flex: 1 1 calc(50% - 0.34rem);
+    }
+
+    .demand-graph-node.is-anchor {
+        min-width: 150px;
+    }
+
+    .demand-graph-scene {
+        min-height: 420px;
+    }
+
+    .demand-graph-node {
+        width: min(200px, 48%);
     }
 
     .core-demand-controls .search-container {

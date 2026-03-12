@@ -34,6 +34,21 @@ const REQUIRED_FILES = {
         filename: 'pgm_return_gravity_loop_detail.csv',
         aliases: ['return_gravity_loop_detail.csv']
     },
+    insightDemandGraphNodes: {
+        key: 'insight_demand_graph_nodes',
+        filename: '_insight_demand_graph_nodes.csv',
+        aliases: ['insight_demand_graph_nodes.csv']
+    },
+    insightDemandGraphEdges: {
+        key: 'insight_demand_graph_edges',
+        filename: '_insight_demand_graph_edges.csv',
+        aliases: ['insight_demand_graph_edges.csv']
+    },
+    insightDemandGraphPatterns: {
+        key: 'insight_demand_graph_patterns',
+        filename: '_insight_demand_graph_patterns.csv',
+        aliases: ['insight_demand_graph_patterns.csv']
+    },
     cartAnchor: {
         key: 'cart_anchor',
         filename: 'pgm_basket_gravity.csv',
@@ -85,6 +100,9 @@ const AppState = {
         productDemandGravity: null,
         productTransitionEdge: [],
         returnGravityLoopDetail: [],
+        insightDemandGraphNodes: [],
+        insightDemandGraphEdges: [],
+        insightDemandGraphPatterns: [],
         cartAnchor: null,
         cartAnchorDetail: [],
         aaCohortJourney: [],
@@ -101,6 +119,9 @@ const AppState = {
         productDemandGravity: null,
         productTransitionEdge: [],
         returnGravityLoopDetail: [],
+        insightDemandGraphNodes: [],
+        insightDemandGraphEdges: [],
+        insightDemandGraphPatterns: [],
         cartAnchor: null,
         cartAnchorDetail: [],
         aaCohortJourney: [],
@@ -116,6 +137,8 @@ const AppState = {
             sortDesc: true,
             coreSortKey: 'entry',
             searchQuery: '',
+            chartView: 'quadrant',
+            demandGraphTab: 'transition',
             quadrant: {
                 selectedId: '',
                 history: [],
@@ -477,7 +500,7 @@ const renderProductCell = (name, id, maxLen = 24, options = {}) => {
     const groupMeta = options.groupMeta || getEntityMeta(id);
     const isGrouped = Boolean(showGroupLabel && groupMeta && groupMeta.memberCount > 1 && groupMeta.entityId);
     const nameClickHandler = nameClickMode === 'focus-quadrant'
-        ? `event.stopPropagation();focusQuadrantFromTable('${escapeJs(id)}')`
+        ? `event.stopPropagation();focusQuadrantFromDemandDriver('${escapeJs(id)}')`
         : `event.stopPropagation();showProductNamePopover('${escapeJs(fullName)}','${escapeJs(id)}')`;
     const groupLabel = isGrouped
         ? `
@@ -1304,6 +1327,220 @@ function transformReturnGravityLoopDetailRows(rows) {
         .sort((a, b) => toNumber(b.return_loop_customer_cnt, 0) - toNumber(a.return_loop_customer_cnt, 0));
 }
 
+function transformInsightDemandGraphNodesRows(rows) {
+    const src = normalizeCsvRows(rows);
+    const grouped = new Map();
+
+    src.forEach((row) => {
+        const rawId = String(firstDefinedValue(row.product_id, row.Product_ID, '')).trim();
+        if (!rawId) return;
+        const entityId = resolveEntityId(rawId);
+        if (!entityId) return;
+        if (!grouped.has(entityId)) {
+            grouped.set(entityId, {
+                product_id: entityId,
+                product_name_latest: '',
+                node_role_primary: '',
+                members: new Set(),
+                entry_score: 0,
+                expansion_score: 0,
+                convergence_score: 0,
+                return_score: 0,
+                node_size_score: 0,
+                distinct_source_product_cnt_90d: 0,
+                incoming_transition_rate_sum_90d: 0,
+                return_customer_rate_90d: 0,
+                return_loop_rate_90d: 0,
+                entry_type: '',
+                expansion_type: ''
+            });
+        }
+
+        const acc = grouped.get(entityId);
+        acc.members.add(rawId);
+        acc.product_name_latest = acc.product_name_latest || String(firstDefinedValue(row.product_name_latest, row.product_name, getEntityMeta(entityId).entityName)).trim();
+        acc.entry_score = Math.max(acc.entry_score, toNumber(row.entry_score, 0));
+        acc.expansion_score = Math.max(acc.expansion_score, toNumber(row.expansion_score, 0));
+        acc.convergence_score = Math.max(acc.convergence_score, toNumber(row.convergence_score, 0));
+        acc.return_score = Math.max(acc.return_score, toNumber(row.return_score, 0));
+        acc.node_size_score = Math.max(acc.node_size_score, toNumber(row.node_size_score, 0));
+        acc.distinct_source_product_cnt_90d = Math.max(acc.distinct_source_product_cnt_90d, toNumber(row.distinct_source_product_cnt_90d, 0));
+        acc.incoming_transition_rate_sum_90d = Math.max(acc.incoming_transition_rate_sum_90d, toNumber(row.incoming_transition_rate_sum_90d, 0));
+        acc.return_customer_rate_90d = Math.max(acc.return_customer_rate_90d, toNumber(row.return_customer_rate_90d, 0));
+        acc.return_loop_rate_90d = Math.max(acc.return_loop_rate_90d, toNumber(row.return_loop_rate_90d, 0));
+        acc.entry_type = acc.entry_type || normalizeCategoryValue(row.entry_type, '');
+        acc.expansion_type = acc.expansion_type || normalizeCategoryValue(row.expansion_type, '');
+    });
+
+    return Array.from(grouped.values()).map((row) => {
+        const scoreEntries = [
+            ['entry', toNumber(row.entry_score, 0)],
+            ['expansion', toNumber(row.expansion_score, 0)],
+            ['convergence', toNumber(row.convergence_score, 0)],
+            ['return', toNumber(row.return_score, 0)]
+        ];
+        scoreEntries.sort((a, b) => b[1] - a[1] || ['entry', 'expansion', 'convergence', 'return'].indexOf(a[0]) - ['entry', 'expansion', 'convergence', 'return'].indexOf(b[0]));
+        return {
+            product_id: row.product_id,
+            product_name_latest: row.product_name_latest || getEntityMeta(row.product_id).entityName || getProductName(row.product_id),
+            node_role_primary: row.node_role_primary || scoreEntries[0][0],
+            entry_score: toNumber(row.entry_score, 0),
+            expansion_score: toNumber(row.expansion_score, 0),
+            convergence_score: toNumber(row.convergence_score, 0),
+            return_score: toNumber(row.return_score, 0),
+            node_size_score: Math.max(
+                toNumber(row.node_size_score, 0),
+                toNumber(row.entry_score, 0),
+                toNumber(row.expansion_score, 0),
+                toNumber(row.convergence_score, 0),
+                toNumber(row.return_score, 0)
+            ),
+            entry_type: row.entry_type || '-',
+            expansion_type: row.expansion_type || '-',
+            distinct_source_product_cnt_90d: toNumber(row.distinct_source_product_cnt_90d, 0),
+            incoming_transition_rate_sum_90d: toNumber(row.incoming_transition_rate_sum_90d, 0),
+            return_customer_rate_90d: toNumber(row.return_customer_rate_90d, 0),
+            return_loop_rate_90d: toNumber(row.return_loop_rate_90d, 0),
+            member_count: row.members.size,
+            member_ids: Array.from(row.members).sort().join('|')
+        };
+    }).sort((a, b) => toNumber(b.node_size_score, 0) - toNumber(a.node_size_score, 0));
+}
+
+function transformInsightDemandGraphEdgesRows(rows) {
+    const src = normalizeCsvRows(rows);
+    const grouped = new Map();
+
+    src.forEach((row) => {
+        const sourceRaw = String(firstDefinedValue(row.source_product_id, row.from_product_id, '')).trim();
+        const targetRaw = String(firstDefinedValue(row.target_product_id, row.to_product_id, '')).trim();
+        if (!sourceRaw || !targetRaw) return;
+        const source = resolveEntityId(sourceRaw);
+        const target = resolveEntityId(targetRaw);
+        if (!source || !target || source === target) return;
+        const customers = Math.max(0, toNumber(firstDefinedValue(row.transition_customer_cnt, row.support_value, 0), 0));
+        if (customers <= 0) return;
+
+        const key = `${source}::${target}`;
+        if (!grouped.has(key)) {
+            grouped.set(key, {
+                source_product_id: source,
+                target_product_id: target,
+                source_product_name: '',
+                target_product_name: '',
+                transition_customer_cnt: 0,
+                source_cohort_customer_cnt: 0,
+                transition_rate: 0,
+                avg_days_num: 0,
+                avg_days_den: 0,
+                edge_rank_outgoing: Number.POSITIVE_INFINITY,
+                edge_rank_incoming: Number.POSITIVE_INFINITY,
+                edge_type: 'transition',
+                is_core_edge: 1
+            });
+        }
+
+        const acc = grouped.get(key);
+        acc.source_product_name = acc.source_product_name || String(firstDefinedValue(row.source_product_name, getProductName(source))).trim();
+        acc.target_product_name = acc.target_product_name || String(firstDefinedValue(row.target_product_name, getProductName(target))).trim();
+        acc.transition_customer_cnt += customers;
+        acc.source_cohort_customer_cnt += Math.max(0, toNumber(row.source_cohort_customer_cnt, 0));
+        acc.transition_rate = Math.max(acc.transition_rate, toNumber(row.transition_rate, 0));
+        const avgDays = toNumber(firstDefinedValue(row.avg_days_to_transition, row.avg_days_to_target, row.avg_days), NaN);
+        if (Number.isFinite(avgDays)) {
+            acc.avg_days_num += avgDays * customers;
+            acc.avg_days_den += customers;
+        }
+        acc.edge_rank_outgoing = Math.min(acc.edge_rank_outgoing, toNumber(row.edge_rank_outgoing, Number.POSITIVE_INFINITY));
+        acc.edge_rank_incoming = Math.min(acc.edge_rank_incoming, toNumber(row.edge_rank_incoming, Number.POSITIVE_INFINITY));
+    });
+
+    return Array.from(grouped.values()).map((row) => ({
+        source_product_id: row.source_product_id,
+        target_product_id: row.target_product_id,
+        source_product_name: row.source_product_name || getProductName(row.source_product_id),
+        target_product_name: row.target_product_name || getProductName(row.target_product_id),
+        transition_customer_cnt: toNumber(row.transition_customer_cnt, 0),
+        source_cohort_customer_cnt: toNumber(row.source_cohort_customer_cnt, 0),
+        transition_rate: toNumber(row.transition_rate, 0),
+        avg_days_to_transition: row.avg_days_den > 0 ? row.avg_days_num / row.avg_days_den : null,
+        edge_rank_outgoing: Number.isFinite(row.edge_rank_outgoing) ? row.edge_rank_outgoing : null,
+        edge_rank_incoming: Number.isFinite(row.edge_rank_incoming) ? row.edge_rank_incoming : null,
+        edge_type: row.edge_type || 'transition',
+        is_core_edge: toNumber(row.is_core_edge, 1)
+    })).sort((a, b) => toNumber(b.transition_customer_cnt, 0) - toNumber(a.transition_customer_cnt, 0));
+}
+
+function parseInsightPatternIds(row) {
+    const directIds = String(firstDefinedValue(row.related_product_ids, '')).trim();
+    if (directIds) {
+        return directIds
+            .split(/[|,>]/)
+            .map((part) => String(part || '').trim())
+            .filter(Boolean);
+    }
+    return String(firstDefinedValue(row.product_path, '')).trim()
+        .split(/[|>]/)
+        .map((part) => String(part || '').trim())
+        .filter(Boolean);
+}
+
+function transformInsightDemandGraphPatternsRows(rows) {
+    const src = normalizeCsvRows(rows);
+    const grouped = new Map();
+
+    src.forEach((row) => {
+        const type = String(firstDefinedValue(row.pattern_type, '')).trim();
+        if (!type) return;
+        const anchorRaw = String(firstDefinedValue(row.anchor_product_id, row.product_id, '')).trim();
+        if (!anchorRaw) return;
+        const anchor = resolveEntityId(anchorRaw);
+        if (!anchor) return;
+        const relatedIds = parseInsightPatternIds(row)
+            .map((id) => resolveEntityId(id))
+            .filter((id) => id && id !== anchor);
+        const uniqueRelatedIds = Array.from(new Set(relatedIds));
+        if (!uniqueRelatedIds.length) return;
+        const support = Math.max(0, toNumber(firstDefinedValue(row.support_value, row.transition_customer_cnt, row.co_order_cnt, 0), 0));
+        if (support <= 0) return;
+        const key = `${type}::${anchor}::${uniqueRelatedIds.join('|')}`;
+        if (!grouped.has(key)) {
+            grouped.set(key, {
+                pattern_id: String(firstDefinedValue(row.pattern_id, key)).trim(),
+                pattern_type: type,
+                anchor_product_id: anchor,
+                related_product_ids: uniqueRelatedIds,
+                product_path: String(firstDefinedValue(row.product_path, '')).trim(),
+                support_value: 0,
+                support_unit: String(firstDefinedValue(row.support_unit, type === 'basket_pair' ? 'order' : 'customer')).trim(),
+                confidence_value: null,
+                rank_within_type: Number.POSITIVE_INFINITY,
+                window_days: firstDefinedValue(row.window_days, '')
+            });
+        }
+        const acc = grouped.get(key);
+        acc.support_value += support;
+        const confidence = toNumber(firstDefinedValue(row.confidence_value, row.transition_rate), NaN);
+        if (Number.isFinite(confidence)) {
+            acc.confidence_value = Math.max(toNumber(acc.confidence_value, 0), confidence);
+        }
+        acc.rank_within_type = Math.min(acc.rank_within_type, toNumber(row.rank_within_type, Number.POSITIVE_INFINITY));
+    });
+
+    return Array.from(grouped.values()).map((row) => ({
+        pattern_id: row.pattern_id,
+        pattern_type: row.pattern_type,
+        anchor_product_id: row.anchor_product_id,
+        related_product_ids: row.related_product_ids.join('|'),
+        product_path: row.product_path || row.related_product_ids.join(' > '),
+        support_value: toNumber(row.support_value, 0),
+        support_unit: row.support_unit || '-',
+        confidence_value: Number.isFinite(row.confidence_value) ? row.confidence_value : null,
+        rank_within_type: Number.isFinite(row.rank_within_type) ? row.rank_within_type : null,
+        window_days: row.window_days === '' ? null : row.window_days
+    })).sort((a, b) => toNumber(b.support_value, 0) - toNumber(a.support_value, 0));
+}
+
 function transformCartAnchorDetailRows(rows) {
     const src = rows || [];
     const pairMap = new Map();
@@ -1608,6 +1845,9 @@ function rebuildDerivedData() {
     AppState.data.anchorTransition = transformAnchorTransitionRows(raw.anchorTransition || [], AppState.data.anchorScored);
     AppState.data.productTransitionEdge = transformProductTransitionEdgeRows(raw.productTransitionEdge || []);
     AppState.data.returnGravityLoopDetail = transformReturnGravityLoopDetailRows(raw.returnGravityLoopDetail || []);
+    AppState.data.insightDemandGraphNodes = transformInsightDemandGraphNodesRows(raw.insightDemandGraphNodes || []);
+    AppState.data.insightDemandGraphEdges = transformInsightDemandGraphEdgesRows(raw.insightDemandGraphEdges || []);
+    AppState.data.insightDemandGraphPatterns = transformInsightDemandGraphPatternsRows(raw.insightDemandGraphPatterns || []);
     AppState.data.cartAnchorDetail = transformCartAnchorDetailRows(raw.cartAnchorDetail || []);
     const topCompanionMap = buildTopCompanionMapFromDetail(AppState.data.cartAnchorDetail);
     AppState.data.cartAnchor = transformCartAnchorRows(raw.cartAnchor || []);
@@ -3232,13 +3472,16 @@ function applyFocusFromUrl(pageId) {
 }
 
 async function loadInsightsData() {
-    const [brandScore, anchorScored, anchorTransition, productDemandGravity, productTransitionEdge, returnGravityLoopDetail, cartAnchor, cartAnchorDetail, aaCohortJourney, aaTransitionPath, caProfile, biiWindow, apfActionRules, productGroupMap] = await Promise.all([
+    const [brandScore, anchorScored, anchorTransition, productDemandGravity, productTransitionEdge, returnGravityLoopDetail, insightDemandGraphNodes, insightDemandGraphEdges, insightDemandGraphPatterns, cartAnchor, cartAnchorDetail, aaCohortJourney, aaTransitionPath, caProfile, biiWindow, apfActionRules, productGroupMap] = await Promise.all([
         loadOptionalDataFromDB(REQUIRED_FILES.brandScore, []),
         loadOptionalDataFromDB(REQUIRED_FILES.anchorScored, []),
         loadOptionalDataFromDB(REQUIRED_FILES.anchorTransition, []),
         loadOptionalDataFromDB(REQUIRED_FILES.productDemandGravity, []),
         loadOptionalDataFromDB(REQUIRED_FILES.productTransitionEdge, []),
         loadOptionalDataFromDB(REQUIRED_FILES.returnGravityLoopDetail, []),
+        loadOptionalDataFromDB(REQUIRED_FILES.insightDemandGraphNodes, []),
+        loadOptionalDataFromDB(REQUIRED_FILES.insightDemandGraphEdges, []),
+        loadOptionalDataFromDB(REQUIRED_FILES.insightDemandGraphPatterns, []),
         loadOptionalDataFromDB(REQUIRED_FILES.cartAnchor, []),
         loadOptionalDataFromDB(REQUIRED_FILES.cartAnchorDetail, []),
         loadOptionalDataFromDB(REQUIRED_FILES.aaCohortJourney, []),
@@ -3255,6 +3498,9 @@ async function loadInsightsData() {
     AppState.rawData.productDemandGravity = productDemandGravity;
     AppState.rawData.productTransitionEdge = productTransitionEdge;
     AppState.rawData.returnGravityLoopDetail = returnGravityLoopDetail;
+    AppState.rawData.insightDemandGraphNodes = insightDemandGraphNodes;
+    AppState.rawData.insightDemandGraphEdges = insightDemandGraphEdges;
+    AppState.rawData.insightDemandGraphPatterns = insightDemandGraphPatterns;
     AppState.rawData.cartAnchor = cartAnchor;
     AppState.rawData.cartAnchorDetail = cartAnchorDetail;
     AppState.rawData.aaCohortJourney = aaCohortJourney;
@@ -3302,12 +3548,15 @@ async function init() {
             renderOverview();
             applyFriendlyUi(document.body);
         } else if (pageId === 'page-products') {
-            const [s, t, g, edgeRows, loopRows, groupMap] = await Promise.all([
+            const [s, t, g, edgeRows, loopRows, insightNodeRows, insightEdgeRows, insightPatternRows, groupMap] = await Promise.all([
                 loadDataFromDB(REQUIRED_FILES.anchorScored),
                 loadOptionalDataFromDB(REQUIRED_FILES.anchorTransition, []),
                 loadDataFromDB(REQUIRED_FILES.productDemandGravity),
                 loadOptionalDataFromDB(REQUIRED_FILES.productTransitionEdge, []),
                 loadOptionalDataFromDB(REQUIRED_FILES.returnGravityLoopDetail, []),
+                loadOptionalDataFromDB(REQUIRED_FILES.insightDemandGraphNodes, []),
+                loadOptionalDataFromDB(REQUIRED_FILES.insightDemandGraphEdges, []),
+                loadOptionalDataFromDB(REQUIRED_FILES.insightDemandGraphPatterns, []),
                 loadOptionalDataFromDB(REQUIRED_FILES.productGroupMap, [])
             ]);
             AppState.rawData.anchorScored = s;
@@ -3315,6 +3564,9 @@ async function init() {
             AppState.rawData.productDemandGravity = g;
             AppState.rawData.productTransitionEdge = edgeRows;
             AppState.rawData.returnGravityLoopDetail = loopRows;
+            AppState.rawData.insightDemandGraphNodes = insightNodeRows;
+            AppState.rawData.insightDemandGraphEdges = insightEdgeRows;
+            AppState.rawData.insightDemandGraphPatterns = insightPatternRows;
             AppState.rawData.productGroupMap = groupMap;
             rebuildDerivedData();
             applyFocusFromUrl(pageId);

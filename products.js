@@ -34,6 +34,31 @@ const QUADRANT_EDGE_MODE_META = {
     }
 };
 
+const DEMAND_GRAPH_TAB_META = {
+    transition: {
+        label: '전이 연결',
+        guide: '이 상품 전후로 자주 이어지는 구매 관계를 보여줘요.',
+        emptyGuide: '이 상품과 자주 이어지는 연결은 아직 많지 않아요.',
+        unavailableGuide: '주변 연결 흐름을 보여줄 상세 패턴 데이터가 아직 준비되지 않았어요.',
+        summaryTitle: '자주 이어지는 상품'
+    },
+    basket: {
+        label: '함께 담기는 조합',
+        guide: '이 상품과 함께 담기는 관계를 보여줘요.',
+        emptyGuide: '이 상품과 자주 함께 담기는 조합은 아직 많지 않아요.',
+        unavailableGuide: '함께 담기는 조합을 보여줄 패턴 데이터가 아직 준비되지 않았어요.',
+        summaryTitle: '자주 함께 담기는 상품'
+    }
+};
+
+const DEMAND_GRAPH_TRANSITION_LIMIT = 5;
+const DEMAND_GRAPH_BASKET_LIMIT = 6;
+const DEMAND_GRAPH_SUMMARY_LIMIT = 5;
+
+function normalizeDemandGraphTab(tab) {
+    return String(tab || '').trim().toLowerCase() === 'basket' ? 'basket' : 'transition';
+}
+
 function normalizeQuadrantEdgeMode(mode) {
     const normalized = String(mode || '').trim().toLowerCase();
     if (normalized === 'convergence') return 'convergence';
@@ -401,6 +426,376 @@ function getReturnPatternSummary(selectedId) {
             return acc;
         }, [])
         .slice(0, 3);
+}
+
+function getDemandGraphRoleLabel(role) {
+    const key = String(role || '').trim().toLowerCase();
+    if (key === 'entry') return '첫구매 유입';
+    if (key === 'expansion') return '재구매 확장';
+    if (key === 'convergence') return '도착 흐름';
+    if (key === 'return') return '다시 찾는 구매';
+    return '주변 연결';
+}
+
+function getDemandGraphNodeLookup() {
+    return new Map(
+        (AppState.data.insightDemandGraphNodes || []).map((row) => [String(row.product_id || '').trim(), row])
+    );
+}
+
+function getDemandGraphNodeInfo(id, nodeLookup = getDemandGraphNodeLookup()) {
+    const targetId = String(id || '').trim();
+    const node = nodeLookup.get(targetId) || {};
+    return {
+        id: targetId,
+        name: node.product_name_latest || getProductName(targetId),
+        roleLabel: getDemandGraphRoleLabel(node.node_role_primary),
+        sizeScore: toNumber(node.node_size_score, 0)
+    };
+}
+
+function parseDemandGraphPatternIds(row) {
+    const related = String(row.related_product_ids || '').trim();
+    if (related) {
+        return related.split(/[|,>]/).map((part) => String(part || '').trim()).filter(Boolean);
+    }
+    return String(row.product_path || '').trim().split(/[|>]/).map((part) => String(part || '').trim()).filter(Boolean);
+}
+
+function buildTransitionDemandGraphModel(selectedId) {
+    const nodeLookup = getDemandGraphNodeLookup();
+    const selected = getDemandGraphNodeInfo(selectedId, nodeLookup);
+    const edges = (AppState.data.insightDemandGraphEdges || [])
+        .map((row) => ({
+            source: String(row.source_product_id || '').trim(),
+            target: String(row.target_product_id || '').trim(),
+            customers: Math.max(0, toNumber(row.transition_customer_cnt, 0)),
+            rate: toNumber(row.transition_rate, 0)
+        }))
+        .filter((row) => row.source && row.target && row.customers > 0);
+
+    const relevant = edges.filter((edge) => edge.source === selectedId || edge.target === selectedId);
+    const incoming = relevant
+        .filter((edge) => edge.target === selectedId && edge.source !== selectedId)
+        .sort((a, b) => b.customers - a.customers || b.rate - a.rate)
+        .slice(0, DEMAND_GRAPH_TRANSITION_LIMIT)
+        .map((edge) => ({
+            ...getDemandGraphNodeInfo(edge.source, nodeLookup),
+            count: edge.customers,
+            directionLabel: '이전 흐름',
+            valueLabel: `${formatNumber(edge.customers, 0)}명`
+        }));
+    const outgoing = relevant
+        .filter((edge) => edge.source === selectedId && edge.target !== selectedId)
+        .sort((a, b) => b.customers - a.customers || b.rate - a.rate)
+        .slice(0, DEMAND_GRAPH_TRANSITION_LIMIT)
+        .map((edge) => ({
+            ...getDemandGraphNodeInfo(edge.target, nodeLookup),
+            count: edge.customers,
+            directionLabel: '다음 흐름',
+            valueLabel: `${formatNumber(edge.customers, 0)}명`
+        }));
+
+    const highlights = [...incoming, ...outgoing]
+        .sort((a, b) => toNumber(String(b.valueLabel).replace(/[^0-9.]/g, ''), 0) - toNumber(String(a.valueLabel).replace(/[^0-9.]/g, ''), 0))
+        .slice(0, DEMAND_GRAPH_SUMMARY_LIMIT);
+
+    return {
+        selected,
+        incoming,
+        outgoing,
+        highlights,
+        hasData: relevant.length > 0,
+        hasDataset: edges.length > 0
+    };
+}
+
+function buildBasketDemandGraphModel(selectedId) {
+    const nodeLookup = getDemandGraphNodeLookup();
+    const selected = getDemandGraphNodeInfo(selectedId, nodeLookup);
+    const grouped = new Map();
+    (AppState.data.insightDemandGraphPatterns || [])
+        .filter((row) => String(row.pattern_type || '').trim() === 'basket_pair')
+        .forEach((row) => {
+            const anchorId = String(row.anchor_product_id || '').trim();
+            const ids = parseDemandGraphPatternIds(row);
+            const relatedIds = Array.from(new Set([anchorId, ...ids].filter(Boolean)));
+            if (!relatedIds.includes(selectedId)) return;
+            relatedIds.filter((id) => id && id !== selectedId).forEach((id) => {
+                if (!grouped.has(id)) {
+                    grouped.set(id, {
+                        ...getDemandGraphNodeInfo(id, nodeLookup),
+                        support: 0
+                    });
+                }
+                grouped.get(id).support += Math.max(0, toNumber(row.support_value, 0));
+            });
+        });
+
+    const companions = Array.from(grouped.values())
+        .sort((a, b) => b.support - a.support)
+        .slice(0, DEMAND_GRAPH_BASKET_LIMIT)
+        .map((item) => ({
+            ...item,
+            count: item.support,
+            valueLabel: `${formatNumber(item.support, 0)}건 함께 담김`
+        }));
+
+    return {
+        selected,
+        left: companions.filter((_, index) => index % 2 === 0),
+        right: companions.filter((_, index) => index % 2 === 1),
+        highlights: companions.slice(0, DEMAND_GRAPH_SUMMARY_LIMIT),
+        hasData: companions.length > 0,
+        hasDataset: Array.isArray(AppState.data.insightDemandGraphPatterns) && AppState.data.insightDemandGraphPatterns.some((row) => String(row.pattern_type || '').trim() === 'basket_pair')
+    };
+}
+
+function buildDemandGraphModel(selectedId) {
+    const normalizedSelectedId = String(selectedId || '').trim();
+    const tab = normalizeDemandGraphTab(AppState.viewState.products?.demandGraphTab);
+    const meta = DEMAND_GRAPH_TAB_META[tab];
+    if (!normalizedSelectedId) {
+        return { tab, meta, hasAnyDataset: false, hasData: false, selected: null, highlights: [] };
+    }
+    const tabModel = tab === 'basket'
+        ? buildBasketDemandGraphModel(normalizedSelectedId)
+        : buildTransitionDemandGraphModel(normalizedSelectedId);
+    const hasAnyDataset = (AppState.data.insightDemandGraphEdges || []).length > 0 || (AppState.data.insightDemandGraphPatterns || []).length > 0;
+    return {
+        tab,
+        meta,
+        ...tabModel,
+        hasAnyDataset
+    };
+}
+
+function renderDemandGraphNodeButton(item, tone = 'default', style = '') {
+    if (!item?.id) return '';
+    return `
+        <button
+            class="demand-graph-node ${tone === 'anchor' ? 'is-anchor' : ''}"
+            type="button"
+            style="${style}"
+            onclick="event.stopPropagation();focusQuadrantFromDemandDriver('${escapeJs(item.id)}')"
+            title="${escapeHtml(item.name)}"
+        >
+            <strong>${escapeHtml(item.name)}</strong>
+            <span>${escapeHtml(item.roleLabel)}</span>
+        </button>
+    `;
+}
+
+function distributeGraphY(index, total) {
+    if (total <= 1) return 50;
+    const start = total <= 3 ? 24 : 18;
+    const end = total <= 3 ? 76 : 82;
+    return start + ((end - start) / (total - 1)) * index;
+}
+
+function buildDemandGraphScene(model) {
+    const nodes = [];
+    const edges = [];
+    const labels = [];
+    const maxCount = Math.max(
+        1,
+        ...(model.highlights || []).map((item) => toNumber(item.count, 0))
+    );
+    nodes.push({ ...model.selected, x: 50, y: 50, tone: 'anchor' });
+
+    if (model.tab === 'basket') {
+        const companions = [...(model.left || []), ...(model.right || [])];
+        const coords = [
+            { x: 20, y: 24 },
+            { x: 80, y: 24 },
+            { x: 18, y: 76 },
+            { x: 82, y: 76 },
+            { x: 50, y: 14 }
+        ];
+        companions.forEach((item, index) => {
+            const pos = coords[index] || { x: 50, y: 86 };
+            nodes.push({ ...item, ...pos, tone: 'default' });
+            edges.push({
+                fromX: 50,
+                fromY: 50,
+                toX: pos.x,
+                toY: pos.y,
+                kind: 'basket',
+                strokeWidth: 1.1 + (toNumber(item.count, 0) / maxCount) * 1.8
+            });
+            labels.push({
+                x: (50 + pos.x) / 2,
+                y: (50 + pos.y) / 2,
+                kind: 'basket',
+                value: item.valueLabel
+            });
+        });
+        return {
+            nodes,
+            edges,
+            labels,
+            legend: '점선은 함께 담기는 관계예요. 선이 굵을수록 함께 담기는 강도가 커요.'
+        };
+    }
+
+    (model.incoming || []).forEach((item, index, arr) => {
+        const x = index % 2 === 0 ? 15 : 21;
+        const y = distributeGraphY(index, arr.length);
+        const anchorEdgeY = 50 + ((index - ((arr.length - 1) / 2)) * 2.2);
+        nodes.push({ ...item, x, y, tone: 'default' });
+        edges.push({
+            fromX: x,
+            fromY: y,
+            toX: 37.5,
+            toY: anchorEdgeY,
+            kind: 'incoming',
+            strokeWidth: 1.1 + (toNumber(item.count, 0) / maxCount) * 1.8
+        });
+        labels.push({
+            x: (x + 37.5) / 2,
+            y: ((y + anchorEdgeY) / 2) - 3.6,
+            kind: 'incoming',
+            value: item.valueLabel
+        });
+    });
+
+    (model.outgoing || []).forEach((item, index, arr) => {
+        const x = index % 2 === 0 ? 85 : 79;
+        const y = distributeGraphY(index, arr.length);
+        const anchorEdgeY = 50 + ((index - ((arr.length - 1) / 2)) * 2.2);
+        nodes.push({ ...item, x, y, tone: 'default' });
+        edges.push({
+            fromX: 62.5,
+            fromY: anchorEdgeY,
+            toX: x,
+            toY: y,
+            kind: 'outgoing',
+            strokeWidth: 1.1 + (toNumber(item.count, 0) / maxCount) * 1.8
+        });
+        labels.push({
+            x: (x + 62.5) / 2,
+            y: ((y + anchorEdgeY) / 2) - 3.6,
+            kind: 'outgoing',
+            value: item.valueLabel
+        });
+    });
+
+    return {
+        nodes,
+        edges,
+        labels,
+        legend: '실선 화살표는 구매 전이 관계예요. 선이 굵을수록 더 자주 이어져요.'
+    };
+}
+
+function buildDemandGraphPath(edge) {
+    const fromX = toNumber(edge.fromX, 0);
+    const fromY = toNumber(edge.fromY, 0);
+    const toX = toNumber(edge.toX, 0);
+    const toY = toNumber(edge.toY, 0);
+    const horizontalGap = Math.abs(toX - fromX);
+    const curve = Math.max(8, horizontalGap * 0.34);
+
+    if (edge.kind === 'incoming') {
+        return `M ${fromX} ${fromY} C ${fromX + curve} ${fromY}, ${toX - curve} ${toY}, ${toX} ${toY}`;
+    }
+    if (edge.kind === 'outgoing') {
+        return `M ${fromX} ${fromY} C ${fromX + curve} ${fromY}, ${toX - curve} ${toY}, ${toX} ${toY}`;
+    }
+    const direction = toX >= fromX ? 1 : -1;
+    const arcY = fromY < toY ? 6 : -6;
+    return `M ${fromX} ${fromY} C ${fromX + (curve * direction)} ${fromY + arcY}, ${toX - (curve * direction)} ${toY - arcY}, ${toX} ${toY}`;
+}
+
+function renderDemandGraphNetwork(model) {
+    const scene = buildDemandGraphScene(model);
+    const nodeButtons = scene.nodes.map((node) => renderDemandGraphNodeButton(
+        node,
+        node.tone,
+        `left:${node.x}%; top:${node.y}%;`
+    )).join('');
+    const edgeLabels = scene.labels.map((label) => `
+        <div class="demand-graph-edge-label is-${label.kind}" style="left:${label.x}%; top:${label.y}%;">
+            <span>${escapeHtml(label.value)}</span>
+        </div>
+    `).join('');
+    const edgeLines = scene.edges.map((edge) => {
+        const path = buildDemandGraphPath(edge);
+        return `
+            <path
+                class="demand-graph-line-glow is-${edge.kind}"
+                d="${path}"
+                stroke-width="${edge.strokeWidth * (model.tab === 'basket' ? 2.8 : 5.8)}"
+            />
+            <path
+                class="demand-graph-line is-${edge.kind}"
+                d="${path}"
+                stroke-width="${edge.strokeWidth}"
+            />
+        `;
+    }).join('');
+
+    return `
+        <div class="demand-graph-scene">
+            <svg class="demand-graph-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                <defs>
+                    <linearGradient id="demandFlowIncomingGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#5b93ea" />
+                        <stop offset="100%" stop-color="#8da7cf" />
+                    </linearGradient>
+                    <linearGradient id="demandFlowOutgoingGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#8da7cf" />
+                        <stop offset="100%" stop-color="#3eb7a6" />
+                    </linearGradient>
+                </defs>
+                ${edgeLines}
+            </svg>
+            ${model.tab === 'transition' ? `
+                <div class="demand-graph-anchor-port is-left"></div>
+                <div class="demand-graph-anchor-port is-right"></div>
+            ` : ''}
+            <div class="demand-graph-label-layer">${edgeLabels}</div>
+            <div class="demand-graph-node-layer">${nodeButtons}</div>
+        </div>
+    `;
+}
+
+function renderDemandGraphInline(quadrantModel) {
+    const selectedId = String(quadrantModel?.selected?.id || AppState.viewState.products?.quadrant?.selectedId || '').trim();
+    const model = buildDemandGraphModel(selectedId);
+    return `
+        <div class="demand-graph-wrap is-inline">
+            <div class="demand-graph-head">
+                <div>
+                    <h3>선택 상품 주변 연결</h3>
+                    <p>이 상품이 어떤 상품과 어떤 관계로 이어지는지 보여줘요.</p>
+                </div>
+                <div class="demand-graph-tabs" role="tablist" aria-label="선택 상품 주변 흐름 탭">
+                    ${Object.entries(DEMAND_GRAPH_TAB_META).map(([key, meta]) => `
+                        <button
+                            class="btn-primary ${model.tab === key ? 'is-active' : ''}"
+                            type="button"
+                            role="tab"
+                            aria-selected="${model.tab === key ? 'true' : 'false'}"
+                            onclick="setProductsDemandGraphTab('${key}')"
+                        >${meta.label}</button>
+                    `).join('')}
+                </div>
+            </div>
+            <p class="demand-graph-helper"><strong>${escapeHtml(model.meta.label)}</strong> · ${escapeHtml(model.meta.guide)}</p>
+            ${!model.hasAnyDataset ? `
+                <div class="demand-graph-empty">빈발 패턴 데이터가 준비되면 선택 상품 주변 흐름을 보여드릴게요.</div>
+            ` : !model.hasDataset ? `
+                <div class="demand-graph-empty">${escapeHtml(model.meta.unavailableGuide)}</div>
+            ` : !model.hasData ? `
+                <div class="demand-graph-empty">${escapeHtml(model.meta.emptyGuide)}</div>
+            ` : `
+                <div class="demand-graph-network-panel is-inline">
+                    ${renderDemandGraphNetwork(model)}
+                </div>
+            `}
+        </div>
+    `;
 }
 
 function buildVisibleQuadrantEdges(points, selectedId, edgeMode = 'representative') {
@@ -834,6 +1229,7 @@ function renderQuadrantPanel(model) {
 
 function renderProductQuadrant(model, coreDemandModel = null) {
     const qState = AppState.viewState.products.quadrant || {};
+    const chartView = AppState.viewState.products.chartView === 'demand-graph' ? 'demand-graph' : 'quadrant';
     const scaleMode = qState.scaleMode || 'focus';
     const scopeMode = qState.scope === 'all' ? 'all' : 'retention-emphasis';
     const edgeMode = normalizeQuadrantEdgeMode(qState.edgeMode || model?.edgeMode || 'representative');
@@ -887,21 +1283,43 @@ function renderProductQuadrant(model, coreDemandModel = null) {
                 </div>
             </div>
             <div class="pgm-quadrant-body">
-                <div class="pgm-chart card chart-card">
-                    ${model
-        ? '<canvas id="pgmQuadrantChart"></canvas>'
-        : `<div class="quadrant-chart-empty"><p>${emptyChartMessage}</p></div>`}
+                <div class="pgm-chart card chart-card ${chartView === 'demand-graph' ? 'is-demand-graph-view' : 'is-quadrant-view'}">
+                    <div class="pgm-chart-toggle" role="tablist" aria-label="차트 보기">
+                        <button
+                            class="btn-primary ${chartView === 'quadrant' ? 'is-active' : ''}"
+                            type="button"
+                            role="tab"
+                            aria-selected="${chartView === 'quadrant' ? 'true' : 'false'}"
+                            onclick="setProductsChartView('quadrant')"
+                        >상품 상태 4분면</button>
+                        <button
+                            class="btn-primary ${chartView === 'demand-graph' ? 'is-active' : ''}"
+                            type="button"
+                            role="tab"
+                            aria-selected="${chartView === 'demand-graph' ? 'true' : 'false'}"
+                            onclick="setProductsChartView('demand-graph')"
+                        >선택 상품 주변 연결</button>
+                    </div>
+                    <div class="pgm-chart-stage ${chartView === 'demand-graph' ? 'is-demand-graph-view' : 'is-quadrant-view'}">
+                        ${chartView === 'quadrant'
+        ? (model
+            ? '<canvas id="pgmQuadrantChart"></canvas>'
+            : `<div class="quadrant-chart-empty"><p>${emptyChartMessage}</p></div>`)
+        : renderDemandGraphInline(model)}
+                    </div>
                 </div>
                 <div class="pgm-side card">${renderQuadrantPanel(model)}</div>
             </div>
-            ${scaleMode === 'focus' ? '<p class="quadrant-outlier-note">집중뷰에서는 선택 상품과 주요 연결 흐름을 더 크게 보여줘요. 멀리 있는 상품은 경계에 표시될 수 있어요.</p>' : ''}
-            ${model ? `<p class="pgm-edge-guide"><strong>${escapeHtml(model.edgeModeLabel || QUADRANT_EDGE_MODE_META[edgeMode].label)}</strong> · ${escapeHtml(model.edgeGuide || QUADRANT_EDGE_MODE_META[edgeMode].guide)}</p>` : ''}
-            <p
-                class="quadrant-bubble-note metric-tooltip-target"
-                title="버블 크기는 주간 예상 수요량(최근 1년 주문수 ÷ 52)의 상대 크기예요."
-                data-metric-tooltip="버블 크기는 주간 예상 수요량(최근 1년 주문수 ÷ 52)의 상대 크기예요."
-                aria-label="버블 크기는 주간 예상 수요량(최근 1년 주문수 ÷ 52)의 상대 크기예요."
-            >버블 크기 기준: 주간 예상 수요량(최근 1년 주문수 ÷ 52)</p>
+            ${chartView === 'quadrant' ? `
+                ${scaleMode === 'focus' ? '<p class="quadrant-outlier-note">집중뷰에서는 선택 상품과 주요 연결 흐름을 더 크게 보여줘요. 멀리 있는 상품은 경계에 표시될 수 있어요.</p>' : ''}
+                ${model ? `<p class="pgm-edge-guide"><strong>${escapeHtml(model.edgeModeLabel || QUADRANT_EDGE_MODE_META[edgeMode].label)}</strong> · ${escapeHtml(model.edgeGuide || QUADRANT_EDGE_MODE_META[edgeMode].guide)}</p>` : ''}
+                <p
+                    class="quadrant-bubble-note metric-tooltip-target"
+                    title="버블 크기는 주간 예상 수요량(최근 1년 주문수 ÷ 52)의 상대 크기예요."
+                    data-metric-tooltip="버블 크기는 주간 예상 수요량(최근 1년 주문수 ÷ 52)의 상대 크기예요."
+                    aria-label="버블 크기는 주간 예상 수요량(최근 1년 주문수 ÷ 52)의 상대 크기예요."
+                >버블 크기 기준: 주간 예상 수요량(최근 1년 주문수 ÷ 52)</p>
+            ` : ''}
         </div>
     `;
 }
@@ -990,6 +1408,14 @@ function renderQuadrantChart(model) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            layout: {
+                padding: {
+                    top: 14,
+                    right: 18,
+                    bottom: 16,
+                    left: 14
+                }
+            },
             animation: {
                 duration: model.scaleMode === 'focus' ? 460 : 320,
                 easing: 'easeOutQuart'
@@ -1035,14 +1461,26 @@ function renderQuadrantChart(model) {
                 x: {
                     min: range.xMin,
                     max: range.xMax,
-                    title: { display: true, text: '첫구매 강점' },
+                    title: {
+                        display: true,
+                        text: '첫구매 강점',
+                        padding: { top: 8 },
+                        color: '#334155',
+                        font: { size: 12, weight: '600' }
+                    },
                     ticks: { display: false },
                     grid: { display: false, drawBorder: false }
                 },
                 y: {
                     min: range.yMin,
                     max: range.yMax,
-                    title: { display: true, text: '재구매 강점' },
+                    title: {
+                        display: true,
+                        text: '재구매 강점',
+                        padding: { bottom: 6 },
+                        color: '#334155',
+                        font: { size: 12, weight: '600' }
+                    },
                     ticks: { display: false },
                     grid: { display: false, drawBorder: false }
                 }
@@ -1600,12 +2038,61 @@ function renderProducts() {
     `;
     applyFriendlyUi(container);
 
-    renderQuadrantChart(quadrantModel);
+    if (AppState.viewState.products.chartView !== 'demand-graph') {
+        renderQuadrantChart(quadrantModel);
+    }
     renderProductsTableOnly(coreDemandModel);
 
-    window.selectQuadrantItem = (entityId) => {
+    const restoreProductsScrollPosition = (scrollX, scrollY) => {
+        const restore = () => window.scrollTo(scrollX, scrollY);
+        restore();
+        requestAnimationFrame(() => {
+            restore();
+            requestAnimationFrame(restore);
+        });
+        setTimeout(restore, 0);
+        setTimeout(restore, 80);
+    };
+
+    const rerenderProductsSelection = (preserveScroll = false) => {
+        const scrollY = preserveScroll ? window.scrollY : 0;
+        const scrollX = preserveScroll ? window.scrollX : 0;
+        const nextQuadrantModel = buildQuadrantModel(
+            getScopedProductsData(),
+            qState.selectedId,
+            qState.scaleMode || 'focus',
+            qState.scope || 'retention-emphasis',
+            qState.edgeMode || 'representative'
+        );
+        const nextCoreDemandModel = buildCoreDemandTableModel();
+        if (nextQuadrantModel) {
+            qState.selectedId = nextQuadrantModel.selected.id;
+        }
+        const quadrantWrap = container.querySelector('.pgm-quadrant-wrap');
+        if (quadrantWrap) {
+            quadrantWrap.outerHTML = renderProductQuadrant(nextQuadrantModel, nextCoreDemandModel);
+            applyFriendlyUi(container.querySelector('.pgm-quadrant-wrap') || container);
+        }
+        if (AppState.charts.pgmQuadrant) {
+            AppState.charts.pgmQuadrant.destroy();
+            delete AppState.charts.pgmQuadrant;
+        }
+        if (AppState.viewState.products.chartView !== 'demand-graph') {
+            renderQuadrantChart(nextQuadrantModel);
+        }
+        renderProductsTableOnly(nextCoreDemandModel);
+        if (preserveScroll) {
+            restoreProductsScrollPosition(scrollX, scrollY);
+        }
+    };
+
+    window.selectQuadrantItem = (entityId, options = {}) => {
         const targetId = String(entityId || '').trim();
         if (!targetId) return;
+        const preserveScroll = Boolean(options?.preserveScroll);
+        if (preserveScroll && document.activeElement instanceof HTMLElement) {
+            document.activeElement.blur();
+        }
         const qState = AppState.viewState.products.quadrant;
         if (qState.selectedId && qState.selectedId !== targetId) {
             qState.history.push(qState.selectedId);
@@ -1613,31 +2100,38 @@ function renderProducts() {
         }
         qState.selectedId = targetId;
         AppState.helpers.focusEntityId = targetId;
-        renderProducts();
+        rerenderProductsSelection(preserveScroll);
     };
 
     window.focusQuadrantFromTable = (entityId) => {
         const targetId = String(entityId || '').trim();
         if (!targetId) return;
         if (typeof window.selectQuadrantItem === 'function') {
-            window.selectQuadrantItem(targetId);
+            window.selectQuadrantItem(targetId, { preserveScroll: true });
         }
-        setTimeout(() => {
-            document.querySelector('.pgm-quadrant-wrap')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 0);
     };
 
     window.focusQuadrantFromDemandDriver = (entityId) => {
         const targetId = String(entityId || '').trim();
         if (!targetId) return;
         if (typeof window.selectQuadrantItem === 'function') {
-            window.selectQuadrantItem(targetId);
+            window.selectQuadrantItem(targetId, { preserveScroll: true });
         }
     };
 
     window.setProductsCoreSortKey = (key) => {
         AppState.viewState.products.coreSortKey = normalizeCoreSortKey(key);
         renderProductsTableOnly();
+    };
+
+    window.setProductsDemandGraphTab = (tab) => {
+        AppState.viewState.products.demandGraphTab = normalizeDemandGraphTab(tab);
+        rerenderProductsSelection(true);
+    };
+
+    window.setProductsChartView = (view) => {
+        AppState.viewState.products.chartView = view === 'demand-graph' ? 'demand-graph' : 'quadrant';
+        rerenderProductsSelection(true);
     };
 
     window.selectPreviousQuadrantItem = () => {
