@@ -530,7 +530,17 @@ function buildQuadrantModel(rows, selectedId, scaleMode = 'focus', scope = 'rete
     if (!activeId) activeId = pointsWithDemandShare[0].id;
     const selected = pointsWithDemandShare.find((p) => p.id === activeId) || pointsWithDemandShare[0];
     const status = getQuadrantStatus(selected.entry, selected.expansion, centerEntry, centerExpansion);
-    const edgeDisplay = buildVisibleQuadrantEdges(pointsWithDemandShare, selected.id, normalizedEdgeMode);
+    const shouldHideEdgesForRetentionMode = normalizedScope === 'retention-emphasis' && !selected.hasTransition;
+    const edgeDisplay = shouldHideEdgesForRetentionMode
+        ? {
+            mode: normalizedEdgeMode,
+            label: QUADRANT_EDGE_MODE_META[normalizedEdgeMode].label,
+            guide: '이 상품은 90일 내 전이 데이터가 없어 흐름이 표시되지 않아요.',
+            edges: [],
+            isAvailable: true,
+            availability: getQuadrantEdgeModeAvailability()
+        }
+        : buildVisibleQuadrantEdges(pointsWithDemandShare, selected.id, normalizedEdgeMode);
     const scale = buildQuadrantScaleModel(points, selected, scaleMode, edgeDisplay.edges);
 
     return {
