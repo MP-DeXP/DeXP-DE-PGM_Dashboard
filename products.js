@@ -16,6 +16,39 @@ function getLevelText(value, p33, p66) {
     return '낮음';
 }
 
+const QUADRANT_CONVERGENCE_EDGE_TOP_N = 8;
+const QUADRANT_RETURN_LOOP_TOP_N = 4;
+
+const QUADRANT_EDGE_MODE_META = {
+    representative: {
+        label: '전이 흐름',
+        guide: '이 상품에서 이어지거나 이 상품으로 넘어오는 전이 흐름을 보여줘요.',
+        emptyGuide: '이 상품과 이어지는 전이 흐름이 아직 많지 않아요.',
+        unavailableGuide: '전이 흐름을 보여줄 데이터가 아직 준비되지 않았어요.'
+    },
+    convergence: {
+        label: '도착 흐름',
+        guide: '이 상품이 다른 상품 다음에 자주 선택되는지 보여줘요.',
+        emptyGuide: '이 상품이 다음 구매로 자주 이어지는 흐름은 아직 많지 않아요.',
+        unavailableGuide: '도착 흐름을 보여줄 상세 전이 데이터가 아직 준비되지 않았어요.'
+    }
+};
+
+function normalizeQuadrantEdgeMode(mode) {
+    const normalized = String(mode || '').trim().toLowerCase();
+    if (normalized === 'convergence') return 'convergence';
+    return 'representative';
+}
+
+function getQuadrantEdgeModeAvailability() {
+    const hasTransitionEdge = Array.isArray(AppState.data.productTransitionEdge) && AppState.data.productTransitionEdge.length > 0;
+    const hasAnchorTransition = Array.isArray(AppState.data.anchorTransition) && AppState.data.anchorTransition.length > 0;
+    return {
+        representative: hasTransitionEdge || hasAnchorTransition,
+        convergence: hasTransitionEdge
+    };
+}
+
 function getQuadrantStatus(entry, expansion, centerEntry, centerExpansion) {
     const highEntry = toNumber(entry, 0) >= toNumber(centerEntry, 0);
     const highExpansion = toNumber(expansion, 0) >= toNumber(centerExpansion, 0);
@@ -71,7 +104,107 @@ function getQuadrantStatus(entry, expansion, centerEntry, centerExpansion) {
     };
 }
 
-function getFocusRange(points, selected) {
+function getPointByIdMap(points) {
+    return new Map((points || []).map((point) => [String(point.id || '').trim(), point]));
+}
+
+function expandRangeToInclude(range, point, xPad, yPad) {
+    if (!point) return range;
+    return {
+        xMin: Math.min(range.xMin, point.entry - xPad),
+        xMax: Math.max(range.xMax, point.entry + xPad),
+        yMin: Math.min(range.yMin, point.expansion - yPad),
+        yMax: Math.max(range.yMax, point.expansion + yPad)
+    };
+}
+
+function getFocusPrimaryPoints(relatedPoints, selected) {
+    if (!selected || !Array.isArray(relatedPoints) || !relatedPoints.length) return [];
+    const others = relatedPoints
+        .filter((point) => String(point.id || '').trim() !== String(selected.id || '').trim())
+        .map((point) => ({
+            point,
+            distance: Math.hypot(point.entry - selected.entry, point.expansion - selected.expansion)
+        }))
+        .sort((a, b) => a.distance - b.distance);
+
+    if (!others.length) return [selected];
+    const distances = others.map((item) => item.distance);
+    const threshold = percentile(distances, 0.7);
+    const capped = others
+        .filter((item, index) => index < 5 || item.distance <= threshold)
+        .map((item) => item.point);
+    const primary = [selected, ...capped];
+    const unique = new Map(primary.map((point) => [String(point.id || '').trim(), point]));
+    return Array.from(unique.values());
+}
+
+function buildConnectedFocusRange(points, selected, visibleEdges) {
+    if (!selected) return null;
+    const pointMap = getPointByIdMap(points);
+    const relatedIds = new Set([String(selected.id || '').trim()]);
+    (visibleEdges || []).forEach((edge) => {
+        if (edge.from) relatedIds.add(String(edge.from).trim());
+        if (edge.to) relatedIds.add(String(edge.to).trim());
+    });
+    const relatedPoints = Array.from(relatedIds)
+        .map((id) => pointMap.get(id))
+        .filter(Boolean);
+    if (!relatedPoints.length) return null;
+
+    const primaryPoints = getFocusPrimaryPoints(relatedPoints, selected);
+    const entries = primaryPoints.map((point) => point.entry);
+    const expansions = primaryPoints.map((point) => point.expansion);
+    const meanEntry = entries.reduce((sum, value) => sum + value, 0) / entries.length;
+    const meanExpansion = expansions.reduce((sum, value) => sum + value, 0) / expansions.length;
+    const rawWidth = Math.max(...entries) - Math.min(...entries);
+    const rawHeight = Math.max(...expansions) - Math.min(...expansions);
+    const zoomMultiplier = primaryPoints.length <= 2 ? 1.1 : primaryPoints.length <= 4 ? 1.22 : primaryPoints.length <= 7 ? 1.35 : 1.45;
+    const width = Math.max(rawWidth * zoomMultiplier, primaryPoints.length <= 2 ? 0.08 : 0.12);
+    const height = Math.max(rawHeight * zoomMultiplier, primaryPoints.length <= 2 ? 0.08 : 0.12);
+    const xPad = Math.max(width * 0.08, 0.02);
+    const yPad = Math.max(height * 0.08, 0.02);
+    const xThreshold = Math.max(width * 0.08, 0.015);
+    const yThreshold = Math.max(height * 0.08, 0.015);
+    const leftRatio = meanEntry > selected.entry + xThreshold
+        ? 0.38
+        : meanEntry < selected.entry - xThreshold
+            ? 0.62
+            : 0.5;
+    const bottomRatio = meanExpansion > selected.expansion + yThreshold
+        ? 0.38
+        : meanExpansion < selected.expansion - yThreshold
+            ? 0.62
+            : 0.5;
+    let range = {
+        xMin: selected.entry - (width * leftRatio),
+        xMax: selected.entry + (width * (1 - leftRatio)),
+        yMin: selected.expansion - (height * bottomRatio),
+        yMax: selected.expansion + (height * (1 - bottomRatio))
+    };
+
+    primaryPoints.forEach((point) => {
+        range = expandRangeToInclude(range, point, xPad, yPad);
+    });
+    range = expandRangeToInclude(range, selected, xPad, yPad);
+
+    return {
+        ...range,
+        xPad,
+        yPad,
+        relatedCount: relatedPoints.length,
+        primaryCount: primaryPoints.length
+    };
+}
+
+function getFocusRange(points, selected, visibleEdges = []) {
+    const connectedRange = buildConnectedFocusRange(points, selected, visibleEdges);
+    if (connectedRange) {
+        if (connectedRange.xMin === connectedRange.xMax) connectedRange.xMax = connectedRange.xMin + 0.02;
+        if (connectedRange.yMin === connectedRange.yMax) connectedRange.yMax = connectedRange.yMin + 0.02;
+        return connectedRange;
+    }
+
     const entries = points.map((p) => p.entry);
     const expansions = points.map((p) => p.expansion);
     const exP5 = percentile(entries, 0.05);
@@ -92,7 +225,7 @@ function getFocusRange(points, selected) {
     }
     if (xMin === xMax) xMax = xMin + 0.02;
     if (yMin === yMax) yMax = yMin + 0.02;
-    return { xMin, xMax, yMin, yMax, xPad, yPad };
+    return { xMin, xMax, yMin, yMax, xPad, yPad, relatedCount: selected ? 1 : 0 };
 }
 
 function projectOutlierPoint(point, range) {
@@ -116,7 +249,7 @@ function projectOutlierPoint(point, range) {
     };
 }
 
-function buildQuadrantScaleModel(points, selected, scaleMode) {
+function buildQuadrantScaleModel(points, selected, scaleMode, visibleEdges = []) {
     const entries = points.map((p) => p.entry);
     const expansions = points.map((p) => p.expansion);
     const rawRange = {
@@ -127,7 +260,7 @@ function buildQuadrantScaleModel(points, selected, scaleMode) {
     };
     if (rawRange.xMin === rawRange.xMax) rawRange.xMax = rawRange.xMin + 0.02;
     if (rawRange.yMin === rawRange.yMax) rawRange.yMax = rawRange.yMin + 0.02;
-    const focusRange = getFocusRange(points, selected);
+    const focusRange = getFocusRange(points, selected, visibleEdges);
     const activeRange = scaleMode === 'raw' ? rawRange : focusRange;
     return {
         rawRange,
@@ -148,20 +281,17 @@ function buildTransitionEntitySet() {
     return set;
 }
 
-function buildVisibleQuadrantEdges(points, selectedId, edgeMode = 'both') {
-    const selected = String(selectedId || '').trim();
-    if (!selected || !Array.isArray(points) || !points.length) return [];
-    const pointIdSet = new Set(points.map((point) => String(point.id || '').trim()).filter(Boolean));
-    if (!pointIdSet.has(selected)) return [];
-
-    const normalizedEdgeMode = String(edgeMode || '').toLowerCase() === 'outbound' ? 'outbound' : 'both';
+function buildRepresentativeQuadrantEdges(pointIdSet, selectedId) {
     const edgeMap = new Map();
+    const sourceRows = Array.isArray(AppState.data.productTransitionEdge) && AppState.data.productTransitionEdge.length
+        ? AppState.data.productTransitionEdge
+        : (AppState.data.anchorTransition || []);
+
     const upsertEdge = (from, to, direction, row) => {
         if (!from || !to || from === to) return;
         if (!pointIdSet.has(from) || !pointIdSet.has(to)) return;
-        const customers = Math.max(0, toNumber(row.transition_customer_cnt, 0));
+        const customers = Math.max(0, toNumber(firstDefinedValue(row.transition_customer_cnt, row.transition_customers, 0), 0));
         if (customers <= 0) return;
-
         const key = `${from}::${to}`;
         if (!edgeMap.has(key)) {
             edgeMap.set(key, {
@@ -176,22 +306,25 @@ function buildVisibleQuadrantEdges(points, selectedId, edgeMode = 'both') {
         }
         const acc = edgeMap.get(key);
         acc.transitionCustomers += customers;
-        const avgDays = toNumber(firstDefinedValue(row.avg_days_to_pca, row.avg_days_to_expansion), NaN);
+        const avgDays = toNumber(firstDefinedValue(
+            row.avg_days_to_target,
+            row.avg_days_to_pca,
+            row.avg_days_to_expansion,
+            NaN
+        ), NaN);
         if (Number.isFinite(avgDays)) {
             acc.avgDaysNum += avgDays * customers;
             acc.avgDaysDen += customers;
         }
-        const rate = Math.max(0, toNumber(row.transition_rate, 0));
-        acc.peakRate = Math.max(acc.peakRate, rate);
+        acc.peakRate = Math.max(acc.peakRate, toNumber(firstDefinedValue(row.transition_rate, row.edge_rate, 0), 0));
     };
 
-    (AppState.data.anchorTransition || []).forEach((row) => {
-        const from = String(firstDefinedValue(row.aa_product_id, row.entry_product_id, '')).trim();
-        const to = String(firstDefinedValue(row.pca_product_id, row.expansion_product_id, '')).trim();
+    sourceRows.forEach((row) => {
+        const from = String(firstDefinedValue(row.source_product_id, row.aa_product_id, row.entry_product_id, '')).trim();
+        const to = String(firstDefinedValue(row.target_product_id, row.pca_product_id, row.expansion_product_id, '')).trim();
         if (!from || !to || from === to) return;
-
-        if (from === selected) upsertEdge(from, to, 'outbound', row);
-        if (normalizedEdgeMode === 'both' && to === selected) upsertEdge(from, to, 'inbound', row);
+        if (from === selectedId) upsertEdge(from, to, 'outbound', row);
+        if (to === selectedId) upsertEdge(from, to, 'inbound', row);
     });
 
     return Array.from(edgeMap.values())
@@ -207,10 +340,135 @@ function buildVisibleQuadrantEdges(points, selectedId, edgeMode = 'both') {
         .slice(0, QUADRANT_EDGE_TOP_N);
 }
 
-function buildQuadrantModel(rows, selectedId, scaleMode = 'focus', scope = 'retention-emphasis', edgeMode = 'both') {
+function buildConvergenceQuadrantEdges(pointIdSet, selectedId) {
+    return (AppState.data.productTransitionEdge || [])
+        .map((row) => ({
+            from: String(firstDefinedValue(row.source_product_id, '')).trim(),
+            to: String(firstDefinedValue(row.target_product_id, '')).trim(),
+            direction: 'convergence',
+            transitionCustomers: Math.max(0, toNumber(row.transition_customer_cnt, 0)),
+            peakRate: Math.max(0, toNumber(firstDefinedValue(row.transition_rate, row.edge_rate, 0), 0))
+        }))
+        .filter((edge) => edge.from && edge.to && edge.from !== edge.to)
+        .filter((edge) => edge.to === selectedId && edge.from !== selectedId)
+        .filter((edge) => pointIdSet.has(edge.from) && pointIdSet.has(edge.to))
+        .sort((a, b) => {
+            const byCustomers = toNumber(b.transitionCustomers, 0) - toNumber(a.transitionCustomers, 0);
+            if (byCustomers !== 0) return byCustomers;
+            return toNumber(b.peakRate, 0) - toNumber(a.peakRate, 0);
+        })
+        .slice(0, QUADRANT_CONVERGENCE_EDGE_TOP_N);
+}
+
+function buildReturnQuadrantEdges(pointIdSet, selectedId) {
+    return (AppState.data.returnGravityLoopDetail || [])
+        .filter((row) => String(firstDefinedValue(row.product_id, row.anchor_product_id, '')).trim() === selectedId)
+        .filter((row) => {
+            const lastVia = String(firstDefinedValue(row.last_via_product_id, row.via_product_id, row.intermediate_product_id, '')).trim();
+            const usableLast = lastVia && lastVia !== selectedId && pointIdSet.has(lastVia);
+            return usableLast;
+        })
+        .sort((a, b) => toNumber(b.return_loop_customer_cnt, 0) - toNumber(a.return_loop_customer_cnt, 0))
+        .slice(0, QUADRANT_RETURN_LOOP_TOP_N)
+        .map((row) => {
+            const lastVia = String(firstDefinedValue(row.last_via_product_id, row.via_product_id, row.intermediate_product_id, '')).trim();
+            const customers = Math.max(0, toNumber(row.return_loop_customer_cnt, 0));
+            return {
+                from: lastVia,
+                to: selectedId,
+                direction: 'loop-return',
+                transitionCustomers: customers,
+                peakRate: 0
+            };
+        });
+}
+
+function getReturnPatternSummary(selectedId) {
+    const targetId = String(selectedId || '').trim();
+    if (!targetId) return [];
+    return (AppState.data.returnGravityLoopDetail || [])
+        .filter((row) => String(firstDefinedValue(row.product_id, row.anchor_product_id, '')).trim() === targetId)
+        .map((row) => ({
+            id: String(firstDefinedValue(row.last_via_product_id, row.via_product_id, row.intermediate_product_id, '')).trim(),
+            name: getProductName(String(firstDefinedValue(row.last_via_product_id, row.via_product_id, row.intermediate_product_id, '')).trim()),
+            count: Math.max(0, toNumber(row.return_loop_customer_cnt, 0))
+        }))
+        .filter((item) => item.id && item.name && item.count > 0)
+        .sort((a, b) => b.count - a.count)
+        .reduce((acc, item) => {
+            if (acc.some((existing) => existing.id === item.id)) return acc;
+            acc.push(item);
+            return acc;
+        }, [])
+        .slice(0, 3);
+}
+
+function buildVisibleQuadrantEdges(points, selectedId, edgeMode = 'representative') {
+    const selected = String(selectedId || '').trim();
+    const normalizedEdgeMode = normalizeQuadrantEdgeMode(edgeMode);
+    const config = QUADRANT_EDGE_MODE_META[normalizedEdgeMode];
+    if (!selected || !Array.isArray(points) || !points.length) {
+        return {
+            mode: normalizedEdgeMode,
+            label: config.label,
+            guide: config.emptyGuide,
+            edges: [],
+            isAvailable: false,
+            availability: getQuadrantEdgeModeAvailability()
+        };
+    }
+
+    const pointIdSet = new Set(points.map((point) => String(point.id || '').trim()).filter(Boolean));
+    if (!pointIdSet.has(selected)) {
+        return {
+            mode: normalizedEdgeMode,
+            label: config.label,
+            guide: config.emptyGuide,
+            edges: [],
+            isAvailable: false,
+            availability: getQuadrantEdgeModeAvailability()
+        };
+    }
+
+    const availability = getQuadrantEdgeModeAvailability();
+    const isAvailable = Boolean(availability[normalizedEdgeMode]);
+    if (!isAvailable) {
+        return {
+            mode: normalizedEdgeMode,
+            label: config.label,
+            guide: config.unavailableGuide,
+            edges: [],
+            isAvailable,
+            availability
+        };
+    }
+
+    let edges = [];
+    if (normalizedEdgeMode === 'convergence') {
+        edges = buildConvergenceQuadrantEdges(pointIdSet, selected);
+    } else {
+        edges = buildRepresentativeQuadrantEdges(pointIdSet, selected);
+    }
+
+    return {
+        mode: normalizedEdgeMode,
+        label: config.label,
+        guide: edges.length ? config.guide : config.emptyGuide,
+        edges,
+        isAvailable,
+        availability
+    };
+}
+
+function buildQuadrantModel(rows, selectedId, scaleMode = 'focus', scope = 'retention-emphasis', edgeMode = 'representative') {
     const transitionEntitySet = buildTransitionEntitySet();
+    const demandGravityMap = new Map(
+        (AppState.data.productDemandGravity || [])
+            .map((row) => [String(row.product_id || '').trim(), row])
+            .filter(([id]) => id)
+    );
     const normalizedScope = String(scope || '').toLowerCase() === 'all' ? 'all' : 'retention-emphasis';
-    const normalizedEdgeMode = String(edgeMode || '').toLowerCase() === 'outbound' ? 'outbound' : 'both';
+    const normalizedEdgeMode = normalizeQuadrantEdgeMode(edgeMode);
     const allPoints = (rows || [])
         .map((row) => {
             const id = String(row.product_id || '').trim();
@@ -220,11 +478,14 @@ function buildQuadrantModel(rows, selectedId, scaleMode = 'focus', scope = 'rete
             const weeklyForecast = Math.max(0, toNumber(row.product_order_cnt_1y, 0) / 52);
             const entityMeta = getEntityMeta(id);
             const memberCount = Math.max(1, toNumber(row.member_count, 1), toNumber(entityMeta.memberCount, 1));
+            const gravityRow = demandGravityMap.get(id) || {};
             return {
                 id,
                 name: getProductName(id),
                 entry,
                 expansion,
+                returnScore: toNumber(gravityRow.Return_Gravity_Score, 0),
+                convergenceScore: toNumber(gravityRow.Convergence_Gravity_Score, 0),
                 weeklyForecast,
                 firstCustomerCnt: toNumber(row.first_customer_cnt, 0),
                 repurchaseCustomerCnt90d: toNumber(row.repurchase_customer_cnt_90d, 0),
@@ -269,13 +530,13 @@ function buildQuadrantModel(rows, selectedId, scaleMode = 'focus', scope = 'rete
     if (!activeId) activeId = pointsWithDemandShare[0].id;
     const selected = pointsWithDemandShare.find((p) => p.id === activeId) || pointsWithDemandShare[0];
     const status = getQuadrantStatus(selected.entry, selected.expansion, centerEntry, centerExpansion);
-    const scale = buildQuadrantScaleModel(points, selected, scaleMode);
-    const visibleEdges = buildVisibleQuadrantEdges(pointsWithDemandShare, selected.id, normalizedEdgeMode);
+    const edgeDisplay = buildVisibleQuadrantEdges(pointsWithDemandShare, selected.id, normalizedEdgeMode);
+    const scale = buildQuadrantScaleModel(points, selected, scaleMode, edgeDisplay.edges);
 
     return {
         points: pointsWithDemandShare,
         selected,
-        visibleEdges,
+        visibleEdges: edgeDisplay.edges,
         status,
         centerEntry,
         centerExpansion,
@@ -286,7 +547,11 @@ function buildQuadrantModel(rows, selectedId, scaleMode = 'focus', scope = 'rete
         maxWeekly,
         scaleMode: scale.mode,
         scope: normalizedScope,
-        edgeMode: normalizedEdgeMode,
+        edgeMode: edgeDisplay.mode,
+        edgeModeLabel: edgeDisplay.label,
+        edgeGuide: edgeDisplay.guide,
+        edgeAvailability: edgeDisplay.availability,
+        edgeModeAvailable: edgeDisplay.isAvailable,
         scaleRange: scale.activeRange,
         focusRange: scale.focusRange,
         rawRange: scale.rawRange
@@ -314,6 +579,8 @@ function buildQuadrantStrategyModel(model) {
         repurchaseRate90d: getRelativeLevelFromRows(selected.repurchaseRate90d, scopedPoints, 'repurchaseRate90d'),
         entryDemandShare: getRelativeLevelFromRows(selected.entryDemandShare, scopedPoints, 'entryDemandShare'),
         expansionDemandShare: getRelativeLevelFromRows(selected.expansionDemandShare, scopedPoints, 'expansionDemandShare'),
+        returnRole: getRelativeLevelFromRows(selected.returnScore, scopedPoints, 'returnScore'),
+        convergenceRole: getRelativeLevelFromRows(selected.convergenceScore, scopedPoints, 'convergenceScore'),
         attachRate: selectedCa ? getRelativeLevelFromRows(selectedCa.attach_rate, cartRowsForLevel, 'attach_rate') : '-',
         breadthLift: selectedCa ? getRelativeLevelFromRows(selectedCa.breadth_lift, cartRowsForLevel, 'breadth_lift') : '-',
         top1Share: selectedCa ? getRelativeLevelFromRows(selectedCa.top1_share, cartRowsForLevel, 'top1_share') : '-'
@@ -327,6 +594,8 @@ function buildQuadrantStrategyModel(model) {
     const lowContinuity = levels.repurchaseRate90d === '낮음';
     const highEntryContribution = levels.entryDemandShare === '높음';
     const highExpansionContribution = levels.expansionDemandShare === '높음';
+    const highReturnRole = levels.returnRole === '높음';
+    const highConvergenceRole = levels.convergenceRole === '높음';
     const lowContribution = levels.entryDemandShare === '낮음' && levels.expansionDemandShare === '낮음';
     const hasCartSignal = Boolean(selectedCa);
     const highCartExpansion = hasCartSignal && (levels.attachRate === '높음' || levels.breadthLift === '높음');
@@ -334,7 +603,11 @@ function buildQuadrantStrategyModel(model) {
     const cartType = String(selectedCa?.ca_type || '').toLowerCase();
 
     let roleText = '현재 반응을 점검할 필요가 있는 상품';
-    if (highEntryContribution && highExpansionContribution) {
+    if (highEntryContribution && highExpansionContribution && highReturnRole) {
+        roleText = '신규 유입과 재구매를 만들면서 다시 찾는 구매까지 이어지는 핵심 상품';
+    } else if (highConvergenceRole && (highDemand || mediumDemand)) {
+        roleText = '여러 흐름이 모이는 대표 상품';
+    } else if (highEntryContribution && highExpansionContribution) {
         roleText = '신규 유입과 재구매를 함께 만드는 핵심 상품';
     } else if (highExpansionContribution && (highContinuity || statusKey === 'expansion-only')) {
         roleText = '재구매를 지키는 유지형 핵심 상품';
@@ -349,6 +622,10 @@ function buildQuadrantStrategyModel(model) {
     let goalText = '현재 강점을 유지하면서 다음 성장 포인트를 확인해요.';
     if (highDemand && (highEntryContribution || highExpansionContribution) && lowContinuity) {
         goalText = '유입된 수요가 다음 구매로 이어지도록 유지 흐름을 보강해요.';
+    } else if (highReturnRole) {
+        goalText = '다시 돌아오는 구매 흐름이 끊기지 않도록 유지 반응을 지켜요.';
+    } else if (highConvergenceRole) {
+        goalText = '여러 흐름이 모이는 대표 상품 역할을 더 분명하게 만들어요.';
     } else if (highContinuity && !highEntryContribution) {
         goalText = '안정적인 재구매 반응을 바탕으로 신규 유입 모수를 넓혀요.';
     } else if (highCartExpansion && (mediumDemand || highDemand)) {
@@ -364,6 +641,10 @@ function buildQuadrantStrategyModel(model) {
     let actionText = '지금 반응이 좋은 지점은 유지하고 약한 신호 한 가지를 정해 보강 여부를 확인해봐요.';
     if (highDemand && (highEntryContribution || highExpansionContribution) && lowContinuity) {
         actionText = '상세·CRM·재구매 혜택을 묶어 첫 구매 후 3~7일 전환 장치를 우선 보강해봐요.';
+    } else if (highReturnRole) {
+        actionText = '재구매 리마인드 CRM과 루틴 구매 혜택을 묶어 다시 찾는 흐름을 안정적으로 유지해봐요.';
+    } else if (highConvergenceRole) {
+        actionText = '대표 상세와 세트 연결을 정리해 여러 흐름의 도착점 역할이 더 잘 보이게 만들어봐요.';
     } else if (highContinuity && !highEntryContribution) {
         actionText = '구매 지속 반응이 좋은 만큼 대표 진입 지면과 신규 유입 캠페인에서 노출 확대를 검토해봐요.';
     } else if (highCartExpansion) {
@@ -393,6 +674,23 @@ function buildQuadrantStrategyModel(model) {
     };
 }
 
+function getRoleLevelLabel(level) {
+    if (level === '높음') return '강함';
+    if (level === '낮음') return '약함';
+    return '보통';
+}
+
+function getAdditionalRoleGuide(key, level) {
+    if (key === 'returnRole') {
+        if (level === '높음') return '다른 구매를 거친 뒤 다시 돌아오는 흐름이 잘 보여요.';
+        if (level === '낮음') return '다시 찾는 구매 흐름은 아직 약하게 보여요.';
+        return '다시 찾는 구매 흐름이 일부 보여요.';
+    }
+    if (level === '높음') return '다른 상품 다음에 이 상품이 자주 선택되는 흐름이 뚜렷해요.';
+    if (level === '낮음') return '다음 구매로 이 상품이 이어지는 흐름은 아직 약해요.';
+    return '다음 구매로 이 상품이 이어지는 흐름이 일부 보여요.';
+}
+
 function renderQuadrantPanel(model) {
     if (!model) {
         return '<p class="empty-state">4분면 계산 대상 상품이 없습니다.</p>';
@@ -400,6 +698,7 @@ function renderQuadrantPanel(model) {
     const { selected, status } = model;
     const strategy = buildQuadrantStrategyModel(model);
     const memberMeta = selected.memberCount > 1 ? `그룹 상품 (${selected.memberCount}개 SKU)` : '단일 상품';
+    const returnPatternNames = getReturnPatternSummary(selected.id);
     const groupedLabel = selected.memberCount > 1
         ? `
             <button class="group-chip-trigger" type="button" onclick="event.stopPropagation();openGroupEditorWizard({focusEntityId:'${escapeJs(selected.groupEntityId || selected.id)}'})">
@@ -420,10 +719,6 @@ function renderQuadrantPanel(model) {
             <button class="btn-primary" type="button" disabled title="90일 추가구매 데이터가 없어 이동할 수 없음">90일 추가구매 상품 보기</button>
             <p class="pgm-link-help">구매 후 90일 내 추가구매 데이터가 없어 이동할 수 없어요.</p>
         `;
-    const edgeModeLabel = model.edgeMode === 'both' ? '양방향 흐름' : '다음 재구매 흐름';
-    const edgeGuide = model.visibleEdges?.length
-        ? `이 상품 기준 상위 ${formatNumber(model.visibleEdges.length)}개 ${edgeModeLabel}을 시각화했어요.`
-        : '이 상품은 90일 내 재구매 상품 연결이 없어 선이 표시되지 않아요.';
     return `
         <div class="pgm-side-summary">
             <span class="pgm-badge" style="background:${status.color}1f; color:${status.color}; border-color:${status.color}55;">${status.label}</span>
@@ -452,6 +747,34 @@ function renderQuadrantPanel(model) {
                     <div class="pgm-demand-share-card">
                         <label>재구매 기여 비중</label>
                         <strong>${formatPercent(selected.expansionDemandShare, 1)}</strong>
+                    </div>
+                </div>
+            </div>
+            <div class="pgm-additional-role-section">
+                <h4>추가 수요 역할</h4>
+                <div class="pgm-demand-share-grid">
+                    <div class="pgm-demand-share-card">
+                        <label>다시 찾는 구매</label>
+                        <strong>${getRoleLevelLabel(strategy?.reasonTags?.returnRole)}</strong>
+                        <span>${escapeHtml(getAdditionalRoleGuide('returnRole', strategy?.reasonTags?.returnRole))}</span>
+                        ${returnPatternNames.length ? `
+                            <span class="pgm-role-note">자주 거쳐 돌아오는 상품</span>
+                            <div class="pgm-role-chip-list">
+                                ${returnPatternNames.map((item) => `
+                                    <button
+                                        class="pgm-role-chip"
+                                        type="button"
+                                        onclick="event.stopPropagation();focusQuadrantFromDemandDriver('${escapeJs(item.id)}')"
+                                        title="${escapeHtml(item.name)}"
+                                    >${escapeHtml(item.name)}</button>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="pgm-demand-share-card">
+                        <label>도착 흐름</label>
+                        <strong>${getRoleLevelLabel(strategy?.reasonTags?.convergenceRole)}</strong>
+                        <span>${escapeHtml(getAdditionalRoleGuide('convergenceRole', strategy?.reasonTags?.convergenceRole))}</span>
                     </div>
                 </div>
             </div>
@@ -494,7 +817,6 @@ function renderQuadrantPanel(model) {
                     `).join('')}
                 </div>
             </div>
-            <p class="pgm-edge-guide">${escapeHtml(edgeGuide)}</p>
             <button class="btn-primary pgm-prev-btn" type="button" onclick="selectPreviousQuadrantItem()" ${hasHistory ? '' : 'disabled'}>이전 상품으로</button>
         </div>
     `;
@@ -504,6 +826,8 @@ function renderProductQuadrant(model, coreDemandModel = null) {
     const qState = AppState.viewState.products.quadrant || {};
     const scaleMode = qState.scaleMode || 'focus';
     const scopeMode = qState.scope === 'all' ? 'all' : 'retention-emphasis';
+    const edgeMode = normalizeQuadrantEdgeMode(qState.edgeMode || model?.edgeMode || 'representative');
+    const edgeAvailability = model?.edgeAvailability || getQuadrantEdgeModeAvailability();
     const emptyChartMessage = '표시할 상품이 없습니다.';
     const demandHeadline = coreDemandModel && coreDemandModel.totalCoreCount > 0
         ? `${formatNumber(coreDemandModel.totalCoreCount, 0)}개 상품이 핵심 수요를 만들고 있어요.`
@@ -538,6 +862,18 @@ function renderProductQuadrant(model, coreDemandModel = null) {
                         <button class="btn-primary ${scaleMode === 'focus' ? 'is-active' : ''}" type="button" onclick="setQuadrantScaleMode('focus')">집중뷰</button>
                         <button class="btn-primary ${scaleMode === 'raw' ? 'is-active' : ''}" type="button" onclick="setQuadrantScaleMode('raw')">원본 보기</button>
                     </div>
+                    <span class="quadrant-control-sep" aria-hidden="true">|</span>
+                    <div class="quadrant-edge-toggle">
+                        ${Object.entries(QUADRANT_EDGE_MODE_META).map(([key, meta]) => `
+                            <button
+                                class="btn-primary ${edgeMode === key ? 'is-active' : ''}"
+                                type="button"
+                                onclick="setQuadrantEdgeMode('${key}')"
+                                ${edgeAvailability[key] ? '' : 'disabled'}
+                                title="${escapeHtml(edgeAvailability[key] ? meta.guide : meta.unavailableGuide)}"
+                            >${meta.label}</button>
+                        `).join('')}
+                    </div>
                 </div>
             </div>
             <div class="pgm-quadrant-body">
@@ -548,7 +884,8 @@ function renderProductQuadrant(model, coreDemandModel = null) {
                 </div>
                 <div class="pgm-side card">${renderQuadrantPanel(model)}</div>
             </div>
-            ${scaleMode === 'focus' ? '<p class="quadrant-outlier-note">집중뷰에서는 일부 점이 경계에 압축돼요. 원본 보기를 누르면 전체 분포를 볼 수 있어요.</p>' : ''}
+            ${scaleMode === 'focus' ? '<p class="quadrant-outlier-note">집중뷰에서는 선택 상품과 주요 연결 흐름을 더 크게 보여줘요. 멀리 있는 상품은 경계에 표시될 수 있어요.</p>' : ''}
+            ${model ? `<p class="pgm-edge-guide"><strong>${escapeHtml(model.edgeModeLabel || QUADRANT_EDGE_MODE_META[edgeMode].label)}</strong> · ${escapeHtml(model.edgeGuide || QUADRANT_EDGE_MODE_META[edgeMode].guide)}</p>` : ''}
             <p
                 class="quadrant-bubble-note metric-tooltip-target"
                 title="버블 크기는 주간 예상 수요량(최근 1년 주문수 ÷ 52)의 상대 크기예요."
@@ -643,6 +980,15 @@ function renderQuadrantChart(model) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: {
+                duration: model.scaleMode === 'focus' ? 460 : 320,
+                easing: 'easeOutQuart'
+            },
+            animations: {
+                x: { duration: model.scaleMode === 'focus' ? 460 : 320, easing: 'easeOutQuart' },
+                y: { duration: model.scaleMode === 'focus' ? 460 : 320, easing: 'easeOutQuart' },
+                radius: { duration: model.scaleMode === 'focus' ? 420 : 260, easing: 'easeOutCubic' }
+            },
             plugins: {
                 legend: { display: false },
                 tooltip: {
@@ -765,15 +1111,19 @@ function renderQuadrantChart(model) {
                     const startY = from.y + uy * (from.r + 3);
                     const endX = to.x - ux * (to.r + 5);
                     const endY = to.y - uy * (to.r + 5);
-                    const bendSign = edge.direction === 'inbound' ? -1 : 1;
-                    const bend = Math.min(38, Math.max(12, dist * 0.18)) * bendSign;
+                    const isInbound = edge.direction === 'inbound' || edge.direction === 'convergence' || edge.direction === 'loop-return';
+                    const isLoop = edge.direction === 'loop-outbound' || edge.direction === 'loop-return';
+                    const bendSign = isInbound ? -1 : 1;
+                    const bendRatio = isLoop ? 0.26 : 0.18;
+                    const bendMax = isLoop ? 52 : 38;
+                    const bendMin = isLoop ? 18 : 12;
+                    const bend = Math.min(bendMax, Math.max(bendMin, dist * bendRatio)) * bendSign;
                     const cx = (startX + endX) / 2 + (-uy * bend);
                     const cy = (startY + endY) / 2 + (ux * bend);
                     const weight = toNumber(edge.transitionCustomers, 0) / maxCustomers;
-                    const isInbound = edge.direction === 'inbound';
                     // 미니멀 모드: 단색 저채도 + 선스타일(실선/점선)로만 방향 구분
                     const color = [100, 116, 139];
-                    const alpha = 0.08 + (weight * 0.16);
+                    const alpha = (isLoop ? 0.1 : 0.08) + (weight * (isLoop ? 0.2 : 0.16));
 
                     chartCtx.beginPath();
                     chartCtx.moveTo(startX, startY);
@@ -781,7 +1131,7 @@ function renderQuadrantChart(model) {
                     chartCtx.strokeStyle = `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${alpha})`;
                     chartCtx.lineWidth = 0.8 + (weight * 1.2);
                     chartCtx.lineCap = 'round';
-                    chartCtx.setLineDash(isInbound ? [3, 5] : []);
+                    chartCtx.setLineDash(isLoop ? (edge.direction === 'loop-return' ? [4, 4] : []) : (isInbound ? [3, 5] : []));
                     chartCtx.stroke();
                     chartCtx.setLineDash([]);
 
@@ -919,9 +1269,9 @@ const CORE_GRAVITY_CONFIG = {
         helper: '고객이 다른 구매를 거친 뒤 다시 돌아오게 만드는 상품부터 보여줘요.'
     },
     convergence: {
-        label: '수요 집중',
+        label: '도착 흐름',
         scoreKey: 'Convergence_Gravity_Score',
-        helper: '여러 상품 흐름의 끝에서 수요가 모이는 상품부터 보여줘요.'
+        helper: '다른 상품 다음에 이 상품으로 자주 이어지는 상품부터 보여줘요.'
     }
 };
 
@@ -1193,7 +1543,7 @@ function renderProductsTableOnly(model = null) {
                         <th>${escapeHtml(currentSortLabel)} 순위</th>
                         <th>첫구매 고객 비중</th>
                         <th>재구매 고객 비중</th>
-                        <th>90일 매출</th>
+                        <th>최근 90일 매출</th>
                         <th>리텐션 상태</th>
                     </tr></thead>
                     <tbody>${rows || `<tr><td colspan="8" class="core-demand-empty">지금 범위에서는 표시할 핵심 상품이 없어요.</td></tr>`}</tbody>
@@ -1210,13 +1560,24 @@ function renderProducts() {
     const qState = AppState.viewState.products.quadrant;
     if (!['retention-emphasis', 'all'].includes(qState.scope)) qState.scope = 'retention-emphasis';
     if (!['focus', 'raw'].includes(qState.scaleMode)) qState.scaleMode = 'focus';
+    const edgeAvailability = getQuadrantEdgeModeAvailability();
+    const preferredEdgeMode = edgeAvailability[normalizeQuadrantEdgeMode(qState.edgeMode)]
+        ? normalizeQuadrantEdgeMode(qState.edgeMode)
+        : edgeAvailability.representative
+            ? 'representative'
+            : edgeAvailability.convergence
+                ? 'convergence'
+                : edgeAvailability.return
+                    ? 'return'
+                    : 'representative';
+    qState.edgeMode = preferredEdgeMode;
 
     const quadrantModel = buildQuadrantModel(
         getScopedProductsData(),
         qState.selectedId,
         qState.scaleMode || 'focus',
         qState.scope || 'retention-emphasis',
-        'both'
+        qState.edgeMode || 'representative'
     );
     const coreDemandModel = buildCoreDemandTableModel();
     if (quadrantModel) {
@@ -1288,6 +1649,14 @@ function renderProducts() {
     window.setQuadrantScopeMode = (mode) => {
         const next = String(mode || '').toLowerCase() === 'all' ? 'all' : 'retention-emphasis';
         AppState.viewState.products.quadrant.scope = next;
+        renderProducts();
+    };
+
+    window.setQuadrantEdgeMode = (mode) => {
+        const next = normalizeQuadrantEdgeMode(mode);
+        const availability = getQuadrantEdgeModeAvailability();
+        if (!availability[next]) return;
+        AppState.viewState.products.quadrant.edgeMode = next;
         renderProducts();
     };
 

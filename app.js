@@ -24,6 +24,16 @@ const REQUIRED_FILES = {
         filename: 'pgm_product_demand_gravity.csv',
         aliases: ['product_demand_gravity.csv']
     },
+    productTransitionEdge: {
+        key: 'product_transition_edge',
+        filename: 'pgm_product_transition_edge.csv',
+        aliases: ['product_transition_edge.csv']
+    },
+    returnGravityLoopDetail: {
+        key: 'return_gravity_loop_detail',
+        filename: 'pgm_return_gravity_loop_detail.csv',
+        aliases: ['return_gravity_loop_detail.csv']
+    },
     cartAnchor: {
         key: 'cart_anchor',
         filename: 'pgm_basket_gravity.csv',
@@ -73,6 +83,8 @@ const AppState = {
         anchorScored: null,
         anchorTransition: null,
         productDemandGravity: null,
+        productTransitionEdge: [],
+        returnGravityLoopDetail: [],
         cartAnchor: null,
         cartAnchorDetail: [],
         aaCohortJourney: [],
@@ -87,6 +99,8 @@ const AppState = {
         anchorScored: null,
         anchorTransition: null,
         productDemandGravity: null,
+        productTransitionEdge: [],
+        returnGravityLoopDetail: [],
         cartAnchor: null,
         cartAnchorDetail: [],
         aaCohortJourney: [],
@@ -108,7 +122,8 @@ const AppState = {
                 filters: {},
                 groupingEditorOpen: false,
                 scaleMode: 'focus',
-                scope: 'retention-emphasis'
+                scope: 'retention-emphasis',
+                edgeMode: 'representative'
             }
         },
         transitions: { sortCol: 'transition_customer_cnt', sortDesc: true, searchQuery: '', searchMode: 'all' },
@@ -339,7 +354,7 @@ const UI_TERM_REPLACEMENTS = [
     [/\bValue Readiness\b/gi, STRUCTURE_LABELS.valueReadiness],
     [/\bEntry\s*Gravity\b/gi, '첫구매 유입'],
     [/\bExpansion\s*Gravity\b/gi, '재구매 확장'],
-    [/\bConvergence\s*Gravity\b/gi, '수요 집중'],
+    [/\bConvergence\s*Gravity\b/gi, '도착 흐름'],
     [/\bReturn\s*Gravity\b/gi, '다시 찾는 구매'],
     [/\bBasket\s*Gravity\b/gi, '장바구니 확장']
 ];
@@ -1126,6 +1141,169 @@ function transformAnchorTransitionRows(rows, groupedAnchorRows) {
     return result;
 }
 
+function transformProductTransitionEdgeRows(rows) {
+    const src = normalizeCsvRows(rows);
+    const groupedByPath = new Map();
+
+    src.forEach((row) => {
+        const fromRaw = String(firstDefinedValue(
+            row.source_product_id,
+            row.from_product_id,
+            row.prior_product_id,
+            row.entry_product_id,
+            row.aa_product_id,
+            row.i,
+            ''
+        )).trim();
+        const toRaw = String(firstDefinedValue(
+            row.target_product_id,
+            row.to_product_id,
+            row.next_product_id,
+            row.expansion_product_id,
+            row.pca_product_id,
+            row.j,
+            ''
+        )).trim();
+        if (!fromRaw || !toRaw) return;
+        const from = resolveEntityId(fromRaw);
+        const to = resolveEntityId(toRaw);
+        if (!from || !to || from === to) return;
+
+        const customers = Math.max(0, toNumber(firstDefinedValue(
+            row.transition_customer_cnt,
+            row.edge_customer_cnt,
+            row.transition_customers,
+            row.customer_cnt,
+            row.customer_count,
+            0
+        ), 0));
+        if (customers <= 0) return;
+
+        const key = `${from}::${to}`;
+        if (!groupedByPath.has(key)) {
+            groupedByPath.set(key, {
+                source_product_id: from,
+                target_product_id: to,
+                transition_customer_cnt: 0,
+                avg_days_num: 0,
+                avg_days_den: 0,
+                transition_rate: 0
+            });
+        }
+
+        const acc = groupedByPath.get(key);
+        acc.transition_customer_cnt += customers;
+        const avgDays = toNumber(firstDefinedValue(
+            row.avg_days_to_target,
+            row.avg_days_to_pca,
+            row.avg_days_to_expansion,
+            row.avg_days,
+            NaN
+        ), NaN);
+        if (customers > 0 && Number.isFinite(avgDays)) {
+            acc.avg_days_num += avgDays * customers;
+            acc.avg_days_den += customers;
+        }
+        acc.transition_rate = Math.max(
+            toNumber(acc.transition_rate, 0),
+            toNumber(firstDefinedValue(row.transition_rate, row.edge_rate, 0), 0)
+        );
+    });
+
+    return Array.from(groupedByPath.values())
+        .map((acc) => ({
+            source_product_id: acc.source_product_id,
+            target_product_id: acc.target_product_id,
+            transition_customer_cnt: acc.transition_customer_cnt,
+            transition_rate: acc.transition_rate,
+            avg_days_to_target: acc.avg_days_den > 0 ? acc.avg_days_num / acc.avg_days_den : null
+        }))
+        .sort((a, b) => toNumber(b.transition_customer_cnt, 0) - toNumber(a.transition_customer_cnt, 0));
+}
+
+function parseIntermediatePathIds(pathValue) {
+    return String(pathValue || '')
+        .split('->')
+        .map((part) => String(part || '').trim())
+        .filter(Boolean);
+}
+
+function transformReturnGravityLoopDetailRows(rows) {
+    const src = normalizeCsvRows(rows);
+    const groupedByLoop = new Map();
+
+    src.forEach((row) => {
+        const anchorRaw = String(firstDefinedValue(
+            row.return_product_id,
+            row.source_product_id,
+            row.anchor_product_id,
+            row.product_id,
+            row.return_product_id,
+            row.origin_product_id,
+            row.start_product_id,
+            row.base_product_id,
+            row.aa_product_id,
+            ''
+        )).trim();
+        if (!anchorRaw) return;
+        const qualifiedFlag = String(firstDefinedValue(row.qualified_return_flag, row.is_qualified_return, '')).trim();
+        const simpleRepeatFlag = String(firstDefinedValue(row.simple_repeat_comparison_flag, row.is_simple_repeat, '')).trim();
+        if (qualifiedFlag && qualifiedFlag !== '1' && qualifiedFlag.toLowerCase() !== 'true') return;
+        if (simpleRepeatFlag === '1' || simpleRepeatFlag.toLowerCase() === 'true') return;
+
+        const anchor = resolveEntityId(anchorRaw);
+        if (!anchor) return;
+
+        const pathIds = parseIntermediatePathIds(firstDefinedValue(row.intermediate_path, row.loop_path, row.return_path, ''));
+        const resolvedPath = pathIds
+            .map((id) => resolveEntityId(id))
+            .filter((id) => id && id !== anchor);
+        const firstVia = resolvedPath.length ? resolvedPath[0] : '';
+        const lastVia = resolvedPath.length ? resolvedPath[resolvedPath.length - 1] : '';
+        if (!firstVia || !lastVia) return;
+
+        const customers = Math.max(0, toNumber(firstDefinedValue(
+            row.return_loop_customer_cnt,
+            row.loop_customer_cnt,
+            row.return_customer_cnt,
+            row.customer_cnt,
+            row.customer_count,
+            1
+        ), 0));
+        if (customers <= 0) return;
+
+        const key = `${anchor}::${firstVia}::${lastVia}`;
+        if (!groupedByLoop.has(key)) {
+            groupedByLoop.set(key, {
+                product_id: anchor,
+                first_via_product_id: firstVia,
+                last_via_product_id: lastVia,
+                return_loop_customer_cnt: 0,
+                step_count: 2,
+                distinct_path_count: 0
+            });
+        }
+
+        const acc = groupedByLoop.get(key);
+        acc.return_loop_customer_cnt += customers;
+        acc.step_count = Math.max(
+            toNumber(acc.step_count, 2),
+            Math.max(2, toNumber(firstDefinedValue(
+                row.intermediate_step_cnt,
+                row.loop_length,
+                row.path_length,
+                row.step_count,
+                row.path_hops,
+                2
+            ), 2))
+        );
+        acc.distinct_path_count += 1;
+    });
+
+    return Array.from(groupedByLoop.values())
+        .sort((a, b) => toNumber(b.return_loop_customer_cnt, 0) - toNumber(a.return_loop_customer_cnt, 0));
+}
+
 function transformCartAnchorDetailRows(rows) {
     const src = rows || [];
     const pairMap = new Map();
@@ -1428,6 +1606,8 @@ function rebuildDerivedData() {
     AppState.data.anchorScored = transformAnchorScoredRows(raw.anchorScored || []);
     AppState.data.productDemandGravity = transformProductDemandGravityRows(raw.productDemandGravity || [], raw.anchorScored || []);
     AppState.data.anchorTransition = transformAnchorTransitionRows(raw.anchorTransition || [], AppState.data.anchorScored);
+    AppState.data.productTransitionEdge = transformProductTransitionEdgeRows(raw.productTransitionEdge || []);
+    AppState.data.returnGravityLoopDetail = transformReturnGravityLoopDetailRows(raw.returnGravityLoopDetail || []);
     AppState.data.cartAnchorDetail = transformCartAnchorDetailRows(raw.cartAnchorDetail || []);
     const topCompanionMap = buildTopCompanionMapFromDetail(AppState.data.cartAnchorDetail);
     AppState.data.cartAnchor = transformCartAnchorRows(raw.cartAnchor || []);
@@ -3052,11 +3232,13 @@ function applyFocusFromUrl(pageId) {
 }
 
 async function loadInsightsData() {
-    const [brandScore, anchorScored, anchorTransition, productDemandGravity, cartAnchor, cartAnchorDetail, aaCohortJourney, aaTransitionPath, caProfile, biiWindow, apfActionRules, productGroupMap] = await Promise.all([
+    const [brandScore, anchorScored, anchorTransition, productDemandGravity, productTransitionEdge, returnGravityLoopDetail, cartAnchor, cartAnchorDetail, aaCohortJourney, aaTransitionPath, caProfile, biiWindow, apfActionRules, productGroupMap] = await Promise.all([
         loadOptionalDataFromDB(REQUIRED_FILES.brandScore, []),
         loadOptionalDataFromDB(REQUIRED_FILES.anchorScored, []),
         loadOptionalDataFromDB(REQUIRED_FILES.anchorTransition, []),
         loadOptionalDataFromDB(REQUIRED_FILES.productDemandGravity, []),
+        loadOptionalDataFromDB(REQUIRED_FILES.productTransitionEdge, []),
+        loadOptionalDataFromDB(REQUIRED_FILES.returnGravityLoopDetail, []),
         loadOptionalDataFromDB(REQUIRED_FILES.cartAnchor, []),
         loadOptionalDataFromDB(REQUIRED_FILES.cartAnchorDetail, []),
         loadOptionalDataFromDB(REQUIRED_FILES.aaCohortJourney, []),
@@ -3071,6 +3253,8 @@ async function loadInsightsData() {
     AppState.rawData.anchorScored = anchorScored;
     AppState.rawData.anchorTransition = anchorTransition;
     AppState.rawData.productDemandGravity = productDemandGravity;
+    AppState.rawData.productTransitionEdge = productTransitionEdge;
+    AppState.rawData.returnGravityLoopDetail = returnGravityLoopDetail;
     AppState.rawData.cartAnchor = cartAnchor;
     AppState.rawData.cartAnchorDetail = cartAnchorDetail;
     AppState.rawData.aaCohortJourney = aaCohortJourney;
@@ -3118,15 +3302,19 @@ async function init() {
             renderOverview();
             applyFriendlyUi(document.body);
         } else if (pageId === 'page-products') {
-            const [s, t, g, groupMap] = await Promise.all([
+            const [s, t, g, edgeRows, loopRows, groupMap] = await Promise.all([
                 loadDataFromDB(REQUIRED_FILES.anchorScored),
                 loadOptionalDataFromDB(REQUIRED_FILES.anchorTransition, []),
                 loadDataFromDB(REQUIRED_FILES.productDemandGravity),
+                loadOptionalDataFromDB(REQUIRED_FILES.productTransitionEdge, []),
+                loadOptionalDataFromDB(REQUIRED_FILES.returnGravityLoopDetail, []),
                 loadOptionalDataFromDB(REQUIRED_FILES.productGroupMap, [])
             ]);
             AppState.rawData.anchorScored = s;
             AppState.rawData.anchorTransition = t;
             AppState.rawData.productDemandGravity = g;
+            AppState.rawData.productTransitionEdge = edgeRows;
+            AppState.rawData.returnGravityLoopDetail = loopRows;
             AppState.rawData.productGroupMap = groupMap;
             rebuildDerivedData();
             applyFocusFromUrl(pageId);

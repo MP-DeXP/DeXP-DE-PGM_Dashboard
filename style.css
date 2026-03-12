@@ -628,6 +628,11 @@ body {
     gap: 0.28rem;
 }
 
+.quadrant-edge-toggle {
+    display: inline-flex;
+    gap: 0.28rem;
+}
+
 .quadrant-head-controls {
     display: flex;
     flex-wrap: nowrap;
@@ -658,6 +663,12 @@ body {
     opacity: 0.72;
 }
 
+.quadrant-edge-toggle .btn-primary {
+    font-size: 0.74rem;
+    padding: 0.34rem 0.56rem;
+    opacity: 0.72;
+}
+
 .quadrant-scope-toggle .btn-primary {
     font-size: 0.74rem;
     padding: 0.34rem 0.56rem;
@@ -681,6 +692,17 @@ body {
 .quadrant-scale-toggle .btn-primary.is-active {
     opacity: 1;
     box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+}
+
+.quadrant-edge-toggle .btn-primary.is-active {
+    opacity: 1;
+    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+}
+
+.quadrant-edge-toggle .btn-primary:disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
+    box-shadow: none;
 }
 
 .pgm-quadrant-body {
@@ -860,6 +882,16 @@ body {
     color: var(--text-main);
 }
 
+.pgm-additional-role-section {
+    margin-bottom: 0.75rem;
+}
+
+.pgm-additional-role-section h4 {
+    margin-bottom: 0.35rem;
+    font-size: 0.83rem;
+    color: var(--text-main);
+}
+
 .pgm-demand-share-grid {
     margin-top: 0.55rem;
     display: grid;
@@ -917,6 +949,44 @@ body {
     margin-top: 0.14rem;
     color: var(--text-muted);
     font-size: 0.7rem;
+}
+
+.pgm-role-note {
+    display: block;
+    margin-top: 0.32rem;
+    color: #64748b;
+    font-size: 0.68rem;
+    font-weight: 700;
+}
+
+.pgm-role-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.28rem;
+    margin-top: 0.22rem;
+}
+
+.pgm-role-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.16rem 0.46rem;
+    border-radius: 999px;
+    background: #eef4ff;
+    border: 1px solid #d6e4ff;
+    color: #36558f;
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1.25;
+    cursor: pointer;
+    transition: background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
+}
+
+button.pgm-role-chip:hover,
+button.pgm-role-chip:focus-visible {
+    background: #e2ecff;
+    border-color: #b9d0ff;
+    outline: none;
+    transform: translateY(-1px);
 }
 
 .pgm-actions h4 {
@@ -2897,6 +2967,10 @@ body {
         width: 100%;
     }
 
+    .quadrant-edge-toggle {
+        width: 100%;
+    }
+
     .quadrant-head-controls {
         width: 100%;
         flex-wrap: wrap;
@@ -2908,6 +2982,10 @@ body {
     }
 
     .quadrant-scale-toggle .btn-primary {
+        flex: 1;
+    }
+
+    .quadrant-edge-toggle .btn-primary {
         flex: 1;
     }
 
