@@ -19,6 +19,11 @@ const REQUIRED_FILES = {
         filename: 'pgm_entry_to_expansion_transition.csv',
         aliases: ['anchor_transition.csv']
     },
+    productDemandGravity: {
+        key: 'product_demand_gravity',
+        filename: 'pgm_product_demand_gravity.csv',
+        aliases: ['product_demand_gravity.csv']
+    },
     cartAnchor: {
         key: 'cart_anchor',
         filename: 'pgm_basket_gravity.csv',
@@ -67,6 +72,7 @@ const AppState = {
         brandScore: null,
         anchorScored: null,
         anchorTransition: null,
+        productDemandGravity: null,
         cartAnchor: null,
         cartAnchorDetail: [],
         aaCohortJourney: [],
@@ -80,6 +86,7 @@ const AppState = {
         brandScore: null,
         anchorScored: null,
         anchorTransition: null,
+        productDemandGravity: null,
         cartAnchor: null,
         cartAnchorDetail: [],
         aaCohortJourney: [],
@@ -93,6 +100,7 @@ const AppState = {
         products: {
             sortCol: 'revenue_90d',
             sortDesc: true,
+            coreSortKey: 'entry',
             searchQuery: '',
             quadrant: {
                 selectedId: '',
@@ -294,6 +302,8 @@ const STRUCTURE_LABELS = {
 const BANNED_UI_TERMS = [
     /\bEntry\s*Gravity\b/gi,
     /\bExpansion\s*Gravity\b/gi,
+    /\bConvergence\s*Gravity\b/gi,
+    /\bReturn\s*Gravity\b/gi,
     /\bBasket\s*Gravity\b/gi,
     /\bBrand\s*Health\s*Index\b/gi,
     /\bBrand\s*Impact\s*Index\b/gi,
@@ -328,7 +338,9 @@ const UI_TERM_REPLACEMENTS = [
     [/\bExpansion Balance\b/gi, STRUCTURE_LABELS.expansion],
     [/\bValue Readiness\b/gi, STRUCTURE_LABELS.valueReadiness],
     [/\bEntry\s*Gravity\b/gi, '첫구매 유입'],
-    [/\bExpansion\s*Gravity\b/gi, '재구매'],
+    [/\bExpansion\s*Gravity\b/gi, '재구매 확장'],
+    [/\bConvergence\s*Gravity\b/gi, '수요 집중'],
+    [/\bReturn\s*Gravity\b/gi, '다시 찾는 구매'],
     [/\bBasket\s*Gravity\b/gi, '장바구니 확장']
 ];
 
@@ -955,6 +967,103 @@ function transformAnchorScoredRows(rows) {
     return result;
 }
 
+function transformProductDemandGravityRows(rows, anchorRows = []) {
+    const src = rows || [];
+    const rawAnchorById = new Map(
+        (anchorRows || [])
+            .map((row) => [readProductId(row), row])
+            .filter(([id]) => id)
+    );
+    const groupMap = new Map();
+    const weightedFields = [
+        'Entry_Gravity_Score',
+        'Expansion_Gravity_Score',
+        'Convergence_Gravity_Score',
+        'Return_Gravity_Score',
+        'incoming_transition_rate_sum_90d',
+        'return_customer_rate_90d',
+        'return_loop_rate_90d',
+        'simple_repeat_rate_90d',
+        'self_loop_transition_rate_90d'
+    ];
+    const sumFieldsList = [
+        'converged_customer_cnt_90d',
+        'distinct_source_product_cnt_90d',
+        'self_loop_transition_customer_cnt_90d'
+    ];
+
+    src.forEach((row) => {
+        const rawId = readProductId(row);
+        if (!rawId) return;
+        const entityId = resolveEntityId(rawId);
+        if (!groupMap.has(entityId)) {
+            groupMap.set(entityId, {
+                product_id: entityId,
+                product_name_latest: getEntityMeta(entityId).entityName,
+                members: new Set(),
+                entryTypeScores: {},
+                expansionTypeScores: {},
+                _weighted: {}
+            });
+        }
+
+        const acc = groupMap.get(entityId);
+        acc.members.add(rawId);
+
+        const anchorRow = rawAnchorById.get(rawId) || {};
+        const weight = Math.max(
+            1,
+            toNumber(anchorRow.product_order_cnt_1y, 0),
+            toNumber(anchorRow.first_customer_cnt, 0),
+            toNumber(anchorRow.revenue_90d, 0)
+        );
+        sumFields(acc, row, sumFieldsList);
+        weightedFieldAssign(acc, row, weightedFields, weight);
+
+        const entryType = normalizeCategoryValue(row.Entry_Gravity_Primary_Type, '');
+        if (entryType) acc.entryTypeScores[entryType] = toNumber(acc.entryTypeScores[entryType], 0) + weight;
+        const expansionType = normalizeCategoryValue(row.Expansion_Gravity_Primary_Type, '');
+        if (expansionType) acc.expansionTypeScores[expansionType] = toNumber(acc.expansionTypeScores[expansionType], 0) + weight;
+    });
+
+    const result = Array.from(groupMap.values()).map((acc) => {
+        finalizeWeightedFields(acc, weightedFields);
+        return {
+            product_id: acc.product_id,
+            product_name_latest: acc.product_name_latest,
+            Entry_Gravity_Score: toNumber(acc.Entry_Gravity_Score, 0),
+            Expansion_Gravity_Score: toNumber(acc.Expansion_Gravity_Score, 0),
+            Convergence_Gravity_Score: toNumber(acc.Convergence_Gravity_Score, 0),
+            Return_Gravity_Score: toNumber(acc.Return_Gravity_Score, 0),
+            Entry_Gravity_Primary_Type: determinePrimaryType(acc.entryTypeScores, '-'),
+            Expansion_Gravity_Primary_Type: determinePrimaryType(acc.expansionTypeScores, '-'),
+            converged_customer_cnt_90d: toNumber(acc.converged_customer_cnt_90d, 0),
+            distinct_source_product_cnt_90d: toNumber(acc.distinct_source_product_cnt_90d, 0),
+            incoming_transition_rate_sum_90d: toNumber(acc.incoming_transition_rate_sum_90d, 0),
+            self_loop_transition_customer_cnt_90d: toNumber(acc.self_loop_transition_customer_cnt_90d, 0),
+            self_loop_transition_rate_90d: toNumber(acc.self_loop_transition_rate_90d, 0),
+            return_customer_rate_90d: toNumber(acc.return_customer_rate_90d, 0),
+            return_loop_rate_90d: toNumber(acc.return_loop_rate_90d, 0),
+            simple_repeat_rate_90d: toNumber(acc.simple_repeat_rate_90d, 0),
+            member_count: acc.members.size,
+            member_ids: Array.from(acc.members).sort().join('|')
+        };
+    });
+
+    result.sort((a, b) => (
+        toNumber(b.Entry_Gravity_Score, 0)
+        + toNumber(b.Expansion_Gravity_Score, 0)
+        + toNumber(b.Convergence_Gravity_Score, 0)
+        + toNumber(b.Return_Gravity_Score, 0)
+    ) - (
+        toNumber(a.Entry_Gravity_Score, 0)
+        + toNumber(a.Expansion_Gravity_Score, 0)
+        + toNumber(a.Convergence_Gravity_Score, 0)
+        + toNumber(a.Return_Gravity_Score, 0)
+    ));
+    return result;
+}
+
 function transformAnchorTransitionRows(rows, groupedAnchorRows) {
     const src = rows || [];
     const groupedByPath = new Map();
@@ -1317,6 +1426,7 @@ function rebuildDerivedData() {
     AppState.data.productGroupMap = sanitizeProductGroupMapRows(raw.productGroupMap || []);
 
     AppState.data.anchorScored = transformAnchorScoredRows(raw.anchorScored || []);
+    AppState.data.productDemandGravity = transformProductDemandGravityRows(raw.productDemandGravity || [], raw.anchorScored || []);
     AppState.data.anchorTransition = transformAnchorTransitionRows(raw.anchorTransition || [], AppState.data.anchorScored);
     AppState.data.cartAnchorDetail = transformCartAnchorDetailRows(raw.cartAnchorDetail || []);
     const topCompanionMap = buildTopCompanionMapFromDetail(AppState.data.cartAnchorDetail);
@@ -1670,10 +1780,9 @@ window.handleGlobalSearch = (viewName, query, selectionStart = null, selectionEn
     window.searchTimeouts[viewName] = setTimeout(() => {
         if (viewName === 'products') {
             renderProductsTableOnly();
+            restoreSearchInputCursor(viewName, selectionStart, selectionEnd);
         } else if (viewName === 'transitions') {
             renderTransitionsTable();
-        }
-        if (viewName === 'transitions') {
             restoreSearchInputCursor(viewName, selectionStart, selectionEnd);
         }
         delete window.searchTimeouts[viewName];
@@ -2943,10 +3052,11 @@ function applyFocusFromUrl(pageId) {
 }
 
 async function loadInsightsData() {
-    const [brandScore, anchorScored, anchorTransition, cartAnchor, cartAnchorDetail, aaCohortJourney, aaTransitionPath, caProfile, biiWindow, apfActionRules, productGroupMap] = await Promise.all([
+    const [brandScore, anchorScored, anchorTransition, productDemandGravity, cartAnchor, cartAnchorDetail, aaCohortJourney, aaTransitionPath, caProfile, biiWindow, apfActionRules, productGroupMap] = await Promise.all([
         loadOptionalDataFromDB(REQUIRED_FILES.brandScore, []),
         loadOptionalDataFromDB(REQUIRED_FILES.anchorScored, []),
         loadOptionalDataFromDB(REQUIRED_FILES.anchorTransition, []),
+        loadOptionalDataFromDB(REQUIRED_FILES.productDemandGravity, []),
         loadOptionalDataFromDB(REQUIRED_FILES.cartAnchor, []),
         loadOptionalDataFromDB(REQUIRED_FILES.cartAnchorDetail, []),
         loadOptionalDataFromDB(REQUIRED_FILES.aaCohortJourney, []),
@@ -2960,6 +3070,7 @@ async function loadInsightsData() {
     AppState.rawData.brandScore = brandScore;
     AppState.rawData.anchorScored = anchorScored;
     AppState.rawData.anchorTransition = anchorTransition;
+    AppState.rawData.productDemandGravity = productDemandGravity;
     AppState.rawData.cartAnchor = cartAnchor;
     AppState.rawData.cartAnchorDetail = cartAnchorDetail;
     AppState.rawData.aaCohortJourney = aaCohortJourney;
@@ -3007,13 +3118,15 @@ async function init() {
             renderOverview();
             applyFriendlyUi(document.body);
         } else if (pageId === 'page-products') {
-            const [s, t, groupMap] = await Promise.all([
+            const [s, t, g, groupMap] = await Promise.all([
                 loadDataFromDB(REQUIRED_FILES.anchorScored),
                 loadOptionalDataFromDB(REQUIRED_FILES.anchorTransition, []),
+                loadDataFromDB(REQUIRED_FILES.productDemandGravity),
                 loadOptionalDataFromDB(REQUIRED_FILES.productGroupMap, [])
             ]);
             AppState.rawData.anchorScored = s;
             AppState.rawData.anchorTransition = t;
+            AppState.rawData.productDemandGravity = g;
             AppState.rawData.productGroupMap = groupMap;
             rebuildDerivedData();
             applyFocusFromUrl(pageId);

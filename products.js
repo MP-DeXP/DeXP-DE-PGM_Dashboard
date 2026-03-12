@@ -500,13 +500,13 @@ function renderQuadrantPanel(model) {
     `;
 }
 
-function renderProductQuadrant(model, demandDriverModel = null) {
+function renderProductQuadrant(model, coreDemandModel = null) {
     const qState = AppState.viewState.products.quadrant || {};
     const scaleMode = qState.scaleMode || 'focus';
     const scopeMode = qState.scope === 'all' ? 'all' : 'retention-emphasis';
     const emptyChartMessage = '표시할 상품이 없습니다.';
-    const demandHeadline = demandDriverModel && demandDriverModel.intersection.length > 0
-        ? `${formatNumber(demandDriverModel.intersection.length, 0)}개 상품이 핵심 수요를 만들고 있어요.`
+    const demandHeadline = coreDemandModel && coreDemandModel.totalCoreCount > 0
+        ? `${formatNumber(coreDemandModel.totalCoreCount, 0)}개 상품이 핵심 수요를 만들고 있어요.`
         : '';
     return `
         <div class="card pgm-quadrant-wrap animate-fade-in">
@@ -893,20 +893,6 @@ function renderQuadrantChart(model) {
     });
 }
 
-function getProductsSortLabel(sortCol) {
-    const sortLabelMap = {
-        product_id: '상품 ID',
-        product_name_latest: '상품명',
-        revenue_90d: '90일 매출',
-        first_customer_cnt: '첫구매 유입 고객수',
-        AA_Score: '첫구매 유입 점수',
-        AA_Primary_Type: '첫구매 유입 유형',
-        PCA_Score: '재구매 점수',
-        PCA_Primary_Type: '재구매 유형'
-    };
-    return sortLabelMap[sortCol] || sortCol;
-}
-
 function getProductsScopeMode() {
     return String(AppState.viewState.products?.quadrant?.scope || 'retention-emphasis').toLowerCase() === 'all' ? 'all' : 'retention-emphasis';
 }
@@ -915,11 +901,73 @@ function getScopedProductsData() {
     return [...(AppState.data.anchorScored || [])];
 }
 
-function buildDemandContributionSet(rows, valueKey, threshold = 0.8) {
+const CORE_GRAVITY_ORDER = ['entry', 'expansion', 'return', 'convergence'];
+const CORE_GRAVITY_CONFIG = {
+    entry: {
+        label: '첫구매 유입',
+        scoreKey: 'Entry_Gravity_Score',
+        helper: '신규 고객의 첫 구매를 많이 만들고 있는 상품부터 보여줘요.'
+    },
+    expansion: {
+        label: '재구매 확장',
+        scoreKey: 'Expansion_Gravity_Score',
+        helper: '첫 구매 뒤 다음 구매로 자연스럽게 이어지는 상품부터 보여줘요.'
+    },
+    return: {
+        label: '다시 찾는 구매',
+        scoreKey: 'Return_Gravity_Score',
+        helper: '고객이 다른 구매를 거친 뒤 다시 돌아오게 만드는 상품부터 보여줘요.'
+    },
+    convergence: {
+        label: '수요 집중',
+        scoreKey: 'Convergence_Gravity_Score',
+        helper: '여러 상품 흐름의 끝에서 수요가 모이는 상품부터 보여줘요.'
+    }
+};
+
+function normalizeCoreSortKey(value) {
+    const key = String(value || '').toLowerCase();
+    return CORE_GRAVITY_ORDER.includes(key) ? key : 'entry';
+}
+
+function getProductsCoreSortKey() {
+    return normalizeCoreSortKey(AppState.viewState.products?.coreSortKey || 'entry');
+}
+
+function getMergedCoreDemandRows() {
+    const gravityMap = new Map(
+        (AppState.data.productDemandGravity || [])
+            .map((row) => [String(row.product_id || '').trim(), row])
+            .filter(([id]) => id)
+    );
+
+    return getScopedProductsData().map((row) => {
+        const id = String(row.product_id || '').trim();
+        const gravity = gravityMap.get(id) || {};
+        return {
+            ...row,
+            Entry_Gravity_Score: toNumber(gravity.Entry_Gravity_Score, toNumber(row.Entry_Gravity_Score, 0)),
+            Expansion_Gravity_Score: toNumber(gravity.Expansion_Gravity_Score, toNumber(row.Expansion_Gravity_Score, 0)),
+            Convergence_Gravity_Score: toNumber(gravity.Convergence_Gravity_Score, 0),
+            Return_Gravity_Score: toNumber(gravity.Return_Gravity_Score, 0),
+            Entry_Gravity_Primary_Type: gravity.Entry_Gravity_Primary_Type || row.Entry_Gravity_Primary_Type || row.AA_Primary_Type || '-',
+            Expansion_Gravity_Primary_Type: gravity.Expansion_Gravity_Primary_Type || row.Expansion_Gravity_Primary_Type || row.PCA_Primary_Type || '-',
+            incoming_transition_rate_sum_90d: toNumber(gravity.incoming_transition_rate_sum_90d, 0),
+            distinct_source_product_cnt_90d: toNumber(gravity.distinct_source_product_cnt_90d, 0),
+            converged_customer_cnt_90d: toNumber(gravity.converged_customer_cnt_90d, 0),
+            return_customer_rate_90d: toNumber(gravity.return_customer_rate_90d, 0),
+            return_loop_rate_90d: toNumber(gravity.return_loop_rate_90d, 0),
+            simple_repeat_rate_90d: toNumber(gravity.simple_repeat_rate_90d, 0)
+        };
+    });
+}
+
+function buildGravityContributionSet(rows, sortKey, threshold = 0.8) {
+    const { scoreKey } = CORE_GRAVITY_CONFIG[sortKey] || CORE_GRAVITY_CONFIG.entry;
     const sorted = [...(rows || [])]
-        .filter((row) => toNumber(row[valueKey], 0) > 0)
-        .sort((a, b) => toNumber(b[valueKey], 0) - toNumber(a[valueKey], 0));
-    const total = sorted.reduce((acc, row) => acc + toNumber(row[valueKey], 0), 0);
+        .filter((row) => toNumber(row[scoreKey], 0) > 0)
+        .sort((a, b) => toNumber(b[scoreKey], 0) - toNumber(a[scoreKey], 0));
+    const total = sorted.reduce((acc, row) => acc + toNumber(row[scoreKey], 0), 0);
     if (total <= 0) {
         return { total: 0, items: [], achievedShare: 0 };
     }
@@ -928,7 +976,7 @@ function buildDemandContributionSet(rows, valueKey, threshold = 0.8) {
     const items = [];
     sorted.forEach((row) => {
         if (items.length && cumulativeValue / total >= threshold) return;
-        const value = toNumber(row[valueKey], 0);
+        const value = toNumber(row[scoreKey], 0);
         cumulativeValue += value;
         const share = value / total;
         const cumulativeShare = cumulativeValue / total;
@@ -939,10 +987,11 @@ function buildDemandContributionSet(rows, valueKey, threshold = 0.8) {
             repurchase_customer_cnt_90d: toNumber(row.repurchase_customer_cnt_90d, 0),
             repurchase_rate_90d: toNumber(row.repurchase_rate_90d, 0),
             revenue_90d: toNumber(row.revenue_90d, 0),
-            metricKey: valueKey,
+            metricKey: scoreKey,
             metricValue: value,
             share,
-            cumulativeShare
+            cumulativeShare,
+            gravitySortKey: sortKey
         });
     });
 
@@ -953,238 +1002,203 @@ function buildDemandContributionSet(rows, valueKey, threshold = 0.8) {
     };
 }
 
-function buildDemandDriverModel() {
-    const scopedRows = getScopedProductsData();
+function buildCoreDemandTableModel() {
+    const scopedRows = getMergedCoreDemandRows();
     const transitionEntitySet = buildTransitionEntitySet();
-    const entry = buildDemandContributionSet(scopedRows, 'first_customer_cnt', 0.8);
-    const expansion = buildDemandContributionSet(scopedRows, 'repurchase_customer_cnt_90d', 0.8);
-    const entryMap = new Map(entry.items.map((item) => [item.product_id, item]));
-    const expansionMap = new Map(expansion.items.map((item) => [item.product_id, item]));
-    const intersection = Array.from(entryMap.keys())
-        .filter((id) => expansionMap.has(id))
-        .map((id) => {
-            const entryItem = entryMap.get(id);
-            const expansionItem = expansionMap.get(id);
-            return {
-                product_id: id,
-                product_name_latest: entryItem.product_name_latest || expansionItem.product_name_latest,
-                entryShare: entryItem.share,
-                expansionShare: expansionItem.share,
-                first_customer_cnt: entryItem.first_customer_cnt,
-                repurchase_customer_cnt_90d: expansionItem.repurchase_customer_cnt_90d,
-                repurchase_rate_90d: expansionItem.repurchase_rate_90d,
-                hasTransition: transitionEntitySet.has(id),
-                combinedScore: (entryItem.share + expansionItem.share) / 2
-            };
-        })
-        .sort((a, b) => b.combinedScore - a.combinedScore);
-
-    const intersectionIdSet = new Set(intersection.map((item) => item.product_id));
-    entry.items.forEach((item) => {
-        item.isIntersection = intersectionIdSet.has(item.product_id);
-        item.isEntryLeader = true;
-        item.isExpansionLeader = false;
-        item.hasTransition = transitionEntitySet.has(item.product_id);
+    const firstCustomerTotal = scopedRows.reduce((acc, row) => acc + toNumber(row.first_customer_cnt, 0), 0);
+    const repurchaseCustomerTotal = scopedRows.reduce((acc, row) => acc + toNumber(row.repurchase_customer_cnt_90d, 0), 0);
+    const sets = {};
+    const itemMaps = {};
+    const idSets = {};
+    CORE_GRAVITY_ORDER.forEach((key) => {
+        const contributionSet = buildGravityContributionSet(scopedRows, key, 0.8);
+        sets[key] = contributionSet;
+        itemMaps[key] = new Map();
+        idSets[key] = new Set();
+        contributionSet.items.forEach((item, index) => {
+            const enriched = { ...item, rank: index + 1 };
+            itemMaps[key].set(item.product_id, enriched);
+            idSets[key].add(item.product_id);
+        });
     });
-    expansion.items.forEach((item) => {
-        item.isIntersection = intersectionIdSet.has(item.product_id);
-        item.isEntryLeader = false;
-        item.isExpansionLeader = true;
-        item.hasTransition = transitionEntitySet.has(item.product_id);
+
+    const rowMap = new Map(scopedRows.map((row) => [String(row.product_id || '').trim(), row]));
+    const unionIds = new Set(CORE_GRAVITY_ORDER.flatMap((key) => sets[key].items.map((item) => item.product_id)));
+    const rows = Array.from(unionIds).map((id) => {
+        const source = rowMap.get(id) || {};
+        const axisMembership = CORE_GRAVITY_ORDER.filter((key) => idSets[key].has(id));
+        const gravityShares = CORE_GRAVITY_ORDER.reduce((acc, key) => {
+            acc[key] = itemMaps[key].get(id)?.share ?? null;
+            return acc;
+        }, {});
+        const gravityRanks = CORE_GRAVITY_ORDER.reduce((acc, key) => {
+            acc[key] = itemMaps[key].get(id)?.rank ?? null;
+            return acc;
+        }, {});
+        return {
+            product_id: id,
+            product_name_latest: source.product_name_latest || getProductName(id),
+            member_ids: source.member_ids || '',
+            revenue_90d: toNumber(source.revenue_90d, 0),
+            first_customer_cnt: toNumber(source.first_customer_cnt, 0),
+            repurchase_customer_cnt_90d: toNumber(source.repurchase_customer_cnt_90d, 0),
+            repurchase_rate_90d: toNumber(source.repurchase_rate_90d, 0),
+            hasTransition: transitionEntitySet.has(id),
+            axisMembership,
+            axisMembershipCount: axisMembership.length,
+            gravityShares,
+            gravityRanks,
+            firstCustomerShare: firstCustomerTotal > 0 ? toNumber(source.first_customer_cnt, 0) / firstCustomerTotal : 0,
+            repurchaseCustomerShare: repurchaseCustomerTotal > 0 ? toNumber(source.repurchase_customer_cnt_90d, 0) / repurchaseCustomerTotal : 0
+        };
+    });
+
+    const currentSortKey = getProductsCoreSortKey();
+    const searchQuery = String(AppState.viewState.products?.searchQuery || '').toLowerCase().trim();
+    const filteredRows = searchQuery
+        ? rows.filter((row) =>
+            String(row.product_id || '').toLowerCase().includes(searchQuery) ||
+            String(row.member_ids || '').toLowerCase().includes(searchQuery) ||
+            String(row.product_name_latest || '').toLowerCase().includes(searchQuery)
+        )
+        : rows;
+
+    filteredRows.sort((a, b) => {
+        const aRank = Number.isFinite(a.gravityRanks[currentSortKey]) ? a.gravityRanks[currentSortKey] : Number.POSITIVE_INFINITY;
+        const bRank = Number.isFinite(b.gravityRanks[currentSortKey]) ? b.gravityRanks[currentSortKey] : Number.POSITIVE_INFINITY;
+        if (aRank !== bRank) return aRank - bRank;
+        const shareDiff = toNumber(b.gravityShares[currentSortKey], 0) - toNumber(a.gravityShares[currentSortKey], 0);
+        if (shareDiff !== 0) return shareDiff;
+        const membershipDiff = toNumber(b.axisMembershipCount, 0) - toNumber(a.axisMembershipCount, 0);
+        if (membershipDiff !== 0) return membershipDiff;
+        return toNumber(b.revenue_90d, 0) - toNumber(a.revenue_90d, 0);
     });
 
     return {
         scopeMode: getProductsScopeMode(),
         scopedProductCount: scopedRows.length,
-        entry,
-        expansion,
-        intersection
+        currentSortKey,
+        currentSortLabel: CORE_GRAVITY_CONFIG[currentSortKey].label,
+        sets,
+        rows: filteredRows,
+        totalCoreCount: rows.length,
+        sharedCoreCount: rows.filter((row) => row.axisMembershipCount > 1).length
     };
 }
 
-function renderDemandDriverRows(items, mode, activeId, emphasisMode = 'retention-emphasis') {
-    if (!items.length) {
-        return '<div class="demand-driver-empty">지금 범위에서는 표시할 핵심 상품이 없어요.</div>';
-    }
-    return items.map((item, index) => {
-        const isActive = activeId && activeId === item.product_id;
-        const isMuted = emphasisMode === 'retention-emphasis' && !item.hasTransition;
-        const intersectionBadge = item.isIntersection ? '<span class="demand-driver-badge">공통 핵심</span>' : '';
-        const retentionBadge = item.hasTransition
-            ? '<span class="demand-driver-status-badge is-retained">리텐션 발생</span>'
-            : '<span class="demand-driver-status-badge is-muted">리텐션 없음</span>';
-        if (mode === 'intersection') {
-            return `
-                <button class="demand-driver-row ${isActive ? 'is-active' : ''} ${isMuted ? 'is-muted' : ''}" type="button" onclick="focusQuadrantFromDemandDriver('${escapeJs(item.product_id)}')">
-                    <div class="demand-driver-row-head">
-                        <strong title="${escapeHtml(item.product_name_latest)}">${escapeHtml(item.product_name_latest)}</strong>
-                        <span class="demand-driver-head-tags">${retentionBadge}</span>
-                    </div>
-                    <div class="demand-driver-row-meta">
-                        <span>첫구매 기여 ${formatPercent(item.entryShare, 1)}</span>
-                        <span>재구매 기여 ${formatPercent(item.expansionShare, 1)}</span>
-                    </div>
-                </button>
-            `;
-        }
-
-        const metricLabel = mode === 'entry' ? '첫구매 고객수' : '재구매 고객수';
-        const qualityText = mode === 'expansion'
-            ? `<span>재구매율 ${formatPercent(item.repurchase_rate_90d, 1)}</span>`
-            : '';
-        return `
-            <button class="demand-driver-row ${isActive ? 'is-active' : ''} ${isMuted ? 'is-muted' : ''}" type="button" onclick="focusQuadrantFromDemandDriver('${escapeJs(item.product_id)}')">
-                <div class="demand-driver-row-head">
-                    <strong title="${escapeHtml(item.product_name_latest)}">${escapeHtml(item.product_name_latest)}</strong>
-                    <span class="demand-driver-head-tags">${intersectionBadge || `<span class="demand-driver-rank">#${index + 1}</span>`}${retentionBadge}</span>
-                </div>
-                <div class="demand-driver-row-meta">
-                    <span>${metricLabel} ${formatNumber(item.metricValue)}</span>
-                    <span>비중 ${formatPercent(item.share, 1)}</span>
-                    ${qualityText}
-                </div>
-            </button>
-        `;
+function renderCoreAxisSummary(axisMembership, currentSortKey) {
+    const chips = axisMembership.map((key) => {
+        const isActive = key === currentSortKey;
+        return `<span class="core-axis-chip ${isActive ? 'is-active' : ''}">${escapeHtml(CORE_GRAVITY_CONFIG[key].label)}</span>`;
     }).join('');
-}
-
-function renderDemandDriverCards(model = null) {
-    const resolvedModel = model || buildDemandDriverModel();
-    const activeId = String(AppState.viewState.products?.quadrant?.selectedId || AppState.helpers.focusEntityId || '').trim();
-    const scopeLabel = resolvedModel.scopeMode === 'retention-emphasis' ? '현재 화면: 리텐션 발생 상품 강조' : '현재 화면: 전체 상품 보기';
-
+    const summary = axisMembership.length > 1
+        ? `<span class="core-axis-summary">${formatNumber(axisMembership.length, 0)}축 핵심</span>`
+        : '';
     return `
-        <div class="demand-driver-wrap card animate-fade-in">
-            <div class="demand-driver-head">
-                <div>
-                    <h3>최근 90일 핵심 수요 활성 상품군</h3>
-                    <p>최근 1년 내 판매 이력이 있고, 최근 90일에도 실제 판매가 이어진 핵심 수요 상품을 보여줘요.</p>
-                </div>
-                <span class="demand-driver-scope">${scopeLabel}</span>
-            </div>
-            <div class="demand-driver-grid">
-                <section class="demand-driver-card">
-                    <div class="demand-driver-card-head">
-                        <h4>첫구매를 만든 핵심 상품</h4>
-                        <p>첫구매 고객의 ${formatPercent(resolvedModel.entry.achievedShare, 1)}를 만든 상품 ${formatNumber(resolvedModel.entry.items.length, 0)}개 (전체 판매 상품 중 ${formatPercent(resolvedModel.scopedProductCount > 0 ? resolvedModel.entry.items.length / resolvedModel.scopedProductCount : 0, 1)})</p>
-                    </div>
-                    <div class="demand-driver-list">
-                        ${renderDemandDriverRows(resolvedModel.entry.items, 'entry', activeId, resolvedModel.scopeMode)}
-                    </div>
-                </section>
-                <section class="demand-driver-card">
-                    <div class="demand-driver-card-head">
-                        <h4>공통 핵심 상품</h4>
-                        <p>첫구매와 재구매 모두에서 중요한 상품 ${formatNumber(resolvedModel.intersection.length, 0)}개</p>
-                    </div>
-                    <div class="demand-driver-list">
-                        ${renderDemandDriverRows(resolvedModel.intersection, 'intersection', activeId, resolvedModel.scopeMode)}
-                    </div>
-                </section>
-                <section class="demand-driver-card">
-                    <div class="demand-driver-card-head">
-                        <h4>재구매를 만든 핵심 상품</h4>
-                        <p>재구매 고객의 ${formatPercent(resolvedModel.expansion.achievedShare, 1)}를 만든 상품 ${formatNumber(resolvedModel.expansion.items.length, 0)}개 (전체 판매 상품 중 ${formatPercent(resolvedModel.scopedProductCount > 0 ? resolvedModel.expansion.items.length / resolvedModel.scopedProductCount : 0, 1)})</p>
-                    </div>
-                    <div class="demand-driver-list">
-                        ${renderDemandDriverRows(resolvedModel.expansion.items, 'expansion', activeId, resolvedModel.scopeMode)}
-                    </div>
-                </section>
-            </div>
+        <div class="core-axis-cell">
+            <div class="core-axis-group">${chips}</div>
+            ${summary}
         </div>
     `;
 }
 
-function getFilteredSortedProductsData() {
-    const { sortCol, sortDesc, searchQuery } = AppState.viewState.products;
-    let filteredData = getScopedProductsData();
-    if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        filteredData = filteredData.filter((d) =>
-            String(d.product_id || '').toLowerCase().includes(q) ||
-            String(d.member_ids || '').toLowerCase().includes(q) ||
-            (d.product_name_latest && String(d.product_name_latest).toLowerCase().includes(q))
-        );
-    }
-
-    const sortedData = filteredData.sort((a, b) => {
-        let valA = a[sortCol];
-        let valB = b[sortCol];
-        if (valA === undefined || valA === null) valA = 0;
-        if (valB === undefined || valB === null) valB = 0;
-        if (valA < valB) return sortDesc ? 1 : -1;
-        if (valA > valB) return sortDesc ? -1 : 1;
-        return 0;
-    });
-
-    return { sortedData, sortCol, sortDesc };
-}
-
-function buildProductsRowsHtml(displayData, focusEntityId, emphasisMode = 'retention-emphasis') {
-    const transitionEntitySet = buildTransitionEntitySet();
+function buildCoreDemandRowsHtml(displayData, focusEntityId, emphasisMode = 'retention-emphasis', currentSortKey = 'entry') {
     return displayData.map((row) => {
         const isFocused = focusEntityId && String(row.product_id) === focusEntityId;
-        const hasTransition = transitionEntitySet.has(String(row.product_id || '').trim());
-        const isMuted = emphasisMode === 'retention-emphasis' && !hasTransition;
+        const isMuted = emphasisMode === 'retention-emphasis' && !row.hasTransition;
         const meta = getEntityMeta(row.product_id);
-        const groupedIdCell = meta.memberCount > 1
-            ? `
-                <button class="group-chip-trigger" type="button" onclick="event.stopPropagation();openGroupEditorWizard({focusEntityId:'${escapeJs(meta.entityId)}'})">
-                    그룹 ${formatNumber(meta.memberCount, 0)}개
-                </button>
-            `
-            : `
-                <span>${escapeHtml(row.product_id)}</span>
-            `;
+        const groupedChip = meta.memberCount > 1
+            ? `<button class="group-chip-trigger" type="button" onclick="event.stopPropagation();openGroupEditorWizard({focusEntityId:'${escapeJs(meta.entityId)}'})">그룹 ${formatNumber(meta.memberCount, 0)}개</button>`
+            : '';
+        const currentShare = row.gravityShares[currentSortKey];
+        const currentRank = row.gravityRanks[currentSortKey];
         return `
-        <tr class="clickable ${isFocused ? 'row-focused' : ''} ${isMuted ? 'row-retention-muted' : ''}" onclick="focusQuadrantFromTable('${escapeHtml(row.product_id)}')">
-            <td>
-                ${groupedIdCell}
-            </td>
-            <td>${renderProductCell(row.product_name_latest || '-', row.product_id, 32, { nameClickMode: 'focus-quadrant' })}</td>
-            <td>${formatNumber(row.revenue_90d)}</td>
-            <td>${formatNumber(row.first_customer_cnt)}</td>
-            <td>${formatNumber(row.AA_Score, 4)}</td>
-            <td><span class="badge">${escapeHtml(toAaTypeLabel(row.AA_Primary_Type || '-'))}</span></td>
-            <td>${formatNumber(row.PCA_Score, 4)}</td>
-            <td><span class="badge" style="background: rgba(236, 72, 153, 0.2); color: #f472b6;">${escapeHtml(toPcaTypeLabel(row.PCA_Primary_Type || '-'))}</span></td>
-            <td><span class="retention-status-chip ${hasTransition ? 'is-retained' : 'is-muted'}">${hasTransition ? '리텐션 발생' : '리텐션 없음'}</span></td>
-        </tr>
-    `;
+            <tr class="clickable ${isFocused ? 'row-focused' : ''} ${isMuted ? 'row-retention-muted' : ''}" onclick="focusQuadrantFromTable('${escapeHtml(row.product_id)}')">
+                <td>
+                    <div class="core-product-cell">
+                        ${renderProductCell(row.product_name_latest || '-', row.product_id, 36, { nameClickMode: 'focus-quadrant' })}
+                        ${groupedChip}
+                    </div>
+                </td>
+                <td>${renderCoreAxisSummary(row.axisMembership, currentSortKey)}</td>
+                <td>${currentShare !== null ? formatPercent(currentShare, 1) : '-'}</td>
+                <td>${Number.isFinite(currentRank) ? `#${formatNumber(currentRank, 0)}` : '-'}</td>
+                <td>${formatPercent(row.firstCustomerShare, 1)}</td>
+                <td>${formatPercent(row.repurchaseCustomerShare, 1)}</td>
+                <td>${formatNumber(row.revenue_90d)}</td>
+                <td><span class="retention-status-chip ${row.hasTransition ? 'is-retained' : 'is-muted'}">${row.hasTransition ? '리텐션 발생' : '리텐션 없음'}</span></td>
+            </tr>
+        `;
     }).join('');
 }
 
-function renderProductsTableOnly() {
+function renderCoreDemandSortTabs(currentSortKey) {
+    return `
+        <div class="core-demand-tabs-wrap">
+            <div class="core-demand-tabs" role="tablist" aria-label="핵심 축 정렬 기준">
+                ${CORE_GRAVITY_ORDER.map((key) => `
+                    <button
+                        class="core-demand-tab ${key === currentSortKey ? 'is-active' : ''}"
+                        type="button"
+                        role="tab"
+                        aria-selected="${key === currentSortKey ? 'true' : 'false'}"
+                        onclick="setProductsCoreSortKey('${key}')"
+                    >${CORE_GRAVITY_CONFIG[key].label}</button>
+                `).join('')}
+            </div>
+            <p class="core-demand-tab-helper">${escapeHtml(CORE_GRAVITY_CONFIG[currentSortKey].helper)}</p>
+        </div>
+    `;
+}
+
+function renderProductsTableOnly(model = null) {
     if (document.body.id !== 'page-products') return;
     const summaryCard = document.getElementById('products-summary-card');
     if (!summaryCard) return;
 
-    const { sortedData, sortCol, sortDesc } = getFilteredSortedProductsData();
+    const resolvedModel = model || buildCoreDemandTableModel();
     const qSelectedId = String(AppState.viewState.products?.quadrant?.selectedId || '').trim();
     const focusEntityId = String(AppState.helpers.focusEntityId || qSelectedId).trim();
     const emphasisMode = getProductsScopeMode();
-    const displayData = sortedData.slice(0, 50);
-    const getSortIndicator = (col) => sortCol === col ? (sortDesc ? ' ▼' : ' ▲') : '';
-    const sortLabel = getProductsSortLabel(sortCol);
-    const rows = buildProductsRowsHtml(displayData, focusEntityId, emphasisMode);
+    const currentSortKey = resolvedModel.currentSortKey;
+    const currentSortLabel = resolvedModel.currentSortLabel;
+    const currentSet = resolvedModel.sets[currentSortKey];
+    const scopeLabel = resolvedModel.scopeMode === 'retention-emphasis' ? '현재 화면: 리텐션 발생 상품 강조' : '현재 화면: 전체 상품 보기';
+    const rows = buildCoreDemandRowsHtml(resolvedModel.rows, focusEntityId, emphasisMode, currentSortKey);
 
     summaryCard.innerHTML = `
-        <h3>상위 50개 핵심 상품 (정렬 기준: ${escapeHtml(sortLabel)})</h3>
-        <div class="table-container">
-            <table class="data-table">
-                <thead><tr>
-                    <th onclick="handleProductSort('product_id')">ID${getSortIndicator('product_id')}</th>
-                    <th onclick="handleProductSort('product_name_latest')">상품명${getSortIndicator('product_name_latest')}</th>
-                    <th onclick="handleProductSort('revenue_90d')">90일 매출${getSortIndicator('revenue_90d')}</th>
-                    <th onclick="handleProductSort('first_customer_cnt')">첫구매 유입 고객수${getSortIndicator('first_customer_cnt')}</th>
-                    <th onclick="handleProductSort('AA_Score')">첫구매 유입 점수${getSortIndicator('AA_Score')}</th>
-                    <th onclick="handleProductSort('AA_Primary_Type')">첫구매 유입 유형${getSortIndicator('AA_Primary_Type')}</th>
-                    <th onclick="handleProductSort('PCA_Score')">재구매 점수${getSortIndicator('PCA_Score')}</th>
-                    <th onclick="handleProductSort('PCA_Primary_Type')">재구매 유형${getSortIndicator('PCA_Primary_Type')}</th>
-                    <th>리텐션 상태</th>
-                </tr></thead>
-                <tbody>${rows}</tbody>
-            </table>
+        <div class="core-demand-wrap">
+            <div class="core-demand-head">
+                <div>
+                    <h3>최근 90일 핵심 수요 상품</h3>
+                    <p>최근 1년 내 판매 이력이 있고, 최근 90일에도 실제 판매가 이어진 핵심 수요 상품을 보여줘요.</p>
+                    <div class="core-demand-summary">
+                        <span>${escapeHtml(currentSortLabel)} 기준 80% 핵심 상품 ${formatNumber(currentSet.items.length, 0)}개</span>
+                        <span>4개 축 전체 핵심 상품 ${formatNumber(resolvedModel.totalCoreCount, 0)}개</span>
+                        ${resolvedModel.sharedCoreCount > 0 ? `<span>여러 축 핵심 상품 ${formatNumber(resolvedModel.sharedCoreCount, 0)}개</span>` : ''}
+                    </div>
+                </div>
+                <span class="demand-driver-scope">${scopeLabel}</span>
+            </div>
+            <div class="core-demand-controls">
+                ${renderCoreDemandSortTabs(currentSortKey)}
+                ${renderSearchUI('products', '핵심 상품 검색')}
+            </div>
+            <div class="table-container">
+                <table class="data-table core-demand-table">
+                    <thead><tr>
+                        <th>상품명</th>
+                        <th>핵심 축</th>
+                        <th>${escapeHtml(currentSortLabel)} 비중</th>
+                        <th>${escapeHtml(currentSortLabel)} 순위</th>
+                        <th>첫구매 고객 비중</th>
+                        <th>재구매 고객 비중</th>
+                        <th>90일 매출</th>
+                        <th>리텐션 상태</th>
+                    </tr></thead>
+                    <tbody>${rows || `<tr><td colspan="8" class="core-demand-empty">지금 범위에서는 표시할 핵심 상품이 없어요.</td></tr>`}</tbody>
+                </table>
+            </div>
         </div>
     `;
     applyFriendlyUi(summaryCard);
@@ -1197,40 +1211,26 @@ function renderProducts() {
     if (!['retention-emphasis', 'all'].includes(qState.scope)) qState.scope = 'retention-emphasis';
     if (!['focus', 'raw'].includes(qState.scaleMode)) qState.scaleMode = 'focus';
 
-    const { sortedData } = getFilteredSortedProductsData();
     const quadrantModel = buildQuadrantModel(
-        sortedData,
+        getScopedProductsData(),
         qState.selectedId,
         qState.scaleMode || 'focus',
         qState.scope || 'retention-emphasis',
         'both'
     );
-    const demandDriverModel = buildDemandDriverModel();
+    const coreDemandModel = buildCoreDemandTableModel();
     if (quadrantModel) {
         qState.selectedId = quadrantModel.selected.id;
     }
 
     container.innerHTML = `
-        ${renderProductQuadrant(quadrantModel, demandDriverModel)}
-        ${renderDemandDriverCards(demandDriverModel)}
-        <div class="animate-fade-in">
-            ${renderSearchUI('products', '상품 ID 또는 이름 검색')}
-            <div id="products-summary-card" class="card animate-fade-in"></div>
-        </div>
+        ${renderProductQuadrant(quadrantModel, coreDemandModel)}
+        <div id="products-summary-card" class="card animate-fade-in"></div>
     `;
     applyFriendlyUi(container);
 
     renderQuadrantChart(quadrantModel);
-    renderProductsTableOnly();
-
-    window.handleProductSort = (col) => {
-        if (AppState.viewState.products.sortCol === col) AppState.viewState.products.sortDesc = !AppState.viewState.products.sortDesc;
-        else {
-            AppState.viewState.products.sortCol = col;
-            AppState.viewState.products.sortDesc = true;
-        }
-        renderProductsTableOnly();
-    };
+    renderProductsTableOnly(coreDemandModel);
 
     window.selectQuadrantItem = (entityId) => {
         const targetId = String(entityId || '').trim();
@@ -1262,6 +1262,11 @@ function renderProducts() {
         if (typeof window.selectQuadrantItem === 'function') {
             window.selectQuadrantItem(targetId);
         }
+    };
+
+    window.setProductsCoreSortKey = (key) => {
+        AppState.viewState.products.coreSortKey = normalizeCoreSortKey(key);
+        renderProductsTableOnly();
     };
 
     window.selectPreviousQuadrantItem = () => {
