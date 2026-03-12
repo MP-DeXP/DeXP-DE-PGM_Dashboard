@@ -1,7 +1,5 @@
 # Entry _ Expansion Gravity 타입 분류와 전략적 해석
 
-> Naming Migration Note (2026-03-03): 표시명은 `PGM` 기준이며, 기술 식별자(`AA/PCA/CA`)는 호환을 위해 유지합니다.
-
 Entry Gravity / Expansion Gravity 타입 분류와 전략적 해석
 
 Executive Summary
@@ -140,4 +138,3 @@ PGM v1.0의 목적은 판단이 아니라 이해다.
 AA는 유입의 성격이고,
 PCA는 사슬의 성격이다.
 전략은 그 교차점에서 태어난다.
-

@@ -839,7 +839,7 @@ body {
 
 .pgm-insight-actions {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 0.45rem;
 }
 
@@ -886,6 +886,30 @@ body {
     font-size: 0.96rem;
     font-family: var(--font-heading);
     color: var(--text-main);
+}
+
+.pgm-basket-section {
+    margin-top: 0.95rem;
+    margin-bottom: 0.75rem;
+}
+
+.pgm-basket-section h4 {
+    margin-bottom: 0.35rem;
+    font-size: 0.83rem;
+    color: var(--text-main);
+}
+
+.pgm-basket-helper {
+    margin-bottom: 0.45rem;
+    color: var(--text-muted);
+    font-size: 0.74rem;
+    line-height: 1.45;
+}
+
+.pgm-basket-section .btn-primary {
+    width: 100%;
+    text-align: center;
+    font-size: 0.82rem;
 }
 
 .pgm-demand-share-card span {

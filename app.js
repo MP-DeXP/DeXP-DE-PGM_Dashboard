@@ -1828,13 +1828,13 @@ window.openCartFlowModal = async (entityId) => {
     modal.innerHTML = `
         <div class="modal-card retention-flow-modal-card">
             <div class="modal-header">
-                <h3 class="modal-title">장바구니 동시구매</h3>
+                <h3 class="modal-title">함께 구매되는 상품</h3>
                 <button class="modal-close" type="button" onclick="closeCartFlowModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="modal-loading">
                     <div class="spinner"></div>
-                    <p style="margin-top:1rem">장바구니 동시구매 데이터를 불러오는 중이에요.</p>
+                    <p style="margin-top:1rem">함께 구매되는 상품 데이터를 불러오는 중이에요.</p>
                 </div>
             </div>
         </div>
@@ -1847,7 +1847,7 @@ window.openCartFlowModal = async (entityId) => {
     const title = modal.querySelector('.modal-title');
     const body = modal.querySelector('.modal-body');
     const focusName = getProductName(focusId);
-    title.textContent = `장바구니 동시구매 · ${focusName}`;
+    title.textContent = `함께 구매되는 상품 · ${focusName}`;
 
     try {
         if (!Array.isArray(AppState.data.cartAnchorDetail) || !AppState.data.cartAnchorDetail.length) {
@@ -1867,7 +1867,7 @@ window.openCartFlowModal = async (entityId) => {
         if (!related.length) {
             body.innerHTML = `
                 <p class="empty-state" style="margin:0;">
-                    이 상품 기준 장바구니 동시구매 데이터가 아직 없어요.
+                    이 상품 기준 함께 구매되는 상품 데이터가 아직 없어요.
                 </p>
             `;
             applyFriendlyUi(modal);
@@ -1886,7 +1886,7 @@ window.openCartFlowModal = async (entityId) => {
 
         body.innerHTML = `
             <div class="retention-flow-summary">
-                <strong>${escapeHtml(focusName)}</strong> 기준 장바구니 동시구매 상위 ${formatNumber(Math.min(related.length, 30))}개를 보여줘요.
+                <strong>${escapeHtml(focusName)}</strong> 기준 함께 구매되는 상품 상위 ${formatNumber(Math.min(related.length, 30))}개를 보여줘요.
             </div>
             <div class="table-container retention-flow-table-wrap">
                 <table class="data-table">
@@ -1903,7 +1903,7 @@ window.openCartFlowModal = async (entityId) => {
         `;
         applyFriendlyUi(modal);
     } catch (error) {
-        body.innerHTML = `<p style="color:var(--accent); text-align:center; padding:2rem;">장바구니 동시구매 로딩에 실패했어요: ${escapeHtml(error.message)}</p>`;
+        body.innerHTML = `<p style="color:var(--accent); text-align:center; padding:2rem;">함께 구매되는 상품 로딩에 실패했어요: ${escapeHtml(error.message)}</p>`;
         applyFriendlyUi(modal);
     }
 };

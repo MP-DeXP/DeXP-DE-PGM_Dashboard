@@ -1,206 +1,351 @@
 # Product Gravity Scoring & Transition Technical Spec
 
-> Naming Migration Note (2026-03-03): 표시명은 `PGM` 기준이며, 기술 식별자(`AA/PCA/CA`)는 호환을 위해 유지합니다.
+Version: PGM v1.1  
+Primary Artifacts:
+- `01_PGM_ProductGravity.ipynb`
+- `02_PGM_ConvergenceReturnGravity.ipynb`
+- `03_PGM_BrandHealthImpact.ipynb`
 
-Product Gravity Scoring & Transition Technical Spec
-Version: PGM v1.0 (Notebook implementation)
-Artifact: PGM_ProductGravityFullLogic.ipynb
-Scope: 상품 역할(AA/PCA) 점수 산출 + AA→PCA 전이(Transition) 분석
+## 1. 목적
 
-1) 문제 정의 및 산출물
-목표
-브랜드 내 product_id를 기준으로 다음을 산출한다.
-- AA (Entry Gravity) 점수
-- 신규 유입(첫 구매)을 많이 만들고, 유입 고객이 90일 동안 남긴 총 결제금액(누적 매출)까지 반영해 “유입 엔진” 상품을 식별한다.
-- PCA (Expansion Gravity) 점수
-- 상품 구매를 기점으로 “구매사슬이 열리는지(재구매 전환 + 추가 주문)”를 기준으로 “사슬 개시 엔진” 상품을 식별한다.
-- AA → PCA 전이 테이블
-- AA 후보 상품으로 유입된 고객이 이후 90일 안에 어떤 PCA 후보 상품을 “처음” 구매하는지(전이율, 평균 소요일)를 계산한다.
-핵심 산출 DF/테이블
-- pgm_scored (상품별 지표 + AA/PCA/Primary 점수 포함, legacy alias: anchor_scored)
-- pgm_entry_to_expansion_transition (AA→PCA 전이 테이블, legacy alias: anchor_transition)
+PGM(Product Gravity Model)은 단순 판매량 분석이 아니라
+상품 중심의 수요 구조를 설명하는 모델이다.
 
-2) 데이터 소스 및 전처리 계약
-입력 데이터
-- core.silver_meta_order (Spark SQL)
-- 필터:
-- mx_channel_id == CHANNEL_ID
-- order_at >= current_date - 365 (최근 1년)
-주문/아이템 단위 테이블
-- 주문의 item_list, cancel_list, return_list, exchange_list, refund_list를 explode해 아이템 단위로 정규화
-정제 원칙
-- member_id IS NOT NULL
-- 취소/반품/교환/환불 아이템을 아이템 단위로 제거
-- 키: (order_id, item_id)
-- exclude_keys = cancel_keys ∪ return_keys ∪ exchange_origin_keys ∪ refund_keys
-- order_items_clean = base_items LEFT_ANTI exclude_keys
-Candidate 상품군 제한 (정확도/비용 최적화)
-- CANDIDATE_DAYS = 30
-- 최근 30일 주문(item_list)에서 등장한 product_id를 후보군으로 정의:
-- candidate_product_ids_df
-- 중요: order_items_clean 단계에서 candidate_product_ids_df로 left_semi 조인하여 이후 모든 계산이 후보 상품군으로 제한됨
+PGM core는 다음 4개 gravity로 구성된다.
 
-3) 핵심 파라미터(전역 상수)
-- CHURN_DURATION = 90
-- 대부분의 90일 창(window)에 사용됨
-- R90(재구매 전환), Revenue_90d, x2(addl_order_cnt) 계산의 시간 범위로 재사용됨
-- CANDIDATE_DAYS = 30
-- 점수 산출 대상 product 후보군 생성 기간
-- 점수 가중치(현재 노트북 구현)
-- AA_ScoreBase = 0.4 * fcr_norm + 0.6 * rev_norm
-- PCA_ScoreBase = 0.6 * r90_norm + 0.4 * x2_norm
-- volume_weight = minmax(log1p(first_customer_cnt))
-- AA_Score = volume_weight^alpha_volume * AA_ScoreBase (alpha_volume=1.0)
-- PCA_Score = volume_weight^alpha_volume * PCA_ScoreBase
-- PrimaryAnchorScoreBase는 레거시/참고용 혼합 점수 (현재 노트북에서 유지)
+- `Entry Gravity`
+- `Expansion Gravity`
+- `Convergence Gravity`
+- `Return Gravity`
 
-4) 주요 중간 데이터 구조(스키마 요약)
-order_items_raw
-- 주문 레벨에서 explode 후 필요한 필드만 유지
-- 포함:
-- member_id, order_id, order_at
-- order_payment_amount (order_amount_info.payment_amount)
-- product_id (string cast)
-- item(struct), cancel/return/exchange/refund struct들
-주의(안정성): explode 후 alias 참조 문제 방지를 위해 withColumn(explode) → select(item.*) 구조 사용됨.
-order_items_clean
-- base_items에서 exclude_keys를 left_anti하여 정상 아이템만 남김
-- candidate 상품군으로 left_semi 조인 적용
-order_item_options
-- 옵션을 explode하여 option_name, option_value를 정규화
-- 현재는 간이 base_product_key = concat(product_id, option_name, option_value) 생성 (참고용)
+PGM shorthand:
 
-5) Cohort 정의
-Product-based Cohort
-- 단위: (member_id, product_id)
-- cohort_order_at = 해당 고객이 해당 상품을 처음 구매한 시점
-- cohort_order_id도 함께 기록 (후속 주문 계산 시 동일 주문 제외)
-이 정의는 “고객 생애 첫 구매”가 아니라, 상품 기준 첫 구매를 허용하므로 고객은 여러 cohort에 속할 수 있다.
+`Acquire -> Expand -> Gather -> Loop`
 
-6) 지표 정의(수식/의도)
-모든 지표는 기본적으로 cohort_order_at을 기준으로 0~90일 창에서 계산한다(일관성 유지).
-6.1 first_customer_cnt, first_customer_ratio
-- first_customer_cnt(product_id) = product_cohort에서 distinct member_id count
-- first_customer_ratio = first_customer_cnt / total_first_customers
-- total_first_customers = product_cohort에서 distinct member_id count
-의도: 해당 상품이 “처음 구매된 비중”을 통해 유입력을 측정 (AA의 핵심 입력)
+추가로 `Basket Gravity (CA)`는 core가 아니라
+구매 순간의 동시구매 구조를 설명하는 extension module이다.
 
-6.2 R90:
-repurchase_rate_90d
-- cohort 이후 90일 내 추가 주문(어떤 상품이든) 존재 여부
-- 계산:
-- cohort_orders = product_cohort join member_orders
-- days_from_cohort = datediff(order_at, cohort_order_at)
-- order_id != cohort_order_id
-- 0 <= days_from_cohort <= 90
-- repurchase_customer_cnt_90d(product_id) = distinct member_id count in cohort_orders
-- cohort_customer_cnt(product_id) = distinct member_id count in product_cohort
-- repurchase_rate_90d = repurchase_customer_cnt_90d / cohort_customer_cnt
-의도: 구매사슬이 “열리는지”를 가장 단순하게 측정하는 트리거 (PCA의 핵심 입력)
+## 2. 구현 경계
 
-6.3 Revenue_90d:
-revenue_90d
-- cohort 이후 90일 내 고객이 발생시킨 주문 전체 결제금액 합
-- 중복 방지:
-- 아이템 단위로 같은 order_payment_amount가 반복되므로
-- member_orders_pay = (member_id, order_id, order_at) groupBy 후 max(payment_amount)
-- revenue_orders_90d = product_cohort join member_orders_pay + 0~90일 필터
-- revenue_90d(product_id) = sum(order_payment_amount)
-의도: AA에서 “유입이 만든 총 가치(90일)”를 반영.
-PCA에는 직접 넣지 않고(정의 보존), 분석/시각화에서 ‘중력’으로 활용 가능.
+현재 구현은 두 레이어로 분리한다.
 
-6.4 x2: 추가 주문 구조 (90일)
-고객별로 cohort 이후 90일 내 주문 수를 세고, “추가 주문 수”로 변환한다.
-- 고객-상품 단위:
-- order_cnt_90d = countDistinct(order_id) within 0~90d window
-- addl_order_cnt_90d = max(order_cnt_90d - 1, 0) (cohort 주문 1회 제외)
-- 상품별 분포 요약:
-- p50_addl_order_cnt_90d
-- p75_addl_order_cnt_90d (PCA score input)
-- p90_addl_order_cnt_90d
-- addl_order_rate_90d = avg( addl_order_cnt_90d > 0 )
-의도:
-- p75는 “사슬이 열림”의 보수적 경계값 역할(0/1로 수렴할 수 있음)
-- p90과 addl_order_rate는 PCA 구조 해석(소수 강자 vs 광범위 사슬)에 도움
+### 2.1 메인 노트북
 
-6.5 retention_days (참고 지표)
-- 고객 생애 기준 retention_days(first_order_date ~ churn_date)
-- 상품별 p75_retention_days로 집계
-의도: v1.0에서는 AA/PCA 핵심 입력이 아니라 장기 가치 해석/레거시 Primary용 보조 지표로 사용.
+`01_PGM_ProductGravity.ipynb`
 
-7) 점수 정의(AA / PCA / Primary)
-7.1 Normalization
-모든 입력을 candidate 상품군 내에서 min-max 정규화한다(분모 0 방지).
-- r90_norm = minmax(repurchase_rate_90d)
-- x2_norm = minmax(p75_addl_order_cnt_90d)
-- rev_norm = minmax(revenue_90d)
-- fcr_norm = minmax(first_customer_ratio)
-- (참고) x3_norm = minmax(p75_retention_days)
-7.2 Base Scores
-- AA_ScoreBase = 0.4 * fcr_norm + 0.6 * rev_norm
-- PCA_ScoreBase = 0.6 * r90_norm + 0.4 * x2_norm
-7.3 Sample Size Weighting
-- volume_raw = log1p(first_customer_cnt)
-- volume_weight = minmax(volume_raw)
-- 최종:
-- AA_Score = volume_weight^alpha_volume * AA_ScoreBase
-- PCA_Score = volume_weight^alpha_volume * PCA_ScoreBase
-- (참고) PrimaryAnchorScore = volume_weight^alpha_volume * PrimaryAnchorScoreBase
-의도: 소표본 과대평가를 완화.
-필요시 MIN_FIRST_CUSTOMERS 하드컷을 사용할 수 있으나, 기본은 가중치 방식.
+이 노트북은 다음을 계산한다.
 
-8) AA → PCA 전이(Transition) 정의
-후보 집합
-- aa_candidates: AA_Score 상위 N개 (현재 TOP_AA=10)
-- pca_candidates: PCA_Score 상위 N개 (현재 TOP_PCA=30)
-전이 이벤트 정의
-- 기준점: aa_cohort_order_at (AA 후보 상품의 cohort 시점)
-- 기간: 0~90일
-- 대상 이벤트: PCA 후보 상품 구매 이벤트
-- “전이 대상” 선택:
-- 고객-AA상품 단위로 가장 먼저 발생한 PCA 구매 이벤트를 선택 (row_number by order_at, order_id)
-전이 집계
-- 분모: aa_cohort_customer_cnt (AA cohort 고객수)
-- 분자: transition_customer_cnt (AA→PCA 최초 도달 고객수)
-- 전이율: transition_rate = transition_customer_cnt / aa_cohort_customer_cnt
-- 속도: avg_days_to_pca
+- `Entry Gravity`
+- `Expansion Gravity`
+- `AA -> PCA Transition`
+- `Basket Gravity`
 
-9) 운영/성능 고려사항 (실제 장애 경험 기반)
-9.1 SparkContext shutdown / stage materialization 오류
-- 전이 분석은 조인 + 윈도우 + 집계로 DAG가 무거움
-- toPandas()는 작은 limit이라도 full DAG를 실행하므로 드라이버/클러스터 불안정 유발 가능
-권장:
-- 결과 확인은 우선 show()로 제한
-- 중간 DF는 필요시 persist(MEMORY_AND_DISK) + count()로 물리화
-- 후보군(AA/PCA TOP_N)을 작게 유지하고, broadcast 조인을 적극 사용
-9.2 candidate 필터링 위치
-- order_items_clean 단계에서 후보군으로 제한하는 방식이 비용/정확도 모두 유리
-- 후보군 제한이 누락되면 이후 모든 집계 비용이 폭발함
+중요 원칙:
 
-10) 해석 가이드(개발/DS 관점)
-AA 해석
-- 높은 AA는 “유입 규모 + 90일 가치”의 결합
-- 무료체험/프로모션 상품이 올라오는 것은 정상
-- AA의 진짜 가치는 **전이 구조(AA→PCA)**에서 평가 가능
-PCA 해석
-- 높은 PCA는 “사슬 개시 신호”(R90 + x2)
-- p75가 0/1에 수렴하는 것은 브랜드 구조적 특성일 수 있음
-- p90_addl_order_cnt_90d와 addl_order_rate_90d로 구조 해석(소수 강자 vs 광범위) 가능
-- revenue는 PCA 산식에 넣지 않고, **시각화에서 원 크기(size)**로 취급 권장
+`01_PGM_ProductGravity.ipynb`의 계산 로직은 유지한다.
 
-11) 개선 로드맵(코드 변경 없이 가능한 순서)
-단기(해석/가시화)
-- AA vs PCA scatter plot + bubble size = revenue_90d
-- PCA 상위 상품의 “x2 분포(p50/p75/p90) + addl_order_rate” 해석 템플릿
-중기(정제)
-- promo/사은품/회원전용 상품 태그(이름 패턴 기반) → PCA 후보에서 제외/감점 (정의가 아니라 후보 제한 레이어로)
-장기(확장)
-- base_product(기초상품) 레이어를 “해석/번들/CRM 액션 단위”로 추가 (Anchor 단위는 product_id 유지)
+즉:
 
-부록: 수식 요약
-- AA_ScoreBase = 0.4minmax(first_customer_ratio) + 0.6minmax(revenue_90d)
-- PCA_ScoreBase = 0.6minmax(repurchase_rate_90d) + 0.4minmax(p75_addl_order_cnt_90d)
-- volume_weight = minmax(log1p(first_customer_cnt))
-- AA_Score = volume_weight * AA_ScoreBase
-- PCA_Score = volume_weight * PCA_ScoreBase
- 
+- `Entry Gravity` 공식 점수는 기존 구현을 그대로 사용한다.
+- `Expansion Gravity` 공식 점수는 기존 구현을 그대로 사용한다.
+- `Basket Gravity` 계산도 그대로 유지한다.
+
+### 2.2 브랜드 노트북
+
+`03_PGM_BrandHealthImpact.ipynb`
+
+이 노트북은 메인/후속 노트북 산출물인
+`pgm_scored.csv`, `pgm_basket_gravity.csv`, `pgm_product_demand_gravity.csv`, `order_product_events.csv`를 입력으로 받아
+다음을 계산한다.
+
+- `Brand Score` (`BHI`, `Confidence_Index`)
+- `BII`
+
+### 2.3 후속 노트북
+
+`02_PGM_ConvergenceReturnGravity.ipynb`
+
+이 노트북은 메인 노트북 산출물인
+`pgm_scored.csv`와 `order_product_events.csv`를 입력으로 받아
+다음을 계산한다.
+
+- `Convergence Gravity`
+- `Return Gravity`
+- `pgm_product_demand_gravity.csv`
+
+권장 실행 순서:
+
+1. `01_PGM_ProductGravity.ipynb`
+2. `02_PGM_ConvergenceReturnGravity.ipynb`
+3. `03_PGM_BrandHealthImpact.ipynb`
+
+현재 구현 범위 note:
+
+- `Convergence Gravity`, `Return Gravity`는 현재 `pgm_scored.csv`에 export된 scored product universe를 기준으로 계산한다.
+- 전체 catalog 기준 확장은 future extension으로 둔다.
+
+## 3. 공통 데이터 계약
+
+핵심 입력은 다음 이벤트 구조다.
+
+- `member_id`
+- `order_id`
+- `order_at`
+- `product_id`
+
+분석 전제:
+
+- 기본 관측 창은 `90일`
+- 고객별 상품 첫 구매 시점을 상품별 cohort의 기준점으로 둔다
+- 같은 주문의 동일 상품 재등장은 1회 이벤트로 간주한다
+- optional `member_group_id` static filter를 지원한다
+- config:
+- `USE_MEMBER_GROUP_FILTER`
+- `MEMBER_GROUP_FILTER_MODE` (`exclude` / `include`)
+- `FILTER_MEMBER_GROUP_IDS`
+- 필터 기준은 `core.silver_meta_member` + `core.silver_meta_member_group` 조인으로 해석한다
+- `exclude` 모드에서는 `member_id`가 없거나 `member_group_id` 매핑이 없는 주문을 유지한다
+- `include` 모드에서는 지정된 `member_group_id`에 명시적으로 매핑된 주문만 남기고 unmatched 주문은 제외한다
+
+## 4. Entry Gravity
+
+### 공식 정의
+
+상품이 고객 수요를 시작시키는 힘.
+특히 첫 구매 진입점으로 작동하는 정도.
+
+### 공식 질문
+
+“이 상품은 얼마나 강하게 신규 수요를 여는가?”
+
+### 현재 구현
+
+메인 노트북에서 공식 점수는 아래 산식을 사용한다.
+
+- `AA_ScoreBase = 0.4 * fcr_norm + 0.6 * rev_norm`
+- `volume_weight = minmax(log1p(first_customer_cnt))`
+- `AA_Score = volume_weight * AA_ScoreBase`
+
+Canonical alias:
+
+- `AA_Score` ↔ `Entry_Gravity_Score`
+
+## 5. Expansion Gravity
+
+### 공식 정의
+
+상품 구매 이후 다음 구매가 발생하도록 수요를 확장시키는 힘.
+
+### 공식 질문
+
+“이 상품은 얼마나 강하게 다음 구매를 일으키는가?”
+
+### 현재 구현
+
+메인 노트북에서 공식 점수는 아래 산식을 사용한다.
+
+- `PCA_ScoreBase = 0.6 * r90_norm + 0.4 * x2_norm`
+- `volume_weight = minmax(log1p(first_customer_cnt))`
+- `PCA_Score = volume_weight * PCA_ScoreBase`
+
+Canonical alias:
+
+- `PCA_Score` ↔ `Expansion_Gravity_Score`
+
+## 6. Convergence Gravity
+
+### 공식 정의
+
+많은 서로 다른 prior product로부터 수요가 이 상품으로 모여드는 정도.
+
+핵심 패턴:
+
+- `B -> A`
+- `C -> A`
+- `D -> A`
+
+### 공식 질문
+
+“고객은 여러 경로 끝에 이 상품으로 모이는가?”
+
+### naive metric과의 차이
+
+Convergence Gravity는 단순 인기 상품 점수가 아니다.
+
+- 판매량이 높아도 incoming source가 적으면 convergence는 낮을 수 있다.
+- 판매량이 중간이어도 다양한 source에서 도착하면 convergence는 높을 수 있다.
+
+### 계산 원리
+
+- 각 상품의 고객별 첫 구매를 `source cohort`로 정의
+- cohort 이후 `90일` 내 첫 next-product를 edge로 생성
+- target 상품 기준으로 incoming edge를 집계
+- 단, core `Convergence Gravity` score는 `source_product_id != target_product_id`인 non-self incoming edge만 사용한다.
+- `A -> A` self-loop는 버리지 않고 diagnostic metric으로 별도 저장한다.
+
+### 핵심 raw metrics
+
+- `converged_customer_cnt_90d`
+- `distinct_source_product_cnt_90d`
+- `incoming_transition_rate_sum_90d`
+- `top1_source_share` (보조 지표)
+- `self_loop_transition_customer_cnt_90d` (diagnostic)
+- `self_loop_transition_rate_90d` (diagnostic)
+
+### 공식 score
+
+- `Convergence_Gravity_ScoreBase = 0.5*norm(incoming_transition_rate_sum_90d) + 0.3*norm(distinct_source_product_cnt_90d) + 0.2*norm(converged_customer_cnt_90d)`
+- `volume_weight = minmax(log1p(total_customer_cnt_for_product))`
+- `Convergence_Gravity_Score = volume_weight * Convergence_Gravity_ScoreBase`
+
+## 7. Return Gravity
+
+### 공식 정의
+
+고객이 해당 상품을 떠난 뒤,
+중간 상품을 거쳐 다시 그 상품으로 돌아오는 정도.
+
+핵심 패턴:
+
+- `A -> B -> A`
+- `A -> B -> C -> A`
+
+### 공식 질문
+
+“이 상품은 중간 구매 뒤 다시 고객을 끌어당기는가?”
+
+### naive metric과의 차이
+
+Return Gravity는 단순 재구매율이 아니다.
+
+- `A -> A`는 simple repeat다.
+- `A -> B -> A`는 return loop다.
+
+즉:
+
+- repeat = 같은 상품을 다시 샀는가
+- return = 다른 상품을 거친 뒤 다시 돌아왔는가
+
+### 계산 원리
+
+- 각 상품의 고객별 첫 구매를 source cohort로 정의
+- cohort 이후 `90일` 내 상품 시퀀스를 본다
+- `A`가 다시 등장하되 그 사이에 `A`가 아닌 상품이 1개 이상 있으면 qualified return으로 본다
+
+### 핵심 raw metrics
+
+- `return_customer_rate_90d`
+- `return_loop_rate_90d`
+- `return_path_diversity_90d`
+- `simple_repeat_rate_90d` (비교 지표)
+
+### 공식 score
+
+- `Return_Gravity_ScoreBase = 0.5*norm(return_customer_rate_90d) + 0.3*norm(return_loop_rate_90d) + 0.2*norm(log1p(return_path_diversity_90d))`
+- `volume_weight = minmax(log1p(total_customer_cnt_for_product))`
+- `Return_Gravity_Score = volume_weight * Return_Gravity_ScoreBase`
+
+## 8. Convergence와 Return의 구분
+
+두 개념은 엄격히 분리한다.
+
+### Convergence
+
+많은 source가 하나의 target로 모인다.
+
+예:
+
+- `B -> A`
+- `C -> A`
+- `D -> A`
+
+### Return
+
+같은 상품을 떠났다가 다시 돌아온다.
+
+예:
+
+- `A -> B -> A`
+- `A -> B -> C -> A`
+
+정리:
+
+- `Convergence = many sources -> one destination`
+- `Return = leave A -> come back to A`
+
+## 9. 전이 및 진단 산출물
+
+`02_PGM_ConvergenceReturnGravity.ipynb`는 다음 공식 산출물을 생성한다.
+
+- `pgm_product_transition_edge.csv`
+- `pgm_convergence_gravity_product.csv`
+- `pgm_return_gravity_product.csv`
+- `pgm_return_gravity_loop_detail.csv`
+- `pgm_product_demand_gravity.csv`
+
+여기서 `pgm_product_transition_edge.csv`는
+과거 `Post-Expansion Chain` 역할을 general product transition edge로 확장한 진단 뷰다.
+공식 gravity 이름은 `Convergence Gravity`이며,
+`Post-Expansion Chain`은 공식 축이 아니다.
+
+## 10. Basket Gravity의 위치
+
+`Basket Gravity (CA)`는 PGM core 4 gravities가 아니다.
+
+CA는 다음을 설명하는 확장 모듈이다.
+
+- 동일 주문 내 동시구매 구조
+- 장바구니 결합력
+- 구매 순간의 공간적 구조
+
+즉:
+
+- core 4 gravities = demand acquisition / expansion / convergence / return
+- basket = same-order structure extension
+
+## 11. 공식 제품표
+
+`pgm_product_demand_gravity.csv`는 PGM 4 gravity의 공식 제품표다.
+
+최소 컬럼:
+
+- `product_id`
+- `Entry_Gravity_Score`
+- `Expansion_Gravity_Score`
+- `Convergence_Gravity_Score`
+- `Return_Gravity_Score`
+- `Entry_Gravity_Primary_Type`
+- `Expansion_Gravity_Primary_Type`
+- `distinct_source_product_cnt_90d`
+- `incoming_transition_rate_sum_90d`
+- `self_loop_transition_customer_cnt_90d` (diagnostic)
+- `self_loop_transition_rate_90d` (diagnostic)
+- `return_customer_rate_90d`
+- `return_loop_rate_90d`
+- `simple_repeat_rate_90d`
+
+## 12. 해석 원칙
+
+PGM은 다음을 설명한다.
+
+- `product -> demand acquisition`
+- `product -> demand expansion`
+- `product -> demand convergence`
+- `product -> demand return`
+
+PGM은 다음을 직접 점수화하지 않는다.
+
+- 절대 판매량
+- bestseller ranking
+- 광고비 효율
+- 원가 구조
+
+즉 PGM은:
+
+`product -> sales`
+
+가 아니라
+
+`product -> demand structure`
+
+를 설명한다.

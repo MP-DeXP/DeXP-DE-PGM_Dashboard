@@ -1,9 +1,12 @@
 # Basket Gravity (CA) v1.0
 
-> Naming Migration Note (2026-03-03): 표시명은 `PGM` 기준이며, 기술 식별자(`AA/PCA/CA`)는 호환을 위해 유지합니다.
-
 Basket Gravity (CA) v1.0
 ― 구매 순간의 구조적 힘을 정의하는 프레임워크 ―
+
+Core Position Note
+`Basket Gravity (CA)`는 PGM core 4 gravities(`Entry`, `Expansion`, `Convergence`, `Return`)가 아니라,
+동일 주문 내 구매 순간 구조를 설명하는 extension layer다.
+
 Abstract
 기존의 커머스 분석은 “어떤 상품이 유입을 만들었는가” 또는
 **“어떤 상품이 재구매를 만들었는가”**에 집중해 왔다.
@@ -13,7 +16,8 @@ Basket Gravity(CA) 개념을 정의하고,
 상품이 동일 주문(cart) 내에서 다른 상품을 동반시키는 구조적 역할을
 일관된 언어와 지표로 설명하기 위한 프레임워크를 제시한다.
 CA는 유입(AA)이나 재구매(PCA)를 대체하지 않는다.
-대신 PGM을 Before–During–After의 입체적 구조로 완성시키는 ‘During’ 축을 담당한다.
+또한 PGM core 4 gravities와도 별개의 차원을 가진다.
+CA는 구매 순간의 구조를 설명하는 확장 모듈이다.
 
 1. 문제의식: “구매 순간”은 분석에서 비어 있었다
 PGM v1.0은 다음 두 질문에 답해왔다.
@@ -42,20 +46,16 @@ CA는 기존 PGM과 다음과 같이 정렬된다.
 축
 역할
 시간적 위치
-AA
-유입의 시작점
-Before
+Entry / Expansion / Convergence / Return
+코어 수요 구조
+Across Journey
 CA
 장바구니 결합력
 During
-PCA
-구매 사슬 형성
-After
 이를 하나의 문장으로 요약하면 다음과 같다.
-AA는 입구의 넓이,
-CA는 장바구니의 넓이,
-PCA는 사슬의 길이다.
-CA는 AA/PCA와 다른 차원의 역할이므로,
+PGM core가 수요의 흐름을 설명한다면,
+CA는 구매 순간의 결합 구조를 설명한다.
+CA는 core 4 gravities와 다른 차원의 역할이므로,
 점수를 통합하거나 합산하지 않는다.
 
 4. 분석 전제와 해석 경계
@@ -138,15 +138,18 @@ CA는 해당 상품이 포함될 때 장바구니 구조가 달라지는 현상�
 장바구니 설계에 유리한 구조적 위치를 의미한다.”
 
 10. Product Role 요약
-최종적으로 상품은 다음 3차원 벡터로 해석된다.
-Product Role = (AA, CA, PCA)
-- AA: 유입력
-- CA: 장바구니 결합력
-- PCA: 사슬 형성력
-이 세 역할은 우열 관계가 아니라, 설계 레버의 차이다.
+최종적으로 CA는 core 4 gravity 역할 위에 덧붙는 extension role로 해석된다.
+즉 상품은 다음과 같이 읽는다.
+
+- Core role: `Entry / Expansion / Convergence / Return`
+- Extension role: `Basket`
+
+CA는 우열 관계가 아니라,
+구매 순간 설계 레버를 추가로 설명하는 보조 축이다.
 
 결론
-Basket Gravity(CA)는 PGM v1.0을 시간 중심 프레임워크에서 공간 중심 프레임워크로 확장한다.
+Basket Gravity(CA)는 PGM core 4 gravities 위에
+구매 순간의 공간 구조를 덧붙이는 extension module이다.
 CA를 통해 커머스 팀은 다음 질문에 명확히 답할 수 있다.
 - 어떤 상품이 장바구니를 키우는가?
 - 어떤 상품이 번들의 출발점이 되는가?
@@ -155,4 +158,3 @@ CA는 재구매를 예측하지 않는다.
 CA는 구매 순간의 구조를 설명한다.
 이 차이를 명확히 인식하는 한,
 Basket Gravity는 PGM의 가장 실무적인 확장 축이 될 것이다.
-

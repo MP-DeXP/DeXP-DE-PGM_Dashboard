@@ -1,162 +1,140 @@
 # Brand Score v1.0
 
-> Naming Migration Note (2026-03-03): 표시명은 `PGM` 기준이며, 기술 식별자(`AA/PCA/CA`)는 호환을 위해 유지합니다.
+## 목적
+Brand Score는 브랜드를 매출이 아니라 수요 구조로 진단하는 프레임이다.
 
-Brand Score v1.0.2
-PGM 기반 브랜드 구조 건강도 평가 백서
+핵심 질문은 다음이다.
 
-Executive Summary
-대부분의 브랜드 평가는 여전히 매출 규모, 성장률, 점유율과 같은 결과 지표에 의존한다.
-그러나 이러한 지표는 **“왜 이 브랜드가 성장하는지, 혹은 왜 불안하게 성장하는지”**를 설명하지 못한다.
-Brand Score v1.0.2는
-브랜드를 **성과(Result)**가 아닌 **구조(Structure)**로 평가하기 위한 프레임워크다.
-본 프레임은 브랜드를 줄 세우지 않는다.
-대신, 브랜드가 고객 생애 가치(CLV)를 안정적으로 만들어낼 수 있는 구조를 가지고 있는지를 진단한다.
+- 이 브랜드는 신규 수요를 안정적으로 열 수 있는가
+- 다음 구매를 이어갈 수 있는가
+- 여러 경로의 수요를 한 상품군으로 모을 수 있는가
+- 고객을 다시 돌아오게 만들 수 있는가
+- 장바구니 구조까지 포함해 반복 가능한 상업 구조를 갖췄는가
 
-1. 문제 정의: 왜 기존 브랜드 평가는 실패하는가
-1.1 결과 중심 지표의 한계
-- 매출은 크지만 신규 유입이 멈춘 브랜드
-- 성장률은 높지만 반복 구매가 없는 브랜드
-- 소수 상품에 과도하게 의존하는 브랜드
-이들은 모두 **성과 지표만 보면 ‘좋아 보이는 브랜드’**다.
-그러나 구조적으로는 언제든 무너질 수 있는 상태다.
+즉 Brand Score는 브랜드의 `Acquire -> Expand -> Gather -> Loop` 구조와 `Basket` 확장축을 함께 본다.
 
-1.2 Brand Score의 질문 전환
-기존 질문:
-“이 브랜드는 얼마나 벌고 있는가?”
-Brand Score의 질문:
-“이 브랜드는 어떤 구조로 고객 생애 가치를 만들어내고 있는가?”
+## 구성
+`brand_score.csv`는 아래 5개 structure index와 요약 지표로 구성된다.
 
-2. 설계 철학 및 핵심 원칙
-원칙 1. 절대값 직접 사용 금지
-- 매출 합계
-- 고객 수
-- 주문 수
-👉 점수 입력값으로 사용하지 않는다.
+- `Entry_Structure_Index`
+- `Expansion_Structure_Index`
+- `Convergence_Structure_Index`
+- `Return_Structure_Index`
+- `Basket_Structure_Index`
+- `BHI`
+- `Confidence_Index`
 
-원칙 2. 구조 지표만 사용
-- 비율
-- 분포
-- 균형
-- 집중도
+보조 진단 컬럼:
 
-원칙 3. 고객이 없어도 평가 가능해야 한다
-- 고객 0명 = 실패 ❌
-- 고객 0명 = 아직 구조가 검증되지 않음 ⭕
+- `Entry_Concentration_Risk`
+- `Expansion_Balance_Index`
+- `Convergence_Coverage_Ratio`
+- `Convergence_Source_Diversity_Index`
+- `Return_Coverage_Ratio`
+- `Return_Concentration_Risk`
+- `Basket_Coverage_Ratio`
+- `Basket_Balance_Index`
 
-원칙 4. 해석 책임은 사람에게 둔다
-- 점수는 요약
-- 판단은 구조 해석을 통해 수행
+## 입력
+현재 구현은 아래 산출물을 결합해 Brand Score를 계산한다.
 
-3. Brand Score v1.0.2 전체 구성
-Brand Score v1.0.2 =
-{
-  Brand Structure Vector,
-  Brand Health Index (BHI),
-  Confidence Index
-}
+- `pgm_scored.csv`
+- `pgm_basket_gravity.csv`
+- `pgm_product_demand_gravity.csv`
 
-4. Brand Structure Vector (본체)
-Brand Structure Vector는 3개의 구조 축으로 구성된다.
+`order_product_events.csv`는 Brand Score 자체보다 후속 `BII` 계산을 위해 같은 노트북에서 함께 요구된다.
 
-4.1 Acquisition Structure (AS)
-“이 브랜드는 어떤 방식으로 신규 고객을 데려오는가?”
-입력
-- AA_Primary_Type 분포 (Broad / Qualified / Heavy)
-- 상품별 first_customer_cnt 분포
-핵심 구조 지표
-- AA_Broad_Ratio
-- AA_Qualified_Ratio
-- AA_Heavy_Ratio
-- Acquisition Concentration Index (상위 N개 상품 유입 집중도)
-해석
-- Broad 중심 → 확장형 유입
-- Qualified 중심 → 효율형 유입
-- Concentration ↑ → 구조적 리스크
+## 5축 정의
+### Entry Structure
+브랜드가 신규 수요를 여는 구조 건강도.
 
-4.2 Chain Structure (CS)
-“이 브랜드는 구매사슬을 어떻게 열고 이어가는가?”
-입력
-- PCA_Primary_Type 분포 (Core / Deep / Scale)
-- avg_days_to_pca (보조)
-핵심 구조 지표
-- PCA_Core_Ratio
-- PCA_Deep_Ratio
-- PCA_Scale_Ratio
-- Chain Balance Index
-해석
-- Core만 많음 → 얕은 사슬
-- Deep 없음 → 팬 구조 취약
-- Scale 없음 → 안정성 부족
-- Velocity 느림 → 사슬 탄력 약함
+- 강도: 제품별 `Entry_Gravity_Score` 평균
+- 균형: `Broad`와 `Qualified` 타입의 균형
+- 리스크: 상위 3개 entry 상품에 first purchase가 몰리는 정도
 
-4.3 Value Structure (VS)
-“이 브랜드는 CLV를 만들어낼 준비가 된 구조인가?”
-⚠️ Value Structure는 성과 평가가 아니라 ‘준비도(Readiness)’ 평가다.
+공식 산식:
 
-4.3.1 Value Activation Index (VAI)
-- PCA_Core 상품 존재 여부
-- repurchase_rate_90d 브랜드 중앙값
-CLV가 실제로 ‘시작되는 구조’가 있는가?
+`Entry_Structure_Index = 0.4*avg(Entry_Gravity_Score) + 0.3*entry_type_balance + 0.3*(1-entry_concentration_risk)`
 
-4.3.2 Value Quality Index (VQI)
-- avg_CLV_90d = revenue_90d / first_customer_cnt
-- 브랜드 내 상대적 분위수 위치
-CLV가 시작되었을 때, 질은 어떤가?
+### Expansion Structure
+브랜드가 다음 구매를 이어가는 구조 건강도.
 
-4.3.3 Value Concentration Risk (VCR)
-- CLV의 상품 집중도
-- Top-N 집중도, 지니계수 등
-⚠️ 단, 집중된 상품이 PCA-Scale인 경우
-이는 리스크가 아니라 안정화 앵커로 재해석된다.
+- 강도: 제품별 `Expansion_Gravity_Score` 평균
+- 커버리지: `Core/Deep/Scale` 타입 제품 비중
+- 균형: `Core/Deep/Scale` 분포 균형
 
-해석 원칙
-- 고객 0 → VAI = 0 → 미검증 상태
-- 이는 실패가 아니라 측정 불가 상태다.
+공식 산식:
 
-5. 통합 요약 지표: Brand Health Index (BHI)
-5.1 BHI의 목적
-BHI는 브랜드 구조의 ‘균형도’를 요약하는 인덱스다.
-- 랭킹 ❌
-- 자동 의사결정 ❌
-- 인지적 요약 ⭕
+`Expansion_Structure_Index = 0.4*avg(Expansion_Gravity_Score) + 0.3*expansion_coverage_ratio + 0.3*expansion_balance_index`
 
-5.2 BHI v1.0.2 산식
-BHI = min(AB, CB, VR)
-    + ε × 평균(나머지 두 축)
-- ε ∈ [0.01, 0.05]
-- 최약점 우선 원칙 유지
-- 미세한 차이는 반영
+### Convergence Structure
+브랜드가 여러 구매 경로의 수요를 한 상품군으로 모으는 구조 건강도.
 
-6. Confidence Index (필수 보조 레이어)
-이 Brand Score는 얼마나 신뢰할 수 있는가?
-기준 예시
-- High
-- brand_first_customer_cnt ≥ 500
-- PCA_Core 상품 ≥ 3
-- Medium
-- brand_first_customer_cnt ≥ 100
-- PCA_Core 상품 ≥ 1
-- Low
-- 그 외
-⚠️ Confidence Index는
-점수에 반영하지 않고, 반드시 시각적으로 강조한다.
+- 강도: 제품별 `Convergence_Gravity_Score` 평균
+- 커버리지: `distinct_source_product_cnt_90d > 0` 인 제품 비중
+- 다양성: 제품별 수렴 source 다양성 평균
 
-7. 해석 및 운영 가이드 (의무 문구)
-- “BHI는 우등 성적표가 아니라, 체격 대비 체력 진단서입니다.”
-- “점수를 높이기 위해 상품 타입을 억지로 섞지 마십시오.”
-- “본 점수에는 절대 매출 규모가 반영되어 있지 않습니다.”
+공식 산식:
 
-8. 의도적 한계 (Boundary)
-Brand Score v1.0.2는 다음을 다루지 않는다.
-- 인과 추정
-- 실험 기반 증분성
-- 미래 CLV 예측
-이는 v1.1 이후 영역이다.
+`Convergence_Structure_Index = 0.4*avg(Convergence_Gravity_Score) + 0.3*convergence_coverage_ratio + 0.3*convergence_source_diversity_index`
 
-9. 공식 정의 (One-liner)
-Brand Score v1.0.2는
-브랜드의 성과를 평가하는 점수가 아니라,
-브랜드가 고객 생애 가치를
-안정적으로 만들어낼 수 있는 구조를 가졌는지를
-신뢰도와 함께 진단하는 경영 프레임이다.
+### Return Structure
+브랜드가 고객을 다시 돌아오게 만드는 구조 건강도.
+
+- 강도: 제품별 `Return_Gravity_Score` 평균
+- 커버리지: `return_loop_rate_90d > 0` 인 제품 비중
+- 리스크: return 수요가 상위 소수 상품에 집중되는 정도
+
+공식 산식:
+
+`Return_Structure_Index = 0.4*avg(Return_Gravity_Score) + 0.3*return_coverage_ratio + 0.3*(1-return_concentration_risk)`
+
+### Basket Structure
+브랜드가 동시구매 구조를 얼마나 넓고 균형 있게 갖추는지.
+
+- 강도: 제품별 `attach_rate` 평균
+- 커버리지: `Basket_Gravity_Primary_Type in {Core, Pair, Set}` 비중
+- 균형: `Core/Pair/Set` 분포 균형
+
+공식 산식:
+
+`Basket_Structure_Index = 0.4*avg(attach_rate) + 0.3*basket_coverage_ratio + 0.3*basket_balance_index`
+
+## BHI
+`BHI`는 5축 equal-axis health index다.
+
+공식 산식:
+
+`BHI = min(Entry, Expansion, Convergence, Return, Basket) + 0.03 * average(all 5 indices)`
+
+의도는 명확하다.
+
+- 브랜드의 최약점을 먼저 반영한다
+- 하지만 나머지 축의 평균 강도도 작은 보정항으로 남긴다
+
+따라서 `BHI`는 랭킹 점수보다 구조적 병목 탐지에 더 적합하다.
+
+## Confidence Index
+`Confidence_Index`는 구조 진단의 신뢰도를 표시하는 보조 레이어다.
+
+- `brand_first_customer_cnt = sum(first_customer_cnt)`
+- `structural_active_product_cnt = count(product with any positive Entry/Expansion/Convergence/Return score or Basket type != None)`
+
+판정 규칙:
+
+- `High`: `brand_first_customer_cnt >= 500` and `structural_active_product_cnt >= 5`
+- `Medium`: `brand_first_customer_cnt >= 100` and `structural_active_product_cnt >= 2`
+- 그 외 `Low`
+
+## 해석 원칙
+- Brand Score는 절대 매출을 직접 점수화하지 않는다.
+- Brand Score는 결과가 아니라 구조를 본다.
+- `BHI`가 높아도 특정 축이 낮으면 그 축이 구조 병목이다.
+- `Basket`은 보조 modifier가 아니라 다섯 번째 동등 축이다.
+
+## 운영 메모
+- 구현 노트북: `03_PGM_BrandHealthImpact.ipynb`
+- 선행 실행:
+1. `01_PGM_ProductGravity.ipynb`
+2. `02_PGM_ConvergenceReturnGravity.ipynb`
+3. `03_PGM_BrandHealthImpact.ipynb`

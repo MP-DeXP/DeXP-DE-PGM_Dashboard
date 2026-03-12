@@ -439,7 +439,6 @@ function renderQuadrantPanel(model) {
                     <div><label>구매 지속 가능성</label><strong>${formatPercent(selected.repurchaseRate90d, 1)}</strong><span>구매 후 90일 기준</span></div>
                 </div>
                 <div class="pgm-insight-actions">
-                    <button class="btn-primary" type="button" onclick="openCartFlowModal('${escapeJs(selected.id)}')">동시에 구매한 상품</button>
                     ${transitionCta}
                 </div>
             </div>
@@ -472,6 +471,11 @@ function renderQuadrantPanel(model) {
                         <p>${escapeHtml(strategy?.actionText || '-')}</p>
                     </div>
                 </div>
+            </div>
+            <div class="pgm-basket-section">
+                <h4>장바구니 확장 힌트</h4>
+                <p class="pgm-basket-helper">이 상품이 포함될 때 함께 담기는 상품 구조를 보여줘요.</p>
+                <button class="btn-primary" type="button" onclick="openCartFlowModal('${escapeJs(selected.id)}')">함께 구매되는 상품 보기</button>
             </div>
             <div class="pgm-status-guide">
                 <h4>상태 정의</h4>
