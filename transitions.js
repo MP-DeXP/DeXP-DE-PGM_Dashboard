@@ -4,7 +4,7 @@ function renderTransitions() {
     destroyCarts();
     const container = document.getElementById('content-area');
     container.innerHTML = `
-        ${renderSearchUI('transitions', '상품명 또는 ID 검색', { includeModeSelect: true })}
+        ${renderSearchUI('transitions', '제품명 또는 ID 검색', { includeModeSelect: true })}
         <p class="chart-hint">${RETENTION_90D_FLOW_LABEL}을 기준으로 보여줘요.</p>
         <div id="transitions-table-container"></div>
     `;
@@ -51,8 +51,8 @@ function renderTransitionsTable() {
     const displayData = sortedData.slice(0, 200);
     const getSortIndicator = (col) => sortCol === col ? (sortDesc ? ' ▼' : ' ▲') : '';
     const sortLabelMap = {
-        aa_product_id: '첫구매 유입 상품',
-        pca_product_id: '재구매 상품',
+        aa_product_id: '첫구매 유입 제품',
+        pca_product_id: '재구매 제품',
         transition_customer_cnt: '90일 재구매 고객수',
         avg_days_to_pca: '평균 재구매 소요일',
         transition_rate: '90일 재구매율'
@@ -78,8 +78,8 @@ function renderTransitionsTable() {
             <div class="table-container">
                 <table class="data-table">
                     <thead><tr>
-                        <th onclick="handleTransitionSort('aa_product_id')">첫구매 유입 상품${getSortIndicator('aa_product_id')}</th>
-                        <th onclick="handleTransitionSort('pca_product_id')">재구매 상품${getSortIndicator('pca_product_id')}</th>
+                        <th onclick="handleTransitionSort('aa_product_id')">첫구매 유입 제품${getSortIndicator('aa_product_id')}</th>
+                        <th onclick="handleTransitionSort('pca_product_id')">재구매 제품${getSortIndicator('pca_product_id')}</th>
                         <th onclick="handleTransitionSort('transition_customer_cnt')">90일 재구매 고객수${getSortIndicator('transition_customer_cnt')}</th>
                         <th onclick="handleTransitionSort('avg_days_to_pca')">평균 재구매 소요일${getSortIndicator('avg_days_to_pca')}</th>
                         <th onclick="handleTransitionSort('transition_rate')">90일 재구매율${getSortIndicator('transition_rate')}</th>

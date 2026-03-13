@@ -290,9 +290,9 @@ const withFallback = (value, fallback = '-') => {
 };
 
 const TERM_LABELS = {
-    AA: '첫구매 유입 상품',
-    PCA: '재구매 상품',
-    CA: '장바구니 확장 상품',
+    AA: '첫구매 유입 제품',
+    PCA: '재구매 제품',
+    CA: '장바구니 확장 제품',
     BHI: '브랜드 구조 건강도',
     BII: '브랜드 실전 건강도'
 };
@@ -305,8 +305,8 @@ const AA_TYPE_LABELS = {
 
 const PCA_TYPE_LABELS = {
     CORE: '단골의 시작점',
-    DEEP: '계속 찾는 상품',
-    SCALE: '효자 상품'
+    DEEP: '계속 찾는 제품',
+    SCALE: '효자 제품'
 };
 
 const CA_TYPE_LABELS = {
@@ -383,14 +383,14 @@ const UI_TERM_REPLACEMENTS = [
 ];
 
 const METRIC_TOOLTIP_RULES = [
-    { pattern: /^첫구매 유입 점수$/, description: '이 상품이 신규 고객 첫 구매를 얼마나 잘 만드는지 보여줘요. 높을수록 유입에 강해요.' },
+    { pattern: /^첫구매 유입 점수$/, description: '이 제품이 신규 고객 첫 구매를 얼마나 잘 만드는지 보여줘요. 높을수록 유입에 강해요.' },
     { pattern: /^재구매 점수$/, description: '첫 구매 뒤 다음 구매로 이어지게 하는 힘이에요. 높을수록 재구매가 좋아요.' },
     { pattern: /^주간 예상 수요량$/, description: '최근 흐름 기준으로 본 주간 수요 예상치예요.' },
-    { pattern: /^첫구매 유입 고객수$/, description: '이 상품을 통해 처음 들어온 고객 수예요.' },
+    { pattern: /^첫구매 유입 고객수$/, description: '이 제품을 통해 처음 들어온 고객 수예요.' },
     { pattern: /^7일 재구매$/, description: '첫 구매 후 7일 안에 다시 산 고객 비율이에요.' },
     { pattern: /^30일 재구매$/, description: '첫 구매 후 30일 안에 다시 산 고객 비율이에요.' },
     { pattern: /^90일 재구매$/, description: '첫 구매 후 90일 안에 다시 산 고객 비율이에요.' },
-    { pattern: /^90일 재구매 도달률$/, description: '첫 구매 고객 중 90일 안에 재구매 상품까지 간 비율이에요.' },
+    { pattern: /^90일 재구매 도달률$/, description: '첫 구매 고객 중 90일 안에 재구매 제품까지 간 비율이에요.' },
     { pattern: /^재구매까지 평균 일수$/, description: '첫 구매 후 다음 구매까지 걸린 평균 기간이에요.' },
     { pattern: /^상위 3개 전이 집중도$/, description: '전환이 상위 3개 경로에 얼마나 몰려 있는지 보여줘요.' },
     { pattern: /^평균 90일 전이율$/, description: '첫 구매에서 재구매로 넘어간 평균 비율이에요.' },
@@ -400,26 +400,26 @@ const METRIC_TOOLTIP_RULES = [
     { pattern: /^신뢰도$/, description: '지표를 믿고 의사결정해도 되는 정도를 보여줘요.' },
     { pattern: /^현재 단계 \(\d+일\)$/, description: '선택 기간 기준으로 지금 브랜드가 어느 단계인지 표시해요.' },
     { pattern: /^브랜드 실전 건강도 \d+일$/, description: '선택한 기간 기준의 브랜드 실전 건강도 지수예요.' },
-    { pattern: /^브랜드 구조 건강도$/, description: '상품 구조가 균형적인지 보는 기본 지표예요.' },
+    { pattern: /^브랜드 구조 건강도$/, description: '제품 구조가 균형적인지 보는 기본 지표예요.' },
     { pattern: /^고객가치$/, description: '유입 고객이 만들어내는 가치 수준이에요.' },
     { pattern: /^재구매 강도$/, description: '고객이 반복 구매하는 힘을 보여줘요.' },
     { pattern: /^계산 건강도\(참고\)$/, description: '구조·고객가치·재구매강도로 계산한 참고용 건강도예요.' },
-    { pattern: /^신규유입 안정성$/, description: '신규 유입이 특정 상품에 너무 치우치지 않는지 보여줘요.' },
+    { pattern: /^신규유입 안정성$/, description: '신규 유입이 특정 제품에 너무 치우치지 않는지 보여줘요.' },
     { pattern: /^재구매 안정성$/, description: '재구매가 특정 경로에 과도하게 몰리지 않는지 보여줘요.' },
     { pattern: /^매출확장 준비도$/, description: '지금 포트폴리오가 매출 확대를 받을 준비가 되었는지 보여줘요.' },
     { pattern: /^효율·고가치 유입 비중$/, description: '효율 좋고 가치 높은 유입의 비중이에요.' },
     { pattern: /^확장형 유입 비중$/, description: '확장형 유입(Broad) 비중이에요. 너무 높으면 효율이 퍼질 수 있어요.' },
-    { pattern: /^유입 집중도$/, description: '신규 유입이 일부 상품에 얼마나 몰려 있는지 보여줘요. 높을수록 쏠림이 커요.' },
+    { pattern: /^유입 집중도$/, description: '신규 유입이 일부 제품에 얼마나 몰려 있는지 보여줘요. 높을수록 쏠림이 커요.' },
     { pattern: /^90일 재구매 고객수$/, description: '첫 구매 후 90일 안에 실제로 재구매한 고객 수예요.' },
     { pattern: /^평균 재구매 소요일$/, description: '첫 구매부터 다음 구매까지 걸린 평균 기간이에요.' },
     { pattern: /^90일 재구매율$/, description: '첫 구매 고객 중 90일 안에 다음 구매로 이어진 비율이에요.' },
-    { pattern: /^전환고객수$/, description: '상품 A에서 상품 B로 실제 전환한 고객 수예요.' },
-    { pattern: /^평균 전이일수$/, description: '상품 A 구매 후 상품 B로 넘어오기까지 걸린 평균 기간이에요.' },
-    { pattern: /^전이율$/, description: '상품 A 고객 중 상품 B로 넘어간 비율이에요.' },
-    { pattern: /^동시구매수$/, description: '두 상품이 같은 주문에서 함께 구매된 횟수예요.' }
+    { pattern: /^전환고객수$/, description: '제품 A에서 제품 B로 실제 전환한 고객 수예요.' },
+    { pattern: /^평균 전이일수$/, description: '제품 A 구매 후 제품 B로 넘어오기까지 걸린 평균 기간이에요.' },
+    { pattern: /^전이율$/, description: '제품 A 고객 중 제품 B로 넘어간 비율이에요.' },
+    { pattern: /^동시구매수$/, description: '두 제품이 같은 주문에서 함께 구매된 횟수예요.' }
 ];
 
-const QUADRANT_TRANSITION_SCOPE_CRITERIA = '리텐션 상품은 유입 상위 핵심 상품과 재구매 핵심 상품을 대상으로, 첫 구매 후 90일 안에 실제로 다음 구매가 발생한 경우만 포함해요. 같은 주문에서 함께 산 건은 제외되고, 전환이 0건이면 목록에 나타나지 않아요.';
+const QUADRANT_TRANSITION_SCOPE_CRITERIA = '리텐션 제품은 유입 상위 핵심 제품과 재구매 핵심 제품을 대상으로, 첫 구매 후 90일 안에 실제로 다음 구매가 발생한 경우만 포함해요. 같은 주문에서 함께 산 건은 제외되고, 전환이 0건이면 목록에 나타나지 않아요.';
 const QUADRANT_EDGE_TOP_N = 6;
 const RETENTION_90D_FLOW_LABEL = '첫 구매 후 90일 안에 다음 구매로 이어진 리텐션 흐름';
 
@@ -977,7 +977,7 @@ function transformAnchorScoredRows(rows) {
             PCA_Score: acc.PCA_Score,
             Entry_Gravity_Score: acc.Entry_Gravity_Score,
             Expansion_Gravity_Score: acc.Expansion_Gravity_Score,
-            // 90일 추가구매 가능성은 raw count 기준으로 다시 계산해야 그룹 상품에서도 왜곡되지 않습니다.
+            // 90일 추가구매 가능성은 raw count 기준으로 다시 계산해야 그룹 제품에서도 왜곡되지 않습니다.
             repurchase_rate_90d: firstCustomerCnt > 0 ? repurchaseCustomerCnt90d / firstCustomerCnt : 0,
             first_customer_ratio: acc.first_customer_ratio,
             p50_addl_order_cnt_90d: acc.p50_addl_order_cnt_90d,
@@ -1972,7 +1972,7 @@ function renderSearchUI(viewName, placeholder, options = {}) {
     const mode = normalizeSearchMode(state.searchMode || 'all');
     const selectOptions = [
         ['all', '전체'],
-        ['name', '상품명'],
+        ['name', '제품명'],
         ['id', 'ID']
     ];
     return `
@@ -2299,7 +2299,7 @@ window.openRetentionFlowModal = async (entityId) => {
         if (!related.length) {
             body.innerHTML = `
                 <p class="empty-state" style="margin:0;">
-                    고객의 첫 구매 여부와 무관하게, 이 상품 첫 구매 기준이에요. 90일 내 리텐션 흐름이 아직 없어요.
+                    고객의 첫 구매 여부와 무관하게, 이 제품 첫 구매 기준이에요. 90일 내 리텐션 흐름이 아직 없어요.
                 </p>
             `;
             applyFriendlyUi(modal);
@@ -2319,16 +2319,16 @@ window.openRetentionFlowModal = async (entityId) => {
 
         body.innerHTML = `
             <div class="retention-flow-summary">
-                고객의 첫 구매 여부와 무관하게, <strong>${escapeHtml(focusName)}</strong>의 이 상품 첫 구매 기준으로 90일 내 리텐션 흐름 ${formatNumber(related.length)}개를 보여줘요.
+                고객의 첫 구매 여부와 무관하게, <strong>${escapeHtml(focusName)}</strong>의 이 제품 첫 구매 기준으로 90일 내 리텐션 흐름 ${formatNumber(related.length)}개를 보여줘요.
             </div>
             <div class="chart-hint" style="margin-top:0.25rem;">
-                기준 안내: 고객의 첫 구매 여부와 무관하게, 이 상품 첫 구매 기준이에요.
+                기준 안내: 고객의 첫 구매 여부와 무관하게, 이 제품 첫 구매 기준이에요.
             </div>
             <div class="table-container retention-flow-table-wrap">
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>다음 구매 상품</th>
+                            <th>다음 구매 제품</th>
                             <th style="text-align:right">90일 재구매 고객수</th>
                             <th style="text-align:right">90일 재구매율</th>
                             <th style="text-align:right">평균 재구매 소요일</th>
@@ -2357,13 +2357,13 @@ window.openCartFlowModal = async (entityId) => {
     modal.innerHTML = `
         <div class="modal-card retention-flow-modal-card">
             <div class="modal-header">
-                <h3 class="modal-title">함께 구매되는 상품</h3>
+                <h3 class="modal-title">함께 구매되는 제품</h3>
                 <button class="modal-close" type="button" onclick="closeCartFlowModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="modal-loading">
                     <div class="spinner"></div>
-                    <p style="margin-top:1rem">함께 구매되는 상품 데이터를 불러오는 중이에요.</p>
+                    <p style="margin-top:1rem">함께 구매되는 제품 데이터를 불러오는 중이에요.</p>
                 </div>
             </div>
         </div>
@@ -2376,7 +2376,7 @@ window.openCartFlowModal = async (entityId) => {
     const title = modal.querySelector('.modal-title');
     const body = modal.querySelector('.modal-body');
     const focusName = getProductName(focusId);
-    title.textContent = `함께 구매되는 상품 · ${focusName}`;
+    title.textContent = `함께 구매되는 제품 · ${focusName}`;
 
     try {
         if (!Array.isArray(AppState.data.cartAnchorDetail) || !AppState.data.cartAnchorDetail.length) {
@@ -2396,7 +2396,7 @@ window.openCartFlowModal = async (entityId) => {
         if (!related.length) {
             body.innerHTML = `
                 <p class="empty-state" style="margin:0;">
-                    이 상품 기준 함께 구매되는 상품 데이터가 아직 없어요.
+                    이 제품 기준 함께 구매되는 제품 데이터가 아직 없어요.
                 </p>
             `;
             applyFriendlyUi(modal);
@@ -2415,13 +2415,13 @@ window.openCartFlowModal = async (entityId) => {
 
         body.innerHTML = `
             <div class="retention-flow-summary">
-                <strong>${escapeHtml(focusName)}</strong> 기준 함께 구매되는 상품 상위 ${formatNumber(Math.min(related.length, 30))}개를 보여줘요.
+                <strong>${escapeHtml(focusName)}</strong> 기준 함께 구매되는 제품 상위 ${formatNumber(Math.min(related.length, 30))}개를 보여줘요.
             </div>
             <div class="table-container retention-flow-table-wrap">
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>연관 상품</th>
+                            <th>연관 제품</th>
                             <th style="text-align:right">동시구매 수</th>
                         </tr>
                     </thead>
@@ -2432,7 +2432,7 @@ window.openCartFlowModal = async (entityId) => {
         `;
         applyFriendlyUi(modal);
     } catch (error) {
-        body.innerHTML = `<p style="color:var(--accent); text-align:center; padding:2rem;">함께 구매되는 상품 로딩에 실패했어요: ${escapeHtml(error.message)}</p>`;
+        body.innerHTML = `<p style="color:var(--accent); text-align:center; padding:2rem;">함께 구매되는 제품 로딩에 실패했어요: ${escapeHtml(error.message)}</p>`;
         applyFriendlyUi(modal);
     }
 };
@@ -2460,14 +2460,14 @@ window.showProductNamePopover = (name, id) => {
     modal.innerHTML = `
         <div class="modal-card name-popover-card">
             <div class="modal-header">
-                <h3>상품명을 크게 볼게요</h3>
+                <h3>제품명을 크게 볼게요</h3>
                 <button class="modal-close" type="button" onclick="closeNamePopover()">&times;</button>
             </div>
             <div class="modal-body">
                 <p class="name-popover-name">${escapeHtml(name)}</p>
-                <p class="name-popover-id">상품 ID: ${escapeHtml(id)}</p>
+                <p class="name-popover-id">제품 ID: ${escapeHtml(id)}</p>
                 <div class="name-popover-actions">
-                    <button class="btn-primary" type="button" onclick="copyToClipboard('${escapeJs(id)}')">상품 ID 복사</button>
+                    <button class="btn-primary" type="button" onclick="copyToClipboard('${escapeJs(id)}')">제품 ID 복사</button>
                     <button class="btn-primary" type="button" onclick="closeNamePopover()">닫기</button>
                 </div>
             </div>
@@ -2630,7 +2630,7 @@ function resolveGroupRenameTarget(previewGrouping, selectedIds) {
     });
     if (groupIds.size !== 1) {
         return {
-            error: '같은 그룹에 속한 상품을 선택해야 그룹명을 바꿀 수 있어요.'
+            error: '같은 그룹에 속한 제품을 선택해야 그룹명을 바꿀 수 있어요.'
         };
     }
     const groupId = Array.from(groupIds)[0];
@@ -2646,7 +2646,7 @@ function resolveGroupRenameTarget(previewGrouping, selectedIds) {
 function buildWizardPlan(state, previewGrouping, groupedEntities) {
     const selectedIds = getSelectedGroupEditorIds(state);
     if (!selectedIds.length) {
-        return { valid: false, reason: '먼저 대상 상품을 선택하세요.' };
+        return { valid: false, reason: '먼저 대상 제품을 선택하세요.' };
     }
     const action = state.wizardAction || 'create';
     const payload = state.wizardPayload || {};
@@ -2664,7 +2664,7 @@ function buildWizardPlan(state, previewGrouping, groupedEntities) {
             actionLabel: '새 그룹 생성',
             updates: sortedIds.map((productId) => buildManualGroupedRow(productId, groupId, groupName, 'manual')),
             summary: [
-                `대상 상품: ${formatNumber(sortedIds.length)}개`,
+                `대상 제품: ${formatNumber(sortedIds.length)}개`,
                 `생성 그룹명: ${groupName}`,
                 `생성 그룹 ID: ${groupId}`
             ],
@@ -2684,7 +2684,7 @@ function buildWizardPlan(state, previewGrouping, groupedEntities) {
             actionLabel: '기존 그룹으로 이동',
             updates: selectedIds.map((productId) => buildManualGroupedRow(productId, targetGroup.groupId, targetGroup.groupName, 'manual')),
             summary: [
-                `대상 상품: ${formatNumber(selectedIds.length)}개`,
+                `대상 제품: ${formatNumber(selectedIds.length)}개`,
                 `이동 그룹명: ${targetGroup.groupName}`,
                 `이동 그룹 ID: ${targetGroup.groupId}`
             ],
@@ -2706,8 +2706,8 @@ function buildWizardPlan(state, previewGrouping, groupedEntities) {
                 updated_at: nowIso()
             })),
             summary: [
-                `대상 상품: ${formatNumber(selectedIds.length)}개`,
-                '선택한 상품을 그룹에서 해제해요.'
+                `대상 제품: ${formatNumber(selectedIds.length)}개`,
+                '선택한 제품을 그룹에서 해제해요.'
             ],
             nextFocusEntityId: ''
         };
@@ -2730,7 +2730,7 @@ function buildWizardPlan(state, previewGrouping, groupedEntities) {
             `대상 그룹 ID: ${renameTarget.groupId}`,
             `변경 전 그룹명: ${renameTarget.currentName}`,
             `변경 후 그룹명: ${nextName}`,
-            `적용 상품 수: ${formatNumber(renameTarget.members.length)}개`
+            `적용 제품 수: ${formatNumber(renameTarget.members.length)}개`
         ],
         nextFocusEntityId: renameTarget.groupId
     };
@@ -2826,7 +2826,7 @@ function renderGroupWizardStep(state, context) {
                         id="group-editor-query-input"
                         type="text"
                         class="search-input"
-                        placeholder="상품ID / 상품명 / 그룹명 검색"
+                        placeholder="제품ID / 제품명 / 그룹명 검색"
                         value="${escapeHtml(state.query || '')}"
                         oncompositionstart="setGroupEditorQueryComposing(true)"
                         oncompositionend="handleGroupEditorQueryCompositionEnd(this)"
@@ -2854,8 +2854,8 @@ function renderGroupWizardStep(state, context) {
                     <thead>
                         <tr>
                             <th><input id="group-editor-select-all" type="checkbox" ${allFilteredSelected ? 'checked' : ''} onchange="toggleGroupEditorSelectAll(this.checked)"></th>
-                            <th>상품 ID</th>
-                            <th>상품명</th>
+                            <th>제품 ID</th>
+                            <th>제품명</th>
                             <th>적용 상태</th>
                             <th>현재 그룹</th>
                         </tr>
@@ -2876,7 +2876,7 @@ function renderGroupWizardStep(state, context) {
                 </div>
             ` : ''}
             <div class="group-wizard-nav">
-                <span class="chart-hint">대상 상품을 선택한 뒤 다음 단계에서 작업을 고르세요.</span>
+                <span class="chart-hint">대상 제품을 선택한 뒤 다음 단계에서 작업을 고르세요.</span>
                 <button class="btn-primary" type="button" onclick="setGroupWizardStep(2)">다음 단계</button>
             </div>
         `;
@@ -2889,14 +2889,14 @@ function renderGroupWizardStep(state, context) {
         return `
             ${stepHeader}
             <div class="group-selected-preview">
-                <strong>선택 상품 ${formatNumber(selectedIds.length)}개</strong>
+                <strong>선택 제품 ${formatNumber(selectedIds.length)}개</strong>
                 <span>${escapeHtml(selectedPreview || '-')}</span>
             </div>
             <div class="group-action-grid">
                 ${[
-                    ['create', '새 그룹 생성', '선택 상품으로 새 그룹을 만들어요.'],
+                    ['create', '새 그룹 생성', '선택 제품으로 새 그룹을 만들어요.'],
                     ['move', '기존 그룹으로 이동', '이미 있는 그룹으로 이동해요.'],
-                    ['ungroup', '그룹 해제', '선택 상품을 그룹에서 해제해요.'],
+                    ['ungroup', '그룹 해제', '선택 제품을 그룹에서 해제해요.'],
                     ['rename', '그룹명 변경', '같은 그룹을 선택한 경우 이름만 바꿔요.']
                 ].map(([key, label, desc]) => `
                     <button
@@ -2998,7 +2998,7 @@ function renderGroupEditorModal() {
     modal.innerHTML = `
         <div class="modal-card pgm-modal pgm-group-modal">
             <div class="modal-header">
-                <h3>상품 그룹 조회/편집 마법사</h3>
+                <h3>제품 그룹 조회/편집 마법사</h3>
                 <button class="modal-close" type="button" onclick="closeGroupEditorModal()">&times;</button>
             </div>
             <div class="modal-body">
@@ -3023,7 +3023,7 @@ function renderGroupEditorModal() {
                         activeFocusEntityId
                     })}
                 </div>
-                <p class="chart-hint">그룹 지정은 분석용 논리 통합입니다. 원본 상품ID는 유지되며, 저장 후 Products/Transitions/Cart/Insights 집계에 즉시 반영됩니다.</p>
+                <p class="chart-hint">그룹 지정은 분석용 논리 통합입니다. 원본 제품ID는 유지되며, 저장 후 Products/Transitions/Cart/Insights 집계에 즉시 반영됩니다.</p>
             </div>
             <div class="pgm-group-footer">
                 <button class="btn-primary" type="button" onclick="closeGroupEditorModal()">닫기</button>
@@ -3190,7 +3190,7 @@ window.setGroupWizardStep = (step) => {
     const { previewGrouping } = buildGroupEditorRows(state);
     const groupedEntities = getGroupedEntitiesForEditor(previewGrouping);
     if (nextStep >= 2 && !selectedIds.length) {
-        alert('먼저 대상 상품을 선택하세요.');
+        alert('먼저 대상 제품을 선택하세요.');
         return;
     }
     if (nextStep === 3) {
@@ -3303,14 +3303,14 @@ function renderSettingsTabs() {
 
     const groupingPanel = `
         <div class="settings-panel ${activeTab === 'grouping' ? 'active' : ''}">
-            <h4>상품 그룹 관리</h4>
-            <p>같은 상품인데 ID가 다른 경우를 묶어 분석 정확도를 높일 수 있어요.</p>
+            <h4>제품 그룹 관리</h4>
+            <p>같은 제품인데 ID가 다른 경우를 묶어 분석 정확도를 높일 수 있어요.</p>
             <div class="settings-kpis">
                 <span>현재 그룹 수: ${formatNumber(groupedEntityCount)}개</span>
                 <span>무효 매핑: ${formatNumber(invalidOverrideCount)}건</span>
             </div>
             <div class="settings-actions">
-                <button class="btn-primary" type="button" onclick="openGroupEditorFromSettings()">상품 그룹 관리 열기</button>
+                <button class="btn-primary" type="button" onclick="openGroupEditorFromSettings()">제품 그룹 관리 열기</button>
                 <button class="btn-primary" type="button" onclick="exportGroupMapCsv()">그룹 CSV 내보내기</button>
             </div>
         </div>
@@ -3329,7 +3329,7 @@ function renderSettingsTabs() {
 
     return `
         <div class="settings-tabs">
-            <button class="settings-tab ${activeTab === 'grouping' ? 'active' : ''}" type="button" onclick="switchSettingsTab('grouping')">상품 그룹</button>
+            <button class="settings-tab ${activeTab === 'grouping' ? 'active' : ''}" type="button" onclick="switchSettingsTab('grouping')">제품 그룹</button>
             <button class="settings-tab ${activeTab === 'data' ? 'active' : ''}" type="button" onclick="switchSettingsTab('data')">데이터 관리</button>
         </div>
         ${groupingPanel}

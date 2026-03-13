@@ -1,12 +1,12 @@
 # Convergence Gravity v0.1
 
 Convergence Gravity v0.1  
-― 여러 수요 경로가 한 상품으로 모이는 gather force ―
+― 여러 수요 경로가 한 제품으로 모이는 gather force ―
 
 ## Abstract
 
-Convergence Gravity는 수요가 여러 경로를 거쳐 하나의 상품으로 모이는 정도를 설명한다.
-이 개념은 단순 인기 상품 점수나 판매량 랭킹과 다르다.
+Convergence Gravity는 수요가 여러 경로를 거쳐 하나의 제품으로 모이는 정도를 설명한다.
+이 개념은 단순 인기 제품 점수나 판매량 랭킹과 다르다.
 
 핵심 패턴은 다음과 같다.
 
@@ -15,17 +15,17 @@ Convergence Gravity는 수요가 여러 경로를 거쳐 하나의 상품으로 
 - `D -> A`
 
 즉 Convergence Gravity는
-“많은 source가 결국 이 상품으로 모이는가?”
+“많은 source가 결국 이 제품으로 모이는가?”
 를 묻는 지표다.
 
 PGM shorthand에서 Convergence Gravity는 `Gather`에 해당한다.
 
 ## 1. 문제의식
 
-어떤 상품은 직접 유입을 만들지 않아도,
+어떤 제품은 직접 유입을 만들지 않아도,
 여러 탐색 경로 끝에서 공통 도착점이 된다.
 
-이 상품은 다음과 같은 의미를 가질 수 있다.
+이 제품은 다음과 같은 의미를 가질 수 있다.
 
 - signature product
 - demand hub
@@ -36,7 +36,7 @@ PGM shorthand에서 Convergence Gravity는 `Gather`에 해당한다.
 ## 2. 공식 정의
 
 Convergence Gravity는
-많은 서로 다른 prior product로부터 수요가 이 상품으로 모여드는 정도다.
+많은 서로 다른 prior product로부터 수요가 이 제품으로 모여드는 정도다.
 
 핵심 예시:
 
@@ -90,9 +90,9 @@ Convergence Gravity는 다음과 동일하지 않다.
 
 기본 규칙:
 
-- 고객별 상품 첫 구매를 source cohort로 정의
+- 고객별 제품 첫 구매를 source cohort로 정의
 - cohort 이후 90일 내 첫 next-product를 edge로 생성
-- target 상품 기준 incoming edge를 집계
+- target 제품 기준 incoming edge를 집계
 - core score에는 `source_product_id != target_product_id`인 non-self incoming edge만 포함한다
 - `A -> A` self-loop는 self persistence / repeat 성격이 강하므로 score에서는 제외하고 diagnostic metric으로 따로 기록한다
 
@@ -118,13 +118,13 @@ Convergence Gravity는 다음과 동일하지 않다.
 
 ## 8. 해석
 
-Convergence Gravity가 높은 상품은 다음과 같이 해석할 수 있다.
+Convergence Gravity가 높은 제품은 다음과 같이 해석할 수 있다.
 
 - `Demand Hub`
 - `Gathering Product`
 - `Common Destination Product`
 
-이 상품은 여러 구매 경로가 수렴하는 중심이다.
+이 제품은 여러 구매 경로가 수렴하는 중심이다.
 
 ## 9. 진단 뷰와의 관계
 

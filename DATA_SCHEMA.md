@@ -21,14 +21,14 @@
 - `Confidence_Index`
 
 ## 2) `anchor_scored` (기존)
-용도: Products, 상품명 매핑, 일부 액션 규칙 계산
+용도: Products, 제품명 매핑, 일부 액션 규칙 계산
 
 필수 컬럼:
-- 상품 ID 계열 중 1개 이상
+- 제품 ID 계열 중 1개 이상
   - `product_id`
   - `Product_ID`
   - `\ufeffproduct_id`
-- 상품명 계열 중 1개 이상
+- 제품명 계열 중 1개 이상
   - `product_name_latest`
   - `Product_Name`
   - `product_name`
@@ -57,7 +57,7 @@
 - `median_cart_size`
 
 ## 5) `cart_anchor_detail` (기존)
-용도: 기존 Cart 상세 테이블, 연관상품 모달
+용도: 기존 Cart 상세 테이블, 연관제품 모달
 
 필수 컬럼:
 - `i`
@@ -153,7 +153,7 @@
 ---
 
 ## 11) `product_group_map` (신규, 선택)
-용도: 동일 상품군 수동 그룹 매핑/해제(전 페이지 집계 반영)
+용도: 동일 제품군 수동 그룹 매핑/해제(전 페이지 집계 반영)
 
 권장 파일명:
 - `pgm_product_group_map.csv`
@@ -180,7 +180,7 @@ alias:
 - 저장 우선순위:
   1. `data/pgm_product_group_map.csv`
   2. IndexedDB 저장값
-  3. 자동 제안(동일 상품명 + 접두어 `[ ... ]` 제거 정규화)
+  3. 자동 제안(동일 제품명 + 접두어 `[ ... ]` 제거 정규화)
 
 ---
 

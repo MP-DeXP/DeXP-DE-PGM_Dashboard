@@ -217,8 +217,8 @@ function getBuiltInActionCards(model) {
         cards.push({
             domain: 'marketing',
             priority: 1,
-            title: '대량 유입형 상품의 재구매 강화',
-            action: '첫구매 유입 후 7일 이내 단골의 시작점 상품으로 이어지도록 CRM/리타게팅을 우선 배치합니다.',
+            title: '대량 유입형 제품의 재구매 강화',
+            action: '첫구매 유입 후 7일 이내 단골의 시작점 제품으로 이어지도록 CRM/리타게팅을 우선 배치합니다.',
             impact: '재구매 도달률 개선 및 유입 낭비 축소',
             evidence: `${TERM_LABELS.AA}-${AA_TYPE_LABELS.BROAD} 비중 ${formatPercent(m.aa_broad_ratio, 1)} / 90일 재구매 도달률 ${formatPercent(m.pca_transition_90d_rate, 1)}`
         });
@@ -229,7 +229,7 @@ function getBuiltInActionCards(model) {
             domain: 'marketing',
             priority: 2,
             title: '전이 경로 과집중 완화 실험',
-            action: '상위 재구매 상품 편중 경로를 유지하되 대체 상품 노출 A/B 테스트를 병행합니다.',
+            action: '상위 재구매 제품 편중 경로를 유지하되 대체 제품 노출 A/B 테스트를 병행합니다.',
             impact: '경로 리스크 분산 및 안정적 확장',
             evidence: `전이 상위 3경로 비중 ${formatPercent(m.transition_top3_share, 1)}`
         });
@@ -251,7 +251,7 @@ function getBuiltInActionCards(model) {
             domain: 'md',
             priority: 1,
             title: '장바구니 조합형 고정 번들 운영',
-            action: '상위 조합 상품을 고정 번들로 구성하고 교차추천 슬롯을 상단에 고정합니다.',
+            action: '상위 조합 제품을 고정 번들로 구성하고 교차추천 슬롯을 상단에 고정합니다.',
             impact: '장바구니 확장 확장률 향상',
             evidence: `최대 top1_share ${formatPercent(m.ca_pair_top1_share_max, 1)}`
         });
@@ -262,7 +262,7 @@ function getBuiltInActionCards(model) {
             domain: 'md',
             priority: 2,
             title: '장바구니 세트형 랜딩 강화',
-            action: '세트형 상품군을 랜딩/기획전으로 분리하고 구성 SKU 재고 안정성을 우선 확보합니다.',
+            action: '세트형 제품군을 랜딩/기획전으로 분리하고 구성 SKU 재고 안정성을 우선 확보합니다.',
             impact: 'AOV 상승 및 이탈 감소',
             evidence: `${TERM_LABELS.CA}-${CA_TYPE_LABELS.SET} 평균 카테고리 확장 지수 ${formatNumber(m.ca_set_breadth_lift_avg, 2)}`
         });
@@ -272,8 +272,8 @@ function getBuiltInActionCards(model) {
         cards.push({
             domain: 'md',
             priority: 1,
-            title: '효자 상품 재고 방어',
-            action: '효자 상품군의 안전재고 기준을 상향하고 품절 알림 자동화를 적용합니다.',
+            title: '효자 제품 재고 방어',
+            action: '효자 제품군의 안전재고 기준을 상향하고 품절 알림 자동화를 적용합니다.',
             impact: '사슬 붕괴 리스크 완화',
             evidence: `${PCA_TYPE_LABELS.SCALE} 매출 집중도 ${formatPercent(m.pca_scale_concentration, 1)}`
         });
@@ -339,7 +339,7 @@ function getFitnessTrend(ratio) {
         direction: '위험',
         status: '즉시 대응 필요',
         problem: '최근 건강도가 장기 기준 대비 크게 약화된 상태입니다.',
-        action: '재구매 상품 노출과 핵심 재고 방어를 최우선으로 전환하세요.',
+        action: '재구매 제품 노출과 핵심 재고 방어를 최우선으로 전환하세요.',
         tone: 'critical'
     };
 }
@@ -497,14 +497,14 @@ function renderAATransition(model) {
                     <strong>${formatPercent(model.summaries.pca90, 1)}</strong>
                 </div>
             </div>
-            <p class="chart-hint">차트 라벨은 상품명 기준이며, 마우스를 올리면 전체 상품명과 ID를 확인할 수 있습니다.</p>
+            <p class="chart-hint">차트 라벨은 제품명 기준이며, 마우스를 올리면 전체 제품명과 ID를 확인할 수 있습니다.</p>
             <div class="card chart-card"><canvas id="transitionChart"></canvas></div>
             <div class="table-container" style="margin-top:1rem;">
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>첫구매 유입 상품</th>
-                            <th>재구매 상품</th>
+                            <th>첫구매 유입 제품</th>
+                            <th>재구매 제품</th>
                             <th>90일 재구매 고객수</th>
                             <th>90일 재구매율</th>
                             <th>평균 소요일</th>
@@ -539,7 +539,7 @@ function renderCASection(model) {
     const selectedPanel = model.selectedCa
         ? `
         <div class="selected-ca-panel">
-            <h4>선택한 첫구매 유입 상품 기준 장바구니 확장</h4>
+            <h4>선택한 첫구매 유입 제품 기준 장바구니 확장</h4>
             <p><strong title="${escapeHtml(getProductName(model.selectedCa.product_id))}">${escapeHtml(truncateText(getProductName(model.selectedCa.product_id), 42))}</strong> (${escapeHtml(model.selectedCa.product_id)})</p>
             <div class="selected-ca-grid">
                 <span>확장 유형: ${escapeHtml(toCaTypeLabel(withFallback(model.selectedCa.ca_type, 'None')))}</span>
@@ -549,7 +549,7 @@ function renderCASection(model) {
             </div>
         </div>
         `
-        : '<div class="selected-ca-panel"><h4>선택한 첫구매 유입 상품 기준 장바구니 확장</h4><p>첫구매 유입 상품 필터를 선택하면 해당 상품의 장바구니 확장 신호를 표시합니다.</p></div>';
+        : '<div class="selected-ca-panel"><h4>선택한 첫구매 유입 제품 기준 장바구니 확장</h4><p>첫구매 유입 제품 필터를 선택하면 해당 제품의 장바구니 확장 신호를 표시합니다.</p></div>';
 
     return `
         <section id="cart-ca" class="insight-section card animate-fade-in">
@@ -566,7 +566,7 @@ function renderCASection(model) {
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>상품</th>
+                            <th>제품</th>
                             <th>확장 유형</th>
                             <th>동반구매 비율</th>
                             <th>중간 장바구니 크기</th>
@@ -904,7 +904,7 @@ function renderInsightFilters(model) {
 
     const aaProductOptions = aaProducts.map((id) => {
         const selected = String(filters.aaProductId) === id ? 'selected' : '';
-        const label = id === 'ALL' ? '전체 Entry 상품' : `${getProductName(id)} (${id})`;
+        const label = id === 'ALL' ? '전체 Entry 제품' : `${getProductName(id)} (${id})`;
         return `<option value="${escapeHtml(id)}" ${selected}>${escapeHtml(label)}</option>`;
     }).join('');
 
@@ -933,7 +933,7 @@ function renderInsightFilters(model) {
                         <select onchange="updateInsightsFilter('aaType', this.value)">${aaTypeOptions}</select>
                     </label>
                     <label class="filter-field">
-                        <span>Entry 상품</span>
+                        <span>Entry 제품</span>
                         <select onchange="updateInsightsFilter('aaProductId', this.value)">${aaProductOptions}</select>
                     </label>
                     <label class="filter-field">

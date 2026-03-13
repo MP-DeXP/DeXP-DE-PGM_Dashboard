@@ -7,7 +7,7 @@ Brand Score는 브랜드를 매출이 아니라 수요 구조로 진단하는 �
 
 - 이 브랜드는 신규 수요를 안정적으로 열 수 있는가
 - 다음 구매를 이어갈 수 있는가
-- 여러 경로의 수요를 한 상품군으로 모을 수 있는가
+- 여러 경로의 수요를 한 제품군으로 모을 수 있는가
 - 고객을 다시 돌아오게 만들 수 있는가
 - 장바구니 구조까지 포함해 반복 가능한 상업 구조를 갖췄는가
 
@@ -50,7 +50,7 @@ Brand Score는 브랜드를 매출이 아니라 수요 구조로 진단하는 �
 
 - 강도: 제품별 `Entry_Gravity_Score` 평균
 - 균형: `Broad`와 `Qualified` 타입의 균형
-- 리스크: 상위 3개 entry 상품에 first purchase가 몰리는 정도
+- 리스크: 상위 3개 entry 제품에 first purchase가 몰리는 정도
 
 공식 산식:
 
@@ -68,7 +68,7 @@ Brand Score는 브랜드를 매출이 아니라 수요 구조로 진단하는 �
 `Expansion_Structure_Index = 0.4*avg(Expansion_Gravity_Score) + 0.3*expansion_coverage_ratio + 0.3*expansion_balance_index`
 
 ### Convergence Structure
-브랜드가 여러 구매 경로의 수요를 한 상품군으로 모으는 구조 건강도.
+브랜드가 여러 구매 경로의 수요를 한 제품군으로 모으는 구조 건강도.
 
 - 강도: 제품별 `Convergence_Gravity_Score` 평균
 - 커버리지: `distinct_source_product_cnt_90d > 0` 인 제품 비중
@@ -83,7 +83,7 @@ Brand Score는 브랜드를 매출이 아니라 수요 구조로 진단하는 �
 
 - 강도: 제품별 `Return_Gravity_Score` 평균
 - 커버리지: `return_loop_rate_90d > 0` 인 제품 비중
-- 리스크: return 수요가 상위 소수 상품에 집중되는 정도
+- 리스크: return 수요가 상위 소수 제품에 집중되는 정도
 
 공식 산식:
 

@@ -367,7 +367,7 @@ def main():
             "condition_expr": "ca_pair_top1_share_max > 0.7",
             "priority": 1,
             "title_ko": "Basket Gravity-Pair 고정 번들 운영",
-            "action_ko": "상위 Pair 상품의 고정 번들/교차추천 슬롯을 우선 운영합니다.",
+            "action_ko": "상위 Pair 제품의 고정 번들/교차추천 슬롯을 우선 운영합니다.",
             "impact_ko": "Basket Gravity 확장률 향상",
         },
         {
@@ -376,7 +376,7 @@ def main():
             "condition_expr": "ca_set_breadth_lift_avg > 1.5",
             "priority": 2,
             "title_ko": "Basket Gravity-Set 세트 랜딩 강화",
-            "action_ko": "세트형 상품군 랜딩을 분리하고 구성 SKU 재고를 선제 관리합니다.",
+            "action_ko": "세트형 제품군 랜딩을 분리하고 구성 SKU 재고를 선제 관리합니다.",
             "impact_ko": "AOV 상승 및 이탈 감소",
         },
         {

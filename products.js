@@ -22,14 +22,14 @@ const QUADRANT_RETURN_LOOP_TOP_N = 4;
 const QUADRANT_EDGE_MODE_META = {
     representative: {
         label: '전이 흐름',
-        guide: '이 상품에서 이어지거나 이 상품으로 넘어오는 전이 흐름을 보여줘요.',
-        emptyGuide: '이 상품과 이어지는 전이 흐름이 아직 많지 않아요.',
+        guide: '이 제품에서 이어지거나 이 제품으로 넘어오는 전이 흐름을 보여줘요.',
+        emptyGuide: '이 제품과 이어지는 전이 흐름이 아직 많지 않아요.',
         unavailableGuide: '전이 흐름을 보여줄 데이터가 아직 준비되지 않았어요.'
     },
     convergence: {
         label: '도착 흐름',
-        guide: '이 상품이 다른 상품 다음에 자주 선택되는지 보여줘요.',
-        emptyGuide: '이 상품이 다음 구매로 자주 이어지는 흐름은 아직 많지 않아요.',
+        guide: '이 제품이 다른 제품 다음에 자주 선택되는지 보여줘요.',
+        emptyGuide: '이 제품이 다음 구매로 자주 이어지는 흐름은 아직 많지 않아요.',
         unavailableGuide: '도착 흐름을 보여줄 상세 전이 데이터가 아직 준비되지 않았어요.'
     }
 };
@@ -37,17 +37,17 @@ const QUADRANT_EDGE_MODE_META = {
 const DEMAND_GRAPH_TAB_META = {
     transition: {
         label: '구매 전이',
-        guide: '이 상품 전후로 자주 이어지는 구매 관계를 보여줘요.',
-        emptyGuide: '이 상품과 자주 이어지는 연결은 아직 많지 않아요.',
+        guide: '이 제품 전후로 자주 이어지는 구매 관계를 보여줘요.',
+        emptyGuide: '이 제품과 자주 이어지는 연결은 아직 많지 않아요.',
         unavailableGuide: '주변 연결 흐름을 보여줄 상세 패턴 데이터가 아직 준비되지 않았어요.',
-        summaryTitle: '자주 이어지는 상품'
+        summaryTitle: '자주 이어지는 제품'
     },
     basket: {
         label: '장바구니 조합',
-        guide: '이 상품과 함께 담기는 관계를 보여줘요.',
-        emptyGuide: '이 상품과 자주 함께 담기는 조합은 아직 많지 않아요.',
+        guide: '이 제품과 함께 담기는 관계를 보여줘요.',
+        emptyGuide: '이 제품과 자주 함께 담기는 조합은 아직 많지 않아요.',
         unavailableGuide: '장바구니 조합을 보여줄 패턴 데이터가 아직 준비되지 않았어요.',
-        summaryTitle: '자주 함께 담기는 상품'
+        summaryTitle: '자주 함께 담기는 제품'
     }
 };
 
@@ -82,7 +82,7 @@ function getQuadrantStatus(entry, expansion, centerEntry, centerExpansion) {
             key: 'hero',
             label: '우선 확대 대상',
             color: '#3b82f6',
-            summary: '현재 화면에서 신규 유입 강점과 재구매 강점이 모두 상대적으로 높아 우선 확대를 검토할 수 있는 상품이에요.',
+            summary: '현재 화면에서 신규 유입 강점과 재구매 강점이 모두 상대적으로 높아 우선 확대를 검토할 수 있는 제품이에요.',
             guide: '현재 화면에서 신규 유입 강점과 재구매 강점이 모두 상대적으로 높은 구간이에요. 우선적으로 노출·예산·재고 확대를 검토할 수 있어요.',
             actions: [
                 '핵심 지면과 캠페인에서 상시 노출해 성장 모멘텀을 키워요.',
@@ -99,14 +99,14 @@ function getQuadrantStatus(entry, expansion, centerEntry, centerExpansion) {
             guide: '현재 화면에서 신규 유입 강점과 재구매 강점이 모두 상대적으로 낮은 구간이에요. 개선 실험 후 유지 여부를 판단할 수 있어요.',
             actions: [
                 '가격·구성·메시지 개선 실험으로 반응 회복 가능성을 먼저 확인해요.',
-                '개선 반응이 낮으면 축소 또는 대체 상품으로 전환해요.'
+                '개선 반응이 낮으면 축소 또는 대체 제품으로 전환해요.'
             ]
         };
     }
     if (highEntry && !highExpansion) {
         return {
             key: 'entry-only',
-            label: '첫구매 강점 상품',
+            label: '첫구매 강점 제품',
             color: '#14b8a6',
             summary: '현재 화면에서 첫구매 강점은 상대적으로 높지만 재구매 강점은 상대적으로 낮아 후속 전환 보강이 필요해요.',
             guide: '현재 화면에서 신규 유입 강점은 상대적으로 높지만, 재구매 강점은 상대적으로 낮은 구간이에요. 재구매 전환 장치 보강이 필요해요.',
@@ -118,13 +118,13 @@ function getQuadrantStatus(entry, expansion, centerEntry, centerExpansion) {
     }
     return {
         key: 'expansion-only',
-        label: '재구매 강점 상품',
+        label: '재구매 강점 제품',
         color: '#8b5cf6',
         summary: '현재 화면에서 재구매 강점은 상대적으로 높지만 신규 유입 강점은 상대적으로 낮아 유입 확대가 필요해요.',
         guide: '현재 화면에서 재구매 강점은 상대적으로 높지만, 신규 유입 강점은 상대적으로 낮은 구간이에요. 신규 유입 채널 보강이 필요해요.',
         actions: [
             '신규 유입 채널과 크리에이티브를 확장해 첫구매 모수를 늘려요.',
-            '첫구매 강점 상품과의 동시 노출로 유입 구간을 보강해요.'
+            '첫구매 강점 제품과의 동시 노출로 유입 구간을 보강해요.'
         ]
     };
 }
@@ -535,7 +535,7 @@ function buildTransitionDemandGraphModel(selectedId) {
     return {
         selected: {
             ...selected,
-            subtitle: '이전 상품에서 들어오고 다음 상품으로 이어져요'
+            subtitle: '이전 제품에서 들어오고 다음 제품으로 이어져요'
         },
         incoming,
         outgoing,
@@ -1057,10 +1057,10 @@ function renderDemandGraphInline(quadrantModel) {
         <div class="demand-graph-wrap is-inline">
             <div class="demand-graph-head">
                 <div>
-                    <h3>상품 관계 구조</h3>
-                    <p>이 상품이 어떤 상품과 어떤 관계로 이어지는지 보여줘요.</p>
+                    <h3>제품 관계 구조</h3>
+                    <p>이 제품이 어떤 제품과 어떤 관계로 이어지는지 보여줘요.</p>
                 </div>
-                <div class="demand-graph-tabs" role="tablist" aria-label="선택 상품 주변 흐름 탭">
+                <div class="demand-graph-tabs" role="tablist" aria-label="선택 제품 주변 흐름 탭">
                     ${Object.entries(DEMAND_GRAPH_TAB_META).map(([key, meta]) => `
                         <button
                             class="btn-primary ${model.tab === key ? 'is-active' : ''}"
@@ -1074,7 +1074,7 @@ function renderDemandGraphInline(quadrantModel) {
             </div>
             <p class="demand-graph-helper"><strong>${escapeHtml(model.meta.label)}</strong> · ${escapeHtml(model.meta.guide)}</p>
             ${!model.hasAnyDataset ? `
-                <div class="demand-graph-empty">빈발 패턴 데이터가 준비되면 선택 상품 주변 흐름을 보여드릴게요.</div>
+                <div class="demand-graph-empty">빈발 패턴 데이터가 준비되면 선택 제품 주변 흐름을 보여드릴게요.</div>
             ` : !model.hasDataset ? `
                 <div class="demand-graph-empty">${escapeHtml(model.meta.unavailableGuide)}</div>
             ` : !model.hasData ? `
@@ -1220,7 +1220,7 @@ function buildQuadrantModel(rows, selectedId, scaleMode = 'focus', scope = 'rete
         ? {
             mode: normalizedEdgeMode,
             label: QUADRANT_EDGE_MODE_META[normalizedEdgeMode].label,
-            guide: '이 상품은 90일 내 전이 데이터가 없어 흐름이 표시되지 않아요.',
+            guide: '이 제품은 90일 내 전이 데이터가 없어 흐름이 표시되지 않아요.',
             edges: [],
             isAvailable: true,
             availability: getQuadrantEdgeModeAvailability()
@@ -1297,21 +1297,21 @@ function buildQuadrantStrategyModel(model) {
     const highCartConcentration = hasCartSignal && levels.top1Share === '높음';
     const cartType = String(selectedCa?.ca_type || '').toLowerCase();
 
-    let roleText = '현재 반응을 점검할 필요가 있는 상품';
+    let roleText = '현재 반응을 점검할 필요가 있는 제품';
     if (highEntryContribution && highExpansionContribution && highReturnRole) {
-        roleText = '신규 유입과 재구매를 만들면서 다시 찾는 구매까지 이어지는 핵심 상품';
+        roleText = '신규 유입과 재구매를 만들면서 다시 찾는 구매까지 이어지는 핵심 제품';
     } else if (highConvergenceRole && (highDemand || mediumDemand)) {
-        roleText = '여러 흐름이 모이는 대표 상품';
+        roleText = '여러 흐름이 모이는 대표 제품';
     } else if (highEntryContribution && highExpansionContribution) {
-        roleText = '신규 유입과 재구매를 함께 만드는 핵심 상품';
+        roleText = '신규 유입과 재구매를 함께 만드는 핵심 제품';
     } else if (highExpansionContribution && (highContinuity || statusKey === 'expansion-only')) {
-        roleText = '재구매를 지키는 유지형 핵심 상품';
+        roleText = '재구매를 지키는 유지형 핵심 제품';
     } else if (highEntryContribution && (highDemand || statusKey === 'entry-only')) {
         roleText = '신규 유입을 크게 만드는 확장 후보';
     } else if (highCartExpansion) {
-        roleText = '장바구니 연결력이 있는 보조 상품';
+        roleText = '장바구니 연결력이 있는 보조 제품';
     } else if (highDemand || mediumDemand) {
-        roleText = '수요 반응을 확인할 가치가 있는 상품';
+        roleText = '수요 반응을 확인할 가치가 있는 제품';
     }
 
     let goalText = '현재 강점을 유지하면서 다음 성장 포인트를 확인해요.';
@@ -1320,7 +1320,7 @@ function buildQuadrantStrategyModel(model) {
     } else if (highReturnRole) {
         goalText = '다시 돌아오는 구매 흐름이 끊기지 않도록 유지 반응을 지켜요.';
     } else if (highConvergenceRole) {
-        goalText = '여러 흐름이 모이는 대표 상품 역할을 더 분명하게 만들어요.';
+        goalText = '여러 흐름이 모이는 대표 제품 역할을 더 분명하게 만들어요.';
     } else if (highContinuity && !highEntryContribution) {
         goalText = '안정적인 재구매 반응을 바탕으로 신규 유입 모수를 넓혀요.';
     } else if (highCartExpansion && (mediumDemand || highDemand)) {
@@ -1381,18 +1381,18 @@ function getAdditionalRoleGuide(key, level) {
         if (level === '낮음') return '다시 찾는 구매 흐름은 아직 약하게 보여요.';
         return '다시 찾는 구매 흐름이 일부 보여요.';
     }
-    if (level === '높음') return '다른 상품 다음에 이 상품이 자주 선택되는 흐름이 뚜렷해요.';
-    if (level === '낮음') return '다음 구매로 이 상품이 이어지는 흐름은 아직 약해요.';
-    return '다음 구매로 이 상품이 이어지는 흐름이 일부 보여요.';
+    if (level === '높음') return '다른 제품 다음에 이 제품이 자주 선택되는 흐름이 뚜렷해요.';
+    if (level === '낮음') return '다음 구매로 이 제품이 이어지는 흐름은 아직 약해요.';
+    return '다음 구매로 이 제품이 이어지는 흐름이 일부 보여요.';
 }
 
 function renderQuadrantPanel(model) {
     if (!model) {
-        return '<p class="empty-state">4분면 계산 대상 상품이 없습니다.</p>';
+        return '<p class="empty-state">4분면 계산 대상 제품이 없습니다.</p>';
     }
     const { selected, status } = model;
     const strategy = buildQuadrantStrategyModel(model);
-    const memberMeta = selected.memberCount > 1 ? `그룹 상품 (${selected.memberCount}개 SKU)` : '단일 상품';
+    const memberMeta = selected.memberCount > 1 ? `그룹 제품 (${selected.memberCount}개 SKU)` : '단일 제품';
     const returnPatternNames = getReturnPatternSummary(selected.id);
     const groupedLabel = selected.memberCount > 1
         ? `
@@ -1405,13 +1405,13 @@ function renderQuadrantPanel(model) {
     const statusLegend = [
         { key: 'hero', label: '우선 확대 대상', color: '#3b82f6', guide: '현재 화면에서 신규 유입 강점과 재구매 강점이 모두 상대적으로 높은 구간이에요. 우선적으로 노출·예산·재고 확대를 검토할 수 있어요.' },
         { key: 'phaseout', label: '개선 필요', color: '#ef4444', guide: '현재 화면에서 신규 유입 강점과 재구매 강점이 모두 상대적으로 낮은 구간이에요. 개선 실험 후 유지 여부를 판단할 수 있어요.' },
-        { key: 'entry-only', label: '첫구매 강점 상품', color: '#14b8a6', guide: '현재 화면에서 신규 유입 강점은 상대적으로 높지만, 재구매 강점은 상대적으로 낮은 구간이에요. 재구매 전환 장치 보강이 필요해요.' },
-        { key: 'expansion-only', label: '재구매 강점 상품', color: '#8b5cf6', guide: '현재 화면에서 재구매 강점은 상대적으로 높지만, 신규 유입 강점은 상대적으로 낮은 구간이에요. 신규 유입 채널 보강이 필요해요.' }
+        { key: 'entry-only', label: '첫구매 강점 제품', color: '#14b8a6', guide: '현재 화면에서 신규 유입 강점은 상대적으로 높지만, 재구매 강점은 상대적으로 낮은 구간이에요. 재구매 전환 장치 보강이 필요해요.' },
+        { key: 'expansion-only', label: '재구매 강점 제품', color: '#8b5cf6', guide: '현재 화면에서 재구매 강점은 상대적으로 높지만, 신규 유입 강점은 상대적으로 낮은 구간이에요. 신규 유입 채널 보강이 필요해요.' }
     ];
     const transitionCta = selected.hasTransition
-        ? `<button class="btn-primary" type="button" onclick="openRetentionFlowModal('${escapeJs(selected.id)}')">90일 추가구매 상품 보기</button>`
+        ? `<button class="btn-primary" type="button" onclick="openRetentionFlowModal('${escapeJs(selected.id)}')">90일 추가구매 제품 보기</button>`
         : `
-            <button class="btn-primary" type="button" disabled title="90일 추가구매 데이터가 없어 이동할 수 없음">90일 추가구매 상품 보기</button>
+            <button class="btn-primary" type="button" disabled title="90일 추가구매 데이터가 없어 이동할 수 없음">90일 추가구매 제품 보기</button>
             <p class="pgm-link-help">구매 후 90일 내 추가구매 데이터가 없어 이동할 수 없어요.</p>
         `;
     return `
@@ -1421,7 +1421,7 @@ function renderQuadrantPanel(model) {
                 <h3 title="${escapeHtml(selected.name)}">${escapeHtml(selected.name)}</h3>
                 ${groupedLabel}
             </div>
-            <p class="pgm-panel-helper">최근 1년 내 판매 이력이 있고, 최근 90일에도 실제 판매가 이어진 핵심 수요 상품 기준이에요.</p>
+            <p class="pgm-panel-helper">최근 1년 내 판매 이력이 있고, 최근 90일에도 실제 판매가 이어진 핵심 수요 제품 기준이에요.</p>
             <div class="pgm-insight-section">
                 <h4>수요 인사이트</h4>
                 <div class="pgm-metrics pgm-insight-metrics">
@@ -1453,7 +1453,7 @@ function renderQuadrantPanel(model) {
                         <strong>${getRoleLevelLabel(strategy?.reasonTags?.returnRole)}</strong>
                         <span>${escapeHtml(getAdditionalRoleGuide('returnRole', strategy?.reasonTags?.returnRole))}</span>
                         ${returnPatternNames.length ? `
-                            <span class="pgm-role-note">자주 거쳐 돌아오는 상품</span>
+                            <span class="pgm-role-note">자주 거쳐 돌아오는 제품</span>
                             <div class="pgm-role-chip-list">
                                 ${returnPatternNames.map((item) => `
                                     <button
@@ -1477,7 +1477,7 @@ function renderQuadrantPanel(model) {
                 <h4>운영 전략</h4>
                 <div class="pgm-action-list">
                     <div class="pgm-action-row">
-                        <label>상품 역할</label>
+                        <label>제품 역할</label>
                         <p>${escapeHtml(strategy?.roleText || '-')}</p>
                     </div>
                     <div class="pgm-action-row">
@@ -1492,12 +1492,12 @@ function renderQuadrantPanel(model) {
             </div>
             <div class="pgm-basket-section">
                 <h4>장바구니 확장 힌트</h4>
-                <p class="pgm-basket-helper">이 상품이 포함될 때 함께 담기는 상품 구조를 보여줘요.</p>
-                <button class="btn-primary" type="button" onclick="openCartFlowModal('${escapeJs(selected.id)}')">함께 구매되는 상품 보기</button>
+                <p class="pgm-basket-helper">이 제품이 포함될 때 함께 담기는 제품 구조를 보여줘요.</p>
+                <button class="btn-primary" type="button" onclick="openCartFlowModal('${escapeJs(selected.id)}')">함께 구매되는 제품 보기</button>
             </div>
             <div class="pgm-status-guide">
                 <h4>상태 정의</h4>
-                <p class="pgm-status-helper">이 상태는 현재 화면의 상품들끼리 비교한 상대 위치 기준이에요.</p>
+                <p class="pgm-status-helper">이 상태는 현재 화면의 제품들끼리 비교한 상대 위치 기준이에요.</p>
                 <p class="pgm-status-current" style="border-color:${status.color}66; background:${status.color}12;">
                     <strong style="color:${status.color};">${status.label}</strong>
                     <span>${escapeHtml(status.guide || status.summary)}</span>
@@ -1512,7 +1512,7 @@ function renderQuadrantPanel(model) {
                     `).join('')}
                 </div>
             </div>
-            <button class="btn-primary pgm-prev-btn" type="button" onclick="selectPreviousQuadrantItem()" ${hasHistory ? '' : 'disabled'}>이전 상품으로</button>
+            <button class="btn-primary pgm-prev-btn" type="button" onclick="selectPreviousQuadrantItem()" ${hasHistory ? '' : 'disabled'}>이전 제품으로</button>
         </div>
     `;
 }
@@ -1524,9 +1524,9 @@ function renderProductQuadrant(model, coreDemandModel = null) {
     const scopeMode = qState.scope === 'all' ? 'all' : 'retention-emphasis';
     const edgeMode = normalizeQuadrantEdgeMode(qState.edgeMode || model?.edgeMode || 'representative');
     const edgeAvailability = model?.edgeAvailability || getQuadrantEdgeModeAvailability();
-    const emptyChartMessage = '표시할 상품이 없습니다.';
+    const emptyChartMessage = '표시할 제품이 없습니다.';
     const demandHeadline = coreDemandModel && coreDemandModel.totalCoreCount > 0
-        ? `${formatNumber(coreDemandModel.totalCoreCount, 0)}개 상품이 핵심 수요를 만들고 있어요.`
+        ? `${formatNumber(coreDemandModel.totalCoreCount, 0)}개 제품이 핵심 수요를 만들고 있어요.`
         : '';
     return `
         <div class="card pgm-quadrant-wrap animate-fade-in">
@@ -1537,17 +1537,17 @@ function renderProductQuadrant(model, coreDemandModel = null) {
                         <button
                             class="btn-primary metric-tooltip-target ${scopeMode === 'retention-emphasis' ? 'is-active' : ''}"
                             type="button"
-                            data-metric-tooltip="전체 상품을 보여주되 리텐션 발생 상품을 더 선명하게 강조해요."
-                            aria-label="전체 상품을 보여주되 리텐션 발생 상품을 더 선명하게 강조해요."
+                            data-metric-tooltip="전체 제품을 보여주되 리텐션 발생 제품을 더 선명하게 강조해요."
+                            aria-label="전체 제품을 보여주되 리텐션 발생 제품을 더 선명하게 강조해요."
                             onclick="setQuadrantScopeMode('retention-emphasis')"
-                        >리텐션 발생 상품 강조</button>
+                        >리텐션 발생 제품 강조</button>
                         <button
                             class="btn-primary metric-tooltip-target ${scopeMode === 'all' ? 'is-active' : ''}"
                             type="button"
-                            data-metric-tooltip="전체 상품을 동일한 강조 수준으로 보여줘요."
-                            aria-label="전체 상품을 동일한 강조 수준으로 보여줘요."
+                            data-metric-tooltip="전체 제품을 동일한 강조 수준으로 보여줘요."
+                            aria-label="전체 제품을 동일한 강조 수준으로 보여줘요."
                             onclick="setQuadrantScopeMode('all')"
-                        >전체 상품 보기</button>
+                        >전체 제품 보기</button>
                     </div>
                     <span class="quadrant-control-sep" aria-hidden="true">|</span>
                     <div class="quadrant-scale-toggle">
@@ -1577,14 +1577,14 @@ function renderProductQuadrant(model, coreDemandModel = null) {
                             role="tab"
                             aria-selected="${chartView === 'quadrant' ? 'true' : 'false'}"
                             onclick="setProductsChartView('quadrant')"
-                        >상품 수요 포지션</button>
+                        >제품 수요 포지션</button>
                         <button
                             class="btn-primary ${chartView === 'demand-graph' ? 'is-active' : ''}"
                             type="button"
                             role="tab"
                             aria-selected="${chartView === 'demand-graph' ? 'true' : 'false'}"
                             onclick="setProductsChartView('demand-graph')"
-                        >상품 관계 구조</button>
+                        >제품 관계 구조</button>
                     </div>
                     <div class="pgm-chart-stage ${chartView === 'demand-graph' ? 'is-demand-graph-view' : 'is-quadrant-view'}">
                         ${chartView === 'quadrant'
@@ -1592,7 +1592,7 @@ function renderProductQuadrant(model, coreDemandModel = null) {
             ? `
                 <div class="quadrant-chart-head">
                     <div>
-                        <h3>상품 수요 포지션</h3>
+                        <h3>제품 수요 포지션</h3>
                         <p>첫구매 강점과 재구매 강점을 한눈에 비교해요.</p>
                     </div>
                 </div>
@@ -1607,7 +1607,7 @@ function renderProductQuadrant(model, coreDemandModel = null) {
                 <div class="pgm-side card">${renderQuadrantPanel(model)}</div>
             </div>
             ${chartView === 'quadrant' ? `
-                ${scaleMode === 'focus' ? '<p class="quadrant-outlier-note">집중뷰에서는 선택 상품과 주요 연결 흐름을 더 크게 보여줘요. 멀리 있는 상품은 경계에 표시될 수 있어요.</p>' : ''}
+                ${scaleMode === 'focus' ? '<p class="quadrant-outlier-note">집중뷰에서는 선택 제품과 주요 연결 흐름을 더 크게 보여줘요. 멀리 있는 제품은 경계에 표시될 수 있어요.</p>' : ''}
                 ${model ? `<p class="pgm-edge-guide"><strong>${escapeHtml(model.edgeModeLabel || QUADRANT_EDGE_MODE_META[edgeMode].label)}</strong> · ${escapeHtml(model.edgeGuide || QUADRANT_EDGE_MODE_META[edgeMode].guide)}</p>` : ''}
                 <p
                     class="quadrant-bubble-note metric-tooltip-target"
@@ -1674,7 +1674,7 @@ function renderQuadrantChart(model) {
         data: {
             datasets: [
                 {
-                    label: '상품',
+                    label: '제품',
                     data: chartPoints,
                     backgroundColor: (ctx2) => {
                         const raw = ctx2.raw || {};
@@ -1792,10 +1792,10 @@ function renderQuadrantChart(model) {
                 const xCenter = Math.min(chartArea.right, Math.max(chartArea.left, rawXCenter));
                 const yCenter = Math.min(chartArea.bottom, Math.max(chartArea.top, rawYCenter));
                 const labels = [
-                    { text: '재구매 강점 상품', helper: '상대적으로 재구매 강점 높음', x: chartArea.left + 12, y: chartArea.top + 10, align: 'left', helperOffset: 12 },
+                    { text: '재구매 강점 제품', helper: '상대적으로 재구매 강점 높음', x: chartArea.left + 12, y: chartArea.top + 10, align: 'left', helperOffset: 12 },
                     { text: '우선 확대 대상', helper: '상대적으로 두 강점 모두 높음', x: chartArea.right - 12, y: chartArea.top + 10, align: 'right', helperOffset: 12 },
                     { text: '개선 필요', helper: '상대적으로 두 강점 모두 낮음', x: chartArea.left + 12, y: chartArea.bottom - 22, align: 'left', helperOffset: 12 },
-                    { text: '첫구매 강점 상품', helper: '상대적으로 첫구매 강점 높음', x: chartArea.right - 12, y: chartArea.bottom - 22, align: 'right', helperOffset: 12 }
+                    { text: '첫구매 강점 제품', helper: '상대적으로 첫구매 강점 높음', x: chartArea.right - 12, y: chartArea.bottom - 22, align: 'right', helperOffset: 12 }
                 ];
                 chartCtx.save();
                 chartCtx.fillStyle = 'rgba(139, 92, 246, 0.2)';
@@ -2002,22 +2002,22 @@ const CORE_GRAVITY_CONFIG = {
     entry: {
         label: '첫구매 유입',
         scoreKey: 'Entry_Gravity_Score',
-        helper: '신규 고객의 첫 구매를 많이 만들고 있는 상품부터 보여줘요.'
+        helper: '신규 고객의 첫 구매를 많이 만들고 있는 제품부터 보여줘요.'
     },
     expansion: {
         label: '재구매 확장',
         scoreKey: 'Expansion_Gravity_Score',
-        helper: '첫 구매 뒤 다음 구매로 자연스럽게 이어지는 상품부터 보여줘요.'
+        helper: '첫 구매 뒤 다음 구매로 자연스럽게 이어지는 제품부터 보여줘요.'
     },
     return: {
         label: '다시 찾는 구매',
         scoreKey: 'Return_Gravity_Score',
-        helper: '고객이 다른 구매를 거친 뒤 다시 돌아오게 만드는 상품부터 보여줘요.'
+        helper: '고객이 다른 구매를 거친 뒤 다시 돌아오게 만드는 제품부터 보여줘요.'
     },
     convergence: {
         label: '도착 흐름',
         scoreKey: 'Convergence_Gravity_Score',
-        helper: '다른 상품 다음에 이 상품으로 자주 이어지는 상품부터 보여줘요.'
+        helper: '다른 제품 다음에 이 제품으로 자주 이어지는 제품부터 보여줘요.'
     }
 };
 
@@ -2259,31 +2259,31 @@ function renderProductsTableOnly(model = null) {
     const currentSortKey = resolvedModel.currentSortKey;
     const currentSortLabel = resolvedModel.currentSortLabel;
     const currentSet = resolvedModel.sets[currentSortKey];
-    const scopeLabel = resolvedModel.scopeMode === 'retention-emphasis' ? '현재 화면: 리텐션 발생 상품 강조' : '현재 화면: 전체 상품 보기';
+    const scopeLabel = resolvedModel.scopeMode === 'retention-emphasis' ? '현재 화면: 리텐션 발생 제품 강조' : '현재 화면: 전체 제품 보기';
     const rows = buildCoreDemandRowsHtml(resolvedModel.rows, focusEntityId, emphasisMode, currentSortKey);
 
     summaryCard.innerHTML = `
         <div class="core-demand-wrap">
             <div class="core-demand-head">
                 <div>
-                    <h3>최근 90일 핵심 수요 상품</h3>
-                    <p>최근 1년 내 판매 이력이 있고, 최근 90일에도 실제 판매가 이어진 핵심 수요 상품을 보여줘요.</p>
+                    <h3>최근 90일 핵심 수요 제품</h3>
+                    <p>최근 1년 내 판매 이력이 있고, 최근 90일에도 실제 판매가 이어진 핵심 수요 제품을 보여줘요.</p>
                     <div class="core-demand-summary">
-                        <span>${escapeHtml(currentSortLabel)} 기준 80% 핵심 상품 ${formatNumber(currentSet.items.length, 0)}개</span>
-                        <span>4개 축 전체 핵심 상품 ${formatNumber(resolvedModel.totalCoreCount, 0)}개</span>
-                        ${resolvedModel.sharedCoreCount > 0 ? `<span>여러 축 핵심 상품 ${formatNumber(resolvedModel.sharedCoreCount, 0)}개</span>` : ''}
+                        <span>${escapeHtml(currentSortLabel)} 기준 80% 핵심 제품 ${formatNumber(currentSet.items.length, 0)}개</span>
+                        <span>4개 축 전체 핵심 제품 ${formatNumber(resolvedModel.totalCoreCount, 0)}개</span>
+                        ${resolvedModel.sharedCoreCount > 0 ? `<span>여러 축 핵심 제품 ${formatNumber(resolvedModel.sharedCoreCount, 0)}개</span>` : ''}
                     </div>
                 </div>
                 <span class="demand-driver-scope">${scopeLabel}</span>
             </div>
             <div class="core-demand-controls">
                 ${renderCoreDemandSortTabs(currentSortKey)}
-                ${renderSearchUI('products', '핵심 상품 검색')}
+                ${renderSearchUI('products', '핵심 제품 검색')}
             </div>
             <div class="table-container">
                 <table class="data-table core-demand-table">
                     <thead><tr>
-                        <th>상품명</th>
+                        <th>제품명</th>
                         <th>핵심 축</th>
                         <th>${escapeHtml(currentSortLabel)} 비중</th>
                         <th>${escapeHtml(currentSortLabel)} 순위</th>
@@ -2292,7 +2292,7 @@ function renderProductsTableOnly(model = null) {
                         <th>최근 90일 매출</th>
                         <th>리텐션 상태</th>
                     </tr></thead>
-                    <tbody>${rows || `<tr><td colspan="8" class="core-demand-empty">지금 범위에서는 표시할 핵심 상품이 없어요.</td></tr>`}</tbody>
+                    <tbody>${rows || `<tr><td colspan="8" class="core-demand-empty">지금 범위에서는 표시할 핵심 제품이 없어요.</td></tr>`}</tbody>
                 </table>
             </div>
         </div>
