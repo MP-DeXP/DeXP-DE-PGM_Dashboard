@@ -36,7 +36,7 @@ const QUADRANT_EDGE_MODE_META = {
 
 const DEMAND_GRAPH_TAB_META = {
     transition: {
-        label: '전이 연결',
+        label: '구매 전이',
         guide: '이 상품 전후로 자주 이어지는 구매 관계를 보여줘요.',
         emptyGuide: '이 상품과 자주 이어지는 연결은 아직 많지 않아요.',
         unavailableGuide: '주변 연결 흐름을 보여줄 상세 패턴 데이터가 아직 준비되지 않았어요.',
