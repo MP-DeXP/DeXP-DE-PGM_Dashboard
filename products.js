@@ -43,10 +43,10 @@ const DEMAND_GRAPH_TAB_META = {
         summaryTitle: '자주 이어지는 상품'
     },
     basket: {
-        label: '함께 담기는 조합',
+        label: '장바구니 조합',
         guide: '이 상품과 함께 담기는 관계를 보여줘요.',
         emptyGuide: '이 상품과 자주 함께 담기는 조합은 아직 많지 않아요.',
-        unavailableGuide: '함께 담기는 조합을 보여줄 패턴 데이터가 아직 준비되지 않았어요.',
+        unavailableGuide: '장바구니 조합을 보여줄 패턴 데이터가 아직 준비되지 않았어요.',
         summaryTitle: '자주 함께 담기는 상품'
     }
 };
@@ -143,6 +143,48 @@ function expandRangeToInclude(range, point, xPad, yPad) {
     };
 }
 
+function compactFocusRange(range, points, selected, xPad, yPad) {
+    const sourcePoints = (points || []).filter(Boolean);
+    if (!sourcePoints.length) return range;
+
+    const entries = sourcePoints.map((point) => point.entry).filter((value) => Number.isFinite(value));
+    const expansions = sourcePoints.map((point) => point.expansion).filter((value) => Number.isFinite(value));
+    if (!entries.length || !expansions.length) return range;
+
+    const dataMinX = Math.min(...entries);
+    const dataMaxX = Math.max(...entries);
+    const dataMinY = Math.min(...expansions);
+    const dataMaxY = Math.max(...expansions);
+    const spanX = Math.max(range.xMax - range.xMin, 0.02);
+    const spanY = Math.max(range.yMax - range.yMin, 0.02);
+    const leftGapRatio = (dataMinX - range.xMin) / spanX;
+    const rightGapRatio = (range.xMax - dataMaxX) / spanX;
+    const bottomGapRatio = (dataMinY - range.yMin) / spanY;
+    const topGapRatio = (range.yMax - dataMaxY) / spanY;
+    const xCompactPad = Math.max(xPad * 1.15, 0.02);
+    const yCompactPad = Math.max(yPad * 1.15, 0.02);
+
+    if (leftGapRatio > 0.18) {
+        range.xMin = Math.max(range.xMin, dataMinX - xCompactPad);
+    }
+    if (rightGapRatio > 0.18) {
+        range.xMax = Math.min(range.xMax, dataMaxX + xCompactPad);
+    }
+    if (bottomGapRatio > 0.18) {
+        range.yMin = Math.max(range.yMin, dataMinY - yCompactPad);
+    }
+    if (topGapRatio > 0.18) {
+        range.yMax = Math.min(range.yMax, dataMaxY + yCompactPad);
+    }
+
+    if (selected) {
+        range = expandRangeToInclude(range, selected, xCompactPad * 0.8, yCompactPad * 0.8);
+    }
+    if (range.xMin === range.xMax) range.xMax = range.xMin + 0.02;
+    if (range.yMin === range.yMax) range.yMax = range.yMin + 0.02;
+    return range;
+}
+
 function getFocusPrimaryPoints(relatedPoints, selected) {
     if (!selected || !Array.isArray(relatedPoints) || !relatedPoints.length) return [];
     const others = relatedPoints
@@ -212,6 +254,7 @@ function buildConnectedFocusRange(points, selected, visibleEdges) {
         range = expandRangeToInclude(range, point, xPad, yPad);
     });
     range = expandRangeToInclude(range, selected, xPad, yPad);
+    range = compactFocusRange(range, primaryPoints, selected, xPad, yPad);
 
     return {
         ...range,
@@ -248,9 +291,10 @@ function getFocusRange(points, selected, visibleEdges = []) {
         yMin = Math.min(yMin, selected.expansion - yPad);
         yMax = Math.max(yMax, selected.expansion + yPad);
     }
-    if (xMin === xMax) xMax = xMin + 0.02;
-    if (yMin === yMax) yMax = yMin + 0.02;
-    return { xMin, xMax, yMin, yMax, xPad, yPad, relatedCount: selected ? 1 : 0 };
+    let range = compactFocusRange({ xMin, xMax, yMin, yMax }, points, selected, xPad, yPad);
+    if (range.xMin === range.xMax) range.xMax = range.xMin + 0.02;
+    if (range.yMin === range.yMax) range.yMax = range.yMin + 0.02;
+    return { ...range, xPad, yPad, relatedCount: selected ? 1 : 0 };
 }
 
 function projectOutlierPoint(point, range) {
@@ -428,15 +472,6 @@ function getReturnPatternSummary(selectedId) {
         .slice(0, 3);
 }
 
-function getDemandGraphRoleLabel(role) {
-    const key = String(role || '').trim().toLowerCase();
-    if (key === 'entry') return '첫구매 유입';
-    if (key === 'expansion') return '재구매 확장';
-    if (key === 'convergence') return '도착 흐름';
-    if (key === 'return') return '다시 찾는 구매';
-    return '주변 연결';
-}
-
 function getDemandGraphNodeLookup() {
     return new Map(
         (AppState.data.insightDemandGraphNodes || []).map((row) => [String(row.product_id || '').trim(), row])
@@ -449,7 +484,6 @@ function getDemandGraphNodeInfo(id, nodeLookup = getDemandGraphNodeLookup()) {
     return {
         id: targetId,
         name: node.product_name_latest || getProductName(targetId),
-        roleLabel: getDemandGraphRoleLabel(node.node_role_primary),
         sizeScore: toNumber(node.node_size_score, 0)
     };
 }
@@ -482,8 +516,7 @@ function buildTransitionDemandGraphModel(selectedId) {
         .map((edge) => ({
             ...getDemandGraphNodeInfo(edge.source, nodeLookup),
             count: edge.customers,
-            directionLabel: '이전 흐름',
-            valueLabel: `${formatNumber(edge.customers, 0)}명`
+            subtitle: `이전 전이 고객 ${formatNumber(edge.customers, 0)}명`
         }));
     const outgoing = relevant
         .filter((edge) => edge.source === selectedId && edge.target !== selectedId)
@@ -492,16 +525,18 @@ function buildTransitionDemandGraphModel(selectedId) {
         .map((edge) => ({
             ...getDemandGraphNodeInfo(edge.target, nodeLookup),
             count: edge.customers,
-            directionLabel: '다음 흐름',
-            valueLabel: `${formatNumber(edge.customers, 0)}명`
+            subtitle: `다음 전이 고객 ${formatNumber(edge.customers, 0)}명`
         }));
 
     const highlights = [...incoming, ...outgoing]
-        .sort((a, b) => toNumber(String(b.valueLabel).replace(/[^0-9.]/g, ''), 0) - toNumber(String(a.valueLabel).replace(/[^0-9.]/g, ''), 0))
+        .sort((a, b) => toNumber(b.count, 0) - toNumber(a.count, 0))
         .slice(0, DEMAND_GRAPH_SUMMARY_LIMIT);
 
     return {
-        selected,
+        selected: {
+            ...selected,
+            subtitle: '이전/다음 전이 흐름 중심'
+        },
         incoming,
         outgoing,
         highlights,
@@ -538,11 +573,14 @@ function buildBasketDemandGraphModel(selectedId) {
         .map((item) => ({
             ...item,
             count: item.support,
-            valueLabel: `${formatNumber(item.support, 0)}건 함께 담김`
+            subtitle: `함께 담긴 주문 ${formatNumber(item.support, 0)}건`
         }));
 
     return {
-        selected,
+        selected: {
+            ...selected,
+            subtitle: '장바구니 조합 중심'
+        },
         left: companions.filter((_, index) => index % 2 === 0),
         right: companions.filter((_, index) => index % 2 === 1),
         highlights: companions.slice(0, DEMAND_GRAPH_SUMMARY_LIMIT),
@@ -570,162 +608,307 @@ function buildDemandGraphModel(selectedId) {
     };
 }
 
-function renderDemandGraphNodeButton(item, tone = 'default', style = '') {
-    if (!item?.id) return '';
+function renderDemandGraphNodeButton(node, style = '') {
+    if (!node?.id) return '';
+    const composedStyle = `${style}${style && !style.trim().endsWith(';') ? ';' : ''} --node-scale:${toNumber(node.sizeScale, 1).toFixed(3)};`;
     return `
         <button
-            class="demand-graph-node ${tone === 'anchor' ? 'is-anchor' : ''}"
+            class="demand-graph-node ${node.tone ? `is-${node.tone}` : ''} ${node.tone === 'anchor' ? 'is-anchor' : ''}"
             type="button"
-            style="${style}"
-            onclick="event.stopPropagation();focusQuadrantFromDemandDriver('${escapeJs(item.id)}')"
-            title="${escapeHtml(item.name)}"
+            data-graph-key="${escapeHtml(node.key)}"
+            data-graph-tone="${escapeHtml(node.tone)}"
+            data-strength-level="${escapeHtml(node.strengthLevel || 'mid')}"
+            style="${composedStyle}"
+            onpointerdown="startDemandGraphNodeDrag(event)"
+            onclick="handleDemandGraphNodeClick(event, '${escapeJs(node.id)}')"
+            title="${escapeHtml(node.name)}"
         >
-            <strong>${escapeHtml(item.name)}</strong>
-            <span>${escapeHtml(item.roleLabel)}</span>
+            <span
+                class="demand-graph-node-card"
+                data-graph-key="${escapeHtml(node.key)}"
+                data-graph-tone="${escapeHtml(node.tone)}"
+            >
+                <strong>${escapeHtml(node.name)}</strong>
+                <span>${escapeHtml(node.subtitle || '')}</span>
+            </span>
         </button>
     `;
 }
 
 function distributeGraphY(index, total) {
-    if (total <= 1) return 50;
-    const start = total <= 3 ? 24 : 18;
-    const end = total <= 3 ? 76 : 82;
-    return start + ((end - start) / (total - 1)) * index;
+    const presets = {
+        1: [34],
+        2: [30, 70],
+        3: [24, 38, 76],
+        4: [22, 36, 64, 78],
+        5: [18, 32, 68, 82, 92],
+        6: [16, 28, 40, 60, 74, 88]
+    };
+    const normalizedTotal = Math.max(1, Number(total) || 1);
+    const lane = presets[normalizedTotal];
+    if (lane) {
+        return lane[Math.min(Math.max(index, 0), lane.length - 1)];
+    }
+    const upperCount = Math.ceil(normalizedTotal / 2);
+    const lowerCount = normalizedTotal - upperCount;
+    const upperStep = upperCount > 1 ? (40 - 16) / (upperCount - 1) : 0;
+    const lowerStep = lowerCount > 1 ? (88 - 60) / (lowerCount - 1) : 0;
+    if (index < upperCount) {
+        return 16 + (upperStep * index);
+    }
+    return 60 + (lowerStep * (index - upperCount));
+}
+
+function getGraphLaneY(index, total, lane = 'center') {
+    const y = distributeGraphY(index, total);
+    return lane === 'right' ? 100 - y : y;
+}
+
+function createDemandGraphSceneNode(item, key, x, y, tone = 'default') {
+    return {
+        ...item,
+        key,
+        x,
+        y,
+        tone
+    };
+}
+
+function getDemandGraphNodeScale(count, maxCount, tone = 'default') {
+    if (tone === 'anchor') return 1;
+    const safeCount = Math.max(0, toNumber(count, 0));
+    const safeMax = Math.max(1, toNumber(maxCount, 1));
+    const normalized = Math.log1p(safeCount) / Math.log1p(safeMax);
+    return 0.9 + (normalized * 0.34);
+}
+
+function getDemandGraphStrengthLevel(index, total, tone = 'default') {
+    if (tone === 'anchor') return 'anchor';
+    if (index === 0) return 'high';
+    if (index <= Math.min(2, Math.max(total - 1, 0))) return 'mid';
+    return 'low';
+}
+
+function getBasketGraphPosition(index, total) {
+    const count = Math.max(1, Number(total) || 1);
+    const positions = {
+        1: [{ x: 50, y: 18 }],
+        2: [{ x: 28, y: 30 }, { x: 72, y: 30 }],
+        3: [{ x: 50, y: 18 }, { x: 26, y: 64 }, { x: 74, y: 64 }],
+        4: [{ x: 50, y: 18 }, { x: 22, y: 44 }, { x: 78, y: 44 }, { x: 50, y: 78 }],
+        5: [{ x: 50, y: 16 }, { x: 24, y: 34 }, { x: 78, y: 34 }, { x: 28, y: 74 }, { x: 72, y: 74 }],
+        6: [{ x: 50, y: 14 }, { x: 24, y: 28 }, { x: 80, y: 28 }, { x: 20, y: 56 }, { x: 80, y: 56 }, { x: 50, y: 82 }]
+    };
+    const preset = positions[count];
+    if (preset) return preset[Math.min(Math.max(index, 0), preset.length - 1)];
+    const angleStart = -90;
+    const angle = angleStart + ((360 / count) * index);
+    const radians = (angle * Math.PI) / 180;
+    return {
+        x: 50 + Math.cos(radians) * 28,
+        y: 50 + Math.sin(radians) * 30
+    };
 }
 
 function buildDemandGraphScene(model) {
     const nodes = [];
     const edges = [];
-    const labels = [];
-    const maxCount = Math.max(
-        1,
-        ...(model.highlights || []).map((item) => toNumber(item.count, 0))
-    );
-    nodes.push({ ...model.selected, x: 50, y: 50, tone: 'anchor' });
+    const maxCount = Math.max(1, ...(model.highlights || []).map((item) => toNumber(item.count, 0)));
+    nodes.push({
+        ...createDemandGraphSceneNode(model.selected, 'anchor', 50, 50, 'anchor'),
+        sizeScale: 1,
+        strengthLevel: 'anchor'
+    });
 
     if (model.tab === 'basket') {
-        const companions = [...(model.left || []), ...(model.right || [])];
-        const coords = [
-            { x: 20, y: 24 },
-            { x: 80, y: 24 },
-            { x: 18, y: 76 },
-            { x: 82, y: 76 },
-            { x: 50, y: 14 }
-        ];
-        companions.forEach((item, index) => {
-            const pos = coords[index] || { x: 50, y: 86 };
-            nodes.push({ ...item, ...pos, tone: 'default' });
+        const companions = model.highlights || [];
+        companions.forEach((item, index, arr) => {
+            const key = `basket-${index}`;
+            const position = getBasketGraphPosition(index, arr.length);
+            nodes.push({
+                ...createDemandGraphSceneNode(item, key, position.x, position.y, 'basket'),
+                sizeScale: getDemandGraphNodeScale(item.count, maxCount, 'basket'),
+                strengthLevel: getDemandGraphStrengthLevel(index, arr.length, 'basket')
+            });
             edges.push({
-                fromX: 50,
-                fromY: 50,
-                toX: pos.x,
-                toY: pos.y,
+                fromKey: 'anchor',
+                toKey: key,
                 kind: 'basket',
+                fromSide: position.x >= 50 ? 'right' : 'left',
+                toSide: position.x >= 50 ? 'left' : 'right',
+                offsetIndex: index,
+                offsetCount: arr.length,
                 strokeWidth: 1.1 + (toNumber(item.count, 0) / maxCount) * 1.8
             });
-            labels.push({
-                x: (50 + pos.x) / 2,
-                y: (50 + pos.y) / 2,
-                kind: 'basket',
-                value: item.valueLabel
-            });
         });
-        return {
-            nodes,
-            edges,
-            labels,
-            legend: '점선은 함께 담기는 관계예요. 선이 굵을수록 함께 담기는 강도가 커요.'
-        };
+        return { nodes, edges };
     }
 
     (model.incoming || []).forEach((item, index, arr) => {
-        const x = index % 2 === 0 ? 15 : 21;
-        const y = distributeGraphY(index, arr.length);
-        const anchorEdgeY = 50 + ((index - ((arr.length - 1) / 2)) * 2.2);
-        nodes.push({ ...item, x, y, tone: 'default' });
-        edges.push({
-            fromX: x,
-            fromY: y,
-            toX: 37.5,
-            toY: anchorEdgeY,
-            kind: 'incoming',
-            strokeWidth: 1.1 + (toNumber(item.count, 0) / maxCount) * 1.8
+        const key = `incoming-${index}`;
+        nodes.push({
+            ...createDemandGraphSceneNode(item, key, index % 2 === 0 ? 14 : 20, getGraphLaneY(index, arr.length, 'left'), 'incoming'),
+            sizeScale: getDemandGraphNodeScale(item.count, maxCount, 'incoming'),
+            strengthLevel: getDemandGraphStrengthLevel(index, arr.length, 'incoming')
         });
-        labels.push({
-            x: (x + 37.5) / 2,
-            y: ((y + anchorEdgeY) / 2) - 3.6,
+        edges.push({
+            fromKey: key,
+            toKey: 'anchor',
             kind: 'incoming',
-            value: item.valueLabel
+            fromSide: 'right',
+            toSide: 'left',
+            offsetIndex: index,
+            offsetCount: arr.length,
+            strokeWidth: 1.1 + (toNumber(item.count, 0) / maxCount) * 1.8
         });
     });
 
     (model.outgoing || []).forEach((item, index, arr) => {
-        const x = index % 2 === 0 ? 85 : 79;
-        const y = distributeGraphY(index, arr.length);
-        const anchorEdgeY = 50 + ((index - ((arr.length - 1) / 2)) * 2.2);
-        nodes.push({ ...item, x, y, tone: 'default' });
-        edges.push({
-            fromX: 62.5,
-            fromY: anchorEdgeY,
-            toX: x,
-            toY: y,
-            kind: 'outgoing',
-            strokeWidth: 1.1 + (toNumber(item.count, 0) / maxCount) * 1.8
+        const key = `outgoing-${index}`;
+        nodes.push({
+            ...createDemandGraphSceneNode(item, key, index % 2 === 0 ? 86 : 80, getGraphLaneY(index, arr.length, 'right'), 'outgoing'),
+            sizeScale: getDemandGraphNodeScale(item.count, maxCount, 'outgoing'),
+            strengthLevel: getDemandGraphStrengthLevel(index, arr.length, 'outgoing')
         });
-        labels.push({
-            x: (x + 62.5) / 2,
-            y: ((y + anchorEdgeY) / 2) - 3.6,
+        edges.push({
+            fromKey: 'anchor',
+            toKey: key,
             kind: 'outgoing',
-            value: item.valueLabel
+            fromSide: 'right',
+            toSide: 'left',
+            offsetIndex: index,
+            offsetCount: arr.length,
+            strokeWidth: 1.1 + (toNumber(item.count, 0) / maxCount) * 1.8
         });
     });
 
+    return { nodes, edges };
+}
+
+function getDemandGraphNodePort(rect, sceneRect, side = 'right', offsetPx = 0) {
+    const left = rect.left - sceneRect.left;
+    const right = rect.right - sceneRect.left;
+    const top = rect.top - sceneRect.top;
+    const bottom = rect.bottom - sceneRect.top;
+    const centerY = (top + bottom) / 2;
+    const y = Math.min(bottom - 12, Math.max(top + 12, centerY + offsetPx));
     return {
-        nodes,
-        edges,
-        labels,
-        legend: '실선 화살표는 구매 전이 관계예요. 선이 굵을수록 더 자주 이어져요.'
+        x: side === 'left' ? left : right,
+        y
     };
 }
 
-function buildDemandGraphPath(edge) {
-    const fromX = toNumber(edge.fromX, 0);
-    const fromY = toNumber(edge.fromY, 0);
-    const toX = toNumber(edge.toX, 0);
-    const toY = toNumber(edge.toY, 0);
-    const horizontalGap = Math.abs(toX - fromX);
-    const curve = Math.max(8, horizontalGap * 0.34);
-
-    if (edge.kind === 'incoming') {
-        return `M ${fromX} ${fromY} C ${fromX + curve} ${fromY}, ${toX - curve} ${toY}, ${toX} ${toY}`;
-    }
-    if (edge.kind === 'outgoing') {
-        return `M ${fromX} ${fromY} C ${fromX + curve} ${fromY}, ${toX - curve} ${toY}, ${toX} ${toY}`;
-    }
-    const direction = toX >= fromX ? 1 : -1;
-    const arcY = fromY < toY ? 6 : -6;
-    return `M ${fromX} ${fromY} C ${fromX + (curve * direction)} ${fromY + arcY}, ${toX - (curve * direction)} ${toY - arcY}, ${toX} ${toY}`;
+function getDemandGraphRadialPort(rect, sceneRect, targetX, targetY) {
+    const left = rect.left - sceneRect.left;
+    const right = rect.right - sceneRect.left;
+    const top = rect.top - sceneRect.top;
+    const bottom = rect.bottom - sceneRect.top;
+    const cx = (left + right) / 2;
+    const cy = (top + bottom) / 2;
+    const dx = targetX - cx;
+    const dy = targetY - cy;
+    const halfW = Math.max((right - left) / 2, 1);
+    const halfH = Math.max((bottom - top) / 2, 1);
+    const scale = 1 / Math.max(Math.abs(dx) / halfW || 0, Math.abs(dy) / halfH || 0, 1);
+    return {
+        x: cx + (dx * scale),
+        y: cy + (dy * scale)
+    };
 }
 
-function renderDemandGraphNetwork(model) {
-    const scene = buildDemandGraphScene(model);
-    const nodeButtons = scene.nodes.map((node) => renderDemandGraphNodeButton(
-        node,
-        node.tone,
-        `left:${node.x}%; top:${node.y}%;`
-    )).join('');
-    const edgeLabels = scene.labels.map((label) => `
-        <div class="demand-graph-edge-label is-${label.kind}" style="left:${label.x}%; top:${label.y}%;">
-            <span>${escapeHtml(label.value)}</span>
-        </div>
-    `).join('');
-    const edgeLines = scene.edges.map((edge) => {
-        const path = buildDemandGraphPath(edge);
+function getDemandGraphOffsetPx(index, count) {
+    if (!count || count <= 1) return 0;
+    return (index - ((count - 1) / 2)) * 12;
+}
+
+function buildMeasuredDemandGraphPath(edge, rectMap, sceneRect) {
+    const fromRect = rectMap.get(edge.fromKey);
+    const toRect = rectMap.get(edge.toKey);
+    if (!fromRect || !toRect) return null;
+
+    if (edge.kind === 'basket') {
+        const fromCenter = {
+            x: ((fromRect.left - sceneRect.left) + (fromRect.right - sceneRect.left)) / 2,
+            y: ((fromRect.top - sceneRect.top) + (fromRect.bottom - sceneRect.top)) / 2
+        };
+        const toCenter = {
+            x: ((toRect.left - sceneRect.left) + (toRect.right - sceneRect.left)) / 2,
+            y: ((toRect.top - sceneRect.top) + (toRect.bottom - sceneRect.top)) / 2
+        };
+        const from = getDemandGraphRadialPort(fromRect, sceneRect, toCenter.x, toCenter.y);
+        const to = getDemandGraphRadialPort(toRect, sceneRect, fromCenter.x, fromCenter.y);
+        const mx = (from.x + to.x) / 2;
+        const my = (from.y + to.y) / 2;
+        const dx = to.x - from.x;
+        const dy = to.y - from.y;
+        const distance = Math.hypot(dx, dy) || 1;
+        const normalX = -dy / distance;
+        const normalY = dx / distance;
+        const bend = Math.min(24, Math.max(10, distance * 0.08));
+        return {
+            from,
+            to,
+            path: `M ${from.x} ${from.y} Q ${mx + (normalX * bend)} ${my + (normalY * bend)}, ${to.x} ${to.y}`
+        };
+    }
+
+    const offsetPx = getDemandGraphOffsetPx(edge.offsetIndex, edge.offsetCount);
+    const from = getDemandGraphNodePort(
+        fromRect,
+        sceneRect,
+        edge.fromSide,
+        edge.fromKey === 'anchor' ? offsetPx : 0
+    );
+    const to = getDemandGraphNodePort(
+        toRect,
+        sceneRect,
+        edge.toSide,
+        edge.toKey === 'anchor' ? offsetPx : 0
+    );
+    const horizontalGap = Math.abs(to.x - from.x);
+    const curve = Math.max(36, horizontalGap * 0.28);
+    const fromCurveX = edge.fromSide === 'right' ? from.x + curve : from.x - curve;
+    const toCurveX = edge.toSide === 'left' ? to.x - curve : to.x + curve;
+    return {
+        from,
+        to,
+        path: `M ${from.x} ${from.y} C ${fromCurveX} ${from.y}, ${toCurveX} ${to.y}, ${to.x} ${to.y}`
+    };
+}
+
+function buildDemandGraphEdgeMarkup(scene) {
+    const sceneElement = document.querySelector('.demand-graph-scene');
+    if (!sceneElement) return '';
+    const sceneRect = sceneElement.getBoundingClientRect();
+    if (!sceneRect.width || !sceneRect.height) return '';
+    const rectMap = new Map();
+    sceneElement.querySelectorAll('.demand-graph-node[data-graph-key]').forEach((element) => {
+        rectMap.set(String(element.dataset.graphKey || '').trim(), element.getBoundingClientRect());
+    });
+    const anchorRect = rectMap.get('anchor');
+    if (!anchorRect) return '';
+    const anchorCenterY = ((anchorRect.top - sceneRect.top) + (anchorRect.bottom - sceneRect.top)) / 2;
+    const leftHub = { x: anchorRect.left - sceneRect.left - 3, y: anchorCenterY };
+    const rightHub = { x: anchorRect.right - sceneRect.left + 3, y: anchorCenterY };
+    const edgeMarkup = scene.edges.map((edge) => {
+        const geometry = buildMeasuredDemandGraphPath(edge, rectMap, sceneRect);
+        if (!geometry) return '';
+        let { from, to } = geometry;
+        if (edge.kind !== 'basket' && edge.toKey === 'anchor') {
+            to = leftHub;
+        } else if (edge.kind !== 'basket' && edge.fromKey === 'anchor') {
+            from = rightHub;
+        }
+        const horizontalGap = Math.abs(to.x - from.x);
+        const curve = Math.max(24, horizontalGap * 0.28);
+        const fromCurveX = edge.fromSide === 'right' ? from.x + curve : from.x - curve;
+        const toCurveX = edge.toSide === 'left' ? to.x - curve : to.x + curve;
+        const path = `M ${from.x} ${from.y} C ${fromCurveX} ${from.y}, ${toCurveX} ${to.y}, ${to.x} ${to.y}`;
         return `
             <path
                 class="demand-graph-line-glow is-${edge.kind}"
                 d="${path}"
-                stroke-width="${edge.strokeWidth * (model.tab === 'basket' ? 2.8 : 5.8)}"
+                stroke-width="${edge.strokeWidth * (edge.kind === 'basket' ? 2.2 : 4.8)}"
             />
             <path
                 class="demand-graph-line is-${edge.kind}"
@@ -734,10 +917,122 @@ function renderDemandGraphNetwork(model) {
             />
         `;
     }).join('');
+    const connectorPaths = [];
+    if (scene.edges.some((edge) => edge.kind !== 'basket' && edge.toKey === 'anchor')) {
+        connectorPaths.push(`
+            <path class="demand-graph-line-glow is-incoming" d="M ${leftHub.x} ${leftHub.y} L ${anchorRect.left - sceneRect.left} ${anchorCenterY}" stroke-width="5.2" />
+            <path class="demand-graph-line is-incoming" d="M ${leftHub.x} ${leftHub.y} L ${anchorRect.left - sceneRect.left} ${anchorCenterY}" stroke-width="1.6" />
+        `);
+    }
+    if (scene.edges.some((edge) => edge.kind !== 'basket' && edge.fromKey === 'anchor')) {
+        connectorPaths.push(`
+            <path class="demand-graph-line-glow is-outgoing" d="M ${anchorRect.right - sceneRect.left} ${anchorCenterY} L ${rightHub.x} ${rightHub.y}" stroke-width="5.2" />
+            <path class="demand-graph-line is-outgoing" d="M ${anchorRect.right - sceneRect.left} ${anchorCenterY} L ${rightHub.x} ${rightHub.y}" stroke-width="1.6" />
+        `);
+    }
+    return `${edgeMarkup}${connectorPaths.join('')}`;
+}
+
+function scheduleDemandGraphEdgeLayout() {
+    if (AppState.viewState.products?.chartView !== 'demand-graph') return;
+    const selectedId = String(AppState.viewState.products?.quadrant?.selectedId || '').trim();
+    if (!selectedId) return;
+    const run = () => {
+        const sceneElement = document.querySelector('.demand-graph-scene');
+        if (!sceneElement) return;
+        const svg = sceneElement.querySelector('.demand-graph-svg');
+        const edgeLayer = sceneElement.querySelector('.demand-graph-edge-layer');
+        if (!svg || !edgeLayer) return;
+        const sceneRect = sceneElement.getBoundingClientRect();
+        svg.setAttribute('viewBox', `0 0 ${Math.max(sceneRect.width, 1)} ${Math.max(sceneRect.height, 1)}`);
+        const model = buildDemandGraphModel(selectedId);
+        const scene = buildDemandGraphScene(model);
+        edgeLayer.innerHTML = buildDemandGraphEdgeMarkup(scene);
+    };
+    requestAnimationFrame(() => {
+        run();
+        requestAnimationFrame(run);
+    });
+}
+
+function ensureDemandGraphResizeHandler() {
+    if (AppState.helpers.demandGraphResizeHandlerAttached) return;
+    AppState.helpers.demandGraphResizeHandlerAttached = true;
+    window.addEventListener('resize', scheduleDemandGraphEdgeLayout);
+}
+
+function startDemandGraphNodeDrag(event) {
+    const node = event.target.closest('.demand-graph-node');
+    const scene = event.target.closest('.demand-graph-scene');
+    if (!node || !scene) return;
+    const sceneRect = scene.getBoundingClientRect();
+    const nodeRect = node.getBoundingClientRect();
+    const centerX = nodeRect.left + (nodeRect.width / 2);
+    const centerY = nodeRect.top + (nodeRect.height / 2);
+    AppState.helpers.demandGraphDrag = {
+        node,
+        scene,
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        pointerDx: event.clientX - centerX,
+        pointerDy: event.clientY - centerY,
+        moved: false
+    };
+    node.classList.add('is-dragging');
+    node.setPointerCapture?.(event.pointerId);
+    event.preventDefault();
+}
+
+function handleDemandGraphNodeClick(event, id) {
+    event.stopPropagation();
+    if (AppState.helpers.demandGraphDrag?.suppressClick) {
+        AppState.helpers.demandGraphDrag.suppressClick = false;
+        return;
+    }
+    focusQuadrantFromDemandDriver(id);
+}
+
+function handleDemandGraphPointerMove(event) {
+    const drag = AppState.helpers.demandGraphDrag;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const sceneRect = drag.scene.getBoundingClientRect();
+    const nextX = Math.min(sceneRect.width - 24, Math.max(24, event.clientX - sceneRect.left - drag.pointerDx));
+    const nextY = Math.min(sceneRect.height - 24, Math.max(24, event.clientY - sceneRect.top - drag.pointerDy));
+    drag.node.style.left = `${nextX}px`;
+    drag.node.style.top = `${nextY}px`;
+    drag.node.style.transform = 'translate(-50%, -50%)';
+    if (Math.abs(event.clientX - drag.startX) > 4 || Math.abs(event.clientY - drag.startY) > 4) {
+        drag.moved = true;
+        drag.suppressClick = true;
+    }
+    scheduleDemandGraphEdgeLayout();
+}
+
+function handleDemandGraphPointerEnd(event) {
+    const drag = AppState.helpers.demandGraphDrag;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    drag.node.classList.remove('is-dragging');
+    drag.node.releasePointerCapture?.(event.pointerId);
+    AppState.helpers.demandGraphDrag = drag.moved ? { suppressClick: true } : null;
+}
+
+window.startDemandGraphNodeDrag = startDemandGraphNodeDrag;
+window.handleDemandGraphNodeClick = handleDemandGraphNodeClick;
+window.addEventListener('pointermove', handleDemandGraphPointerMove);
+window.addEventListener('pointerup', handleDemandGraphPointerEnd);
+window.addEventListener('pointercancel', handleDemandGraphPointerEnd);
+
+function renderDemandGraphNetwork(model) {
+    const scene = buildDemandGraphScene(model);
+    const nodeButtons = scene.nodes.map((node) => renderDemandGraphNodeButton(
+        node,
+        `left:${node.x}%; top:${node.y}%;`
+    )).join('');
 
     return `
         <div class="demand-graph-scene">
-            <svg class="demand-graph-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <svg class="demand-graph-svg" preserveAspectRatio="none" aria-hidden="true">
                 <defs>
                     <linearGradient id="demandFlowIncomingGradient" x1="0%" y1="0%" x2="100%" y2="0%">
                         <stop offset="0%" stop-color="#5b93ea" />
@@ -748,13 +1043,8 @@ function renderDemandGraphNetwork(model) {
                         <stop offset="100%" stop-color="#3eb7a6" />
                     </linearGradient>
                 </defs>
-                ${edgeLines}
+                <g class="demand-graph-edge-layer"></g>
             </svg>
-            ${model.tab === 'transition' ? `
-                <div class="demand-graph-anchor-port is-left"></div>
-                <div class="demand-graph-anchor-port is-right"></div>
-            ` : ''}
-            <div class="demand-graph-label-layer">${edgeLabels}</div>
             <div class="demand-graph-node-layer">${nodeButtons}</div>
         </div>
     `;
@@ -767,7 +1057,7 @@ function renderDemandGraphInline(quadrantModel) {
         <div class="demand-graph-wrap is-inline">
             <div class="demand-graph-head">
                 <div>
-                    <h3>선택 상품 주변 연결</h3>
+                    <h3>상품 연결 구조</h3>
                     <p>이 상품이 어떤 상품과 어떤 관계로 이어지는지 보여줘요.</p>
                 </div>
                 <div class="demand-graph-tabs" role="tablist" aria-label="선택 상품 주변 흐름 탭">
@@ -1298,7 +1588,7 @@ function renderProductQuadrant(model, coreDemandModel = null) {
                             role="tab"
                             aria-selected="${chartView === 'demand-graph' ? 'true' : 'false'}"
                             onclick="setProductsChartView('demand-graph')"
-                        >선택 상품 주변 연결</button>
+                        >상품 연결 구조</button>
                     </div>
                     <div class="pgm-chart-stage ${chartView === 'demand-graph' ? 'is-demand-graph-view' : 'is-quadrant-view'}">
                         ${chartView === 'quadrant'
@@ -2040,6 +2330,9 @@ function renderProducts() {
 
     if (AppState.viewState.products.chartView !== 'demand-graph') {
         renderQuadrantChart(quadrantModel);
+    } else {
+        ensureDemandGraphResizeHandler();
+        scheduleDemandGraphEdgeLayout();
     }
     renderProductsTableOnly(coreDemandModel);
 
@@ -2079,6 +2372,9 @@ function renderProducts() {
         }
         if (AppState.viewState.products.chartView !== 'demand-graph') {
             renderQuadrantChart(nextQuadrantModel);
+        } else {
+            ensureDemandGraphResizeHandler();
+            scheduleDemandGraphEdgeLayout();
         }
         renderProductsTableOnly(nextCoreDemandModel);
         if (preserveScroll) {
