@@ -709,7 +709,7 @@ body {
     display: grid;
     grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
     gap: 0.8rem;
-    align-items: start;
+    align-items: stretch;
 }
 
 .pgm-modal {
@@ -726,15 +726,13 @@ body {
 .pgm-chart.chart-card {
     display: flex;
     flex-direction: column;
-    height: clamp(560px, 90vh, 980px);
-    min-height: 560px;
-    max-height: 100vh;
+    min-height: clamp(600px, 92vh, 1020px);
+    height: auto;
 }
 
 .pgm-chart.chart-card.is-demand-graph-view {
-    height: clamp(560px, 90vh, 980px);
-    min-height: 560px;
-    max-height: 100vh;
+    min-height: clamp(600px, 92vh, 1020px);
+    height: auto;
 }
 
 .pgm-chart-stage {
@@ -742,15 +740,30 @@ body {
     min-height: 0;
 }
 
+.pgm-chart-stage.is-quadrant-view,
 .pgm-chart-stage.is-demand-graph-view {
     display: flex;
     flex-direction: column;
+}
+
+.quadrant-chart-canvas-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+}
+
+.quadrant-chart-canvas-wrap canvas {
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .pgm-chart-stage canvas {
     display: block;
     width: 100% !important;
     max-width: 100%;
+}
+
+.quadrant-chart-canvas-wrap canvas {
     height: 100% !important;
 }
 
@@ -1384,21 +1397,24 @@ button.pgm-role-chip:focus-visible {
     min-height: 0;
 }
 
-.demand-graph-head {
+.demand-graph-head,
+.quadrant-chart-head {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     gap: 1rem;
 }
 
-.demand-graph-head h3 {
+.demand-graph-head h3,
+.quadrant-chart-head h3 {
     margin-bottom: 0.2rem;
     font-size: 1rem;
     text-transform: none;
     letter-spacing: 0;
 }
 
-.demand-graph-head p {
+.demand-graph-head p,
+.quadrant-chart-head p {
     color: var(--text-muted);
     font-size: 0.84rem;
     line-height: 1.45;
@@ -1535,12 +1551,16 @@ button.pgm-role-chip:focus-visible {
 
 .demand-graph-line.is-incoming {
     stroke: url(#demandFlowIncomingGradient);
-    animation: demandGraphFlowShift 1.6s linear infinite;
+    stroke-opacity: 0.9;
+    stroke-dasharray: 3 7;
+    animation: demandGraphFlowShift 1.3s linear infinite;
 }
 
 .demand-graph-line.is-outgoing {
     stroke: url(#demandFlowOutgoingGradient);
-    animation: demandGraphFlowShift 1.6s linear infinite;
+    stroke-opacity: 0.98;
+    stroke-dasharray: 9 6;
+    animation: demandGraphFlowShift 1.9s linear infinite;
 }
 
 .demand-graph-line.is-basket {

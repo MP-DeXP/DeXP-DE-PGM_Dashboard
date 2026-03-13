@@ -535,7 +535,7 @@ function buildTransitionDemandGraphModel(selectedId) {
     return {
         selected: {
             ...selected,
-            subtitle: '이전/다음 전이 흐름 중심'
+            subtitle: '이전 상품에서 들어오고 다음 상품으로 이어져요'
         },
         incoming,
         outgoing,
@@ -1057,7 +1057,7 @@ function renderDemandGraphInline(quadrantModel) {
         <div class="demand-graph-wrap is-inline">
             <div class="demand-graph-head">
                 <div>
-                    <h3>상품 연결 구조</h3>
+                    <h3>상품 관계 구조</h3>
                     <p>이 상품이 어떤 상품과 어떤 관계로 이어지는지 보여줘요.</p>
                 </div>
                 <div class="demand-graph-tabs" role="tablist" aria-label="선택 상품 주변 흐름 탭">
@@ -1531,11 +1531,7 @@ function renderProductQuadrant(model, coreDemandModel = null) {
     return `
         <div class="card pgm-quadrant-wrap animate-fade-in">
             <div class="pgm-quadrant-head">
-                <div>
-                    <h3>상품 상태 4분면</h3>
-                    <p>첫구매 강점과 재구매 강점을 한눈에 비교해요.</p>
-                    ${demandHeadline ? `<span class="pgm-head-highlight">${escapeHtml(demandHeadline)}</span>` : ''}
-                </div>
+                <div>${demandHeadline ? `<span class="pgm-head-highlight">${escapeHtml(demandHeadline)}</span>` : ''}</div>
                 <div class="quadrant-head-controls">
                     <div class="quadrant-scope-toggle">
                         <button
@@ -1581,19 +1577,29 @@ function renderProductQuadrant(model, coreDemandModel = null) {
                             role="tab"
                             aria-selected="${chartView === 'quadrant' ? 'true' : 'false'}"
                             onclick="setProductsChartView('quadrant')"
-                        >상품 상태 4분면</button>
+                        >상품 수요 포지션</button>
                         <button
                             class="btn-primary ${chartView === 'demand-graph' ? 'is-active' : ''}"
                             type="button"
                             role="tab"
                             aria-selected="${chartView === 'demand-graph' ? 'true' : 'false'}"
                             onclick="setProductsChartView('demand-graph')"
-                        >상품 연결 구조</button>
+                        >상품 관계 구조</button>
                     </div>
                     <div class="pgm-chart-stage ${chartView === 'demand-graph' ? 'is-demand-graph-view' : 'is-quadrant-view'}">
                         ${chartView === 'quadrant'
         ? (model
-            ? '<canvas id="pgmQuadrantChart"></canvas>'
+            ? `
+                <div class="quadrant-chart-head">
+                    <div>
+                        <h3>상품 수요 포지션</h3>
+                        <p>첫구매 강점과 재구매 강점을 한눈에 비교해요.</p>
+                    </div>
+                </div>
+                <div class="quadrant-chart-canvas-wrap">
+                    <canvas id="pgmQuadrantChart"></canvas>
+                </div>
+            `
             : `<div class="quadrant-chart-empty"><p>${emptyChartMessage}</p></div>`)
         : renderDemandGraphInline(model)}
                     </div>
@@ -1781,8 +1787,10 @@ function renderQuadrantChart(model) {
             beforeDraw: (chart) => {
                 const { ctx: chartCtx, chartArea, scales } = chart;
                 if (!chartArea) return;
-                const xCenter = scales.x.getPixelForValue(centerX);
-                const yCenter = scales.y.getPixelForValue(centerY);
+                const rawXCenter = scales.x.getPixelForValue(centerX);
+                const rawYCenter = scales.y.getPixelForValue(centerY);
+                const xCenter = Math.min(chartArea.right, Math.max(chartArea.left, rawXCenter));
+                const yCenter = Math.min(chartArea.bottom, Math.max(chartArea.top, rawYCenter));
                 const labels = [
                     { text: '재구매 강점 상품', helper: '상대적으로 재구매 강점 높음', x: chartArea.left + 12, y: chartArea.top + 10, align: 'left', helperOffset: 12 },
                     { text: '우선 확대 대상', helper: '상대적으로 두 강점 모두 높음', x: chartArea.right - 12, y: chartArea.top + 10, align: 'right', helperOffset: 12 },
