@@ -3659,6 +3659,7 @@ button.pgm-role-chip:focus-visible {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.55rem;
     margin-top: 0.6rem;
+    margin-bottom: 0.15rem;
 }
 
 .brand-state-point {
@@ -3695,7 +3696,7 @@ button.pgm-role-chip:focus-visible {
 .brand-state-card .brand-component-group {
     margin-top: auto;
     border-top: 1px solid rgba(226, 232, 240, 0.9);
-    padding-top: 0.7rem;
+    padding-top: 0.55rem;
 }
 
 .brand-state-card .brand-component-group-head {
@@ -4136,11 +4137,12 @@ button.pgm-role-chip:focus-visible {
 
 .brand-matrix-point-label {
     position: absolute;
-    transform: translate(-50%, 0);
+    transform: translate(calc(-50% + var(--brand-point-label-x, 0px)), var(--brand-point-label-y, 0px));
     font-size: 0.72rem;
     font-weight: 700;
     color: #475569;
     white-space: nowrap;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 .brand-matrix-point-label-prev {
@@ -4155,7 +4157,7 @@ button.pgm-role-chip:focus-visible {
     height: 2px;
     background: linear-gradient(90deg, rgba(99, 102, 241, 0.28), rgba(99, 102, 241, 0.92));
     transform-origin: left center;
-    transform: rotate(var(--brand-matrix-angle, 0deg));
+    transform: translateY(50%) rotate(var(--brand-matrix-angle, 0deg));
 }
 
 .brand-matrix-arrow-animated {

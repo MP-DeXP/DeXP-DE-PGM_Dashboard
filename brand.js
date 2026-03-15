@@ -1213,6 +1213,13 @@ function renderBrandDiagnosticMatrixCard(matrix) {
     const deltaY = previousBottom - currentBottom;
     const arrowLength = Math.sqrt((deltaX ** 2) + (deltaY ** 2));
     const arrowAngle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
+    const vectorLength = Math.max(Math.sqrt((deltaX ** 2) + ((currentBottom - previousBottom) ** 2)), 0.0001);
+    const unitX = deltaX / vectorLength;
+    const unitY = (currentBottom - previousBottom) / vectorLength;
+    const previousLabelOffsetX = brandClamp(-unitX * 18, -24, 24);
+    const previousLabelOffsetY = brandClamp(unitY * 18 + 18, 12, 28);
+    const currentLabelOffsetX = brandClamp(unitX * 18, -24, 24);
+    const currentLabelOffsetY = brandClamp(-unitY * 18 - 22, -30, -14);
     const stageToneClass = `brand-matrix-stage-${escapeHtml(matrix.stage.tone)}`;
 
     return `
@@ -1241,10 +1248,10 @@ function renderBrandDiagnosticMatrixCard(matrix) {
                                 style="left:${previousLeft}%; bottom:${previousBottom}%; width:${arrowLength}%; --brand-matrix-angle:${arrowAngle}deg;"
                             ></div>
                             <span class="brand-matrix-point brand-matrix-point-prev" style="left:${previousLeft}%; bottom:${previousBottom}%;" title="4주 전"></span>
-                            <span class="brand-matrix-point-label brand-matrix-point-label-prev" style="left:${previousLeft}%; bottom:calc(${previousBottom}% + 18px);">4주 전</span>
+                            <span class="brand-matrix-point-label brand-matrix-point-label-prev" style="left:${previousLeft}%; bottom:${previousBottom}%; --brand-point-label-x:${previousLabelOffsetX}px; --brand-point-label-y:${previousLabelOffsetY}px;">4주 전</span>
                         ` : ''}
                         <span class="brand-matrix-point brand-matrix-point-current" style="left:${currentLeft}%; bottom:${currentBottom}%;" title="현재"></span>
-                        <span class="brand-matrix-point-label brand-matrix-point-label-current" style="left:${currentLeft}%; bottom:calc(${currentBottom}% - 24px);">현재</span>
+                        <span class="brand-matrix-point-label brand-matrix-point-label-current" style="left:${currentLeft}%; bottom:${currentBottom}%; --brand-point-label-x:${currentLabelOffsetX}px; --brand-point-label-y:${currentLabelOffsetY}px;">현재</span>
                     </div>
                 </div>
                 <div class="brand-matrix-scale">
