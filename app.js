@@ -173,17 +173,8 @@ const AppState = {
                 edgeMode: 'representative'
             }
         },
-        transitions: { sortCol: 'transition_customer_cnt', sortDesc: true, searchQuery: '', searchMode: 'all' },
         settings: {
             activeTab: 'grouping'
-        },
-        insights: {
-            dateFrom: '',
-            dateTo: '',
-            aaType: 'ALL',
-            aaProductId: 'ALL',
-            windowDays: 90,
-            jumpNavOpen: false
         }
     },
     charts: {},
@@ -2312,9 +2303,6 @@ window.handleGlobalSearch = (viewName, query, selectionStart = null, selectionEn
         if (viewName === 'products') {
             renderProductsTableOnly();
             restoreSearchInputCursor(viewName, selectionStart, selectionEnd);
-        } else if (viewName === 'transitions') {
-            renderTransitionsTable();
-            restoreSearchInputCursor(viewName, selectionStart, selectionEnd);
         }
         delete window.searchTimeouts[viewName];
     }, 150);
@@ -2341,11 +2329,6 @@ window.handleSearchCompositionEnd = (viewName, inputEl) => {
 window.handleSearchModeChange = (viewName, mode) => {
     if (!AppState.viewState[viewName]) return;
     AppState.viewState[viewName].searchMode = normalizeSearchMode(mode);
-    if (viewName === 'transitions') {
-        renderTransitionsTable();
-        restoreSearchInputCursor(viewName);
-        return;
-    }
     if (viewName === 'products') {
         renderProducts();
     }
@@ -3399,8 +3382,6 @@ window.saveGroupEdits = async () => {
 
     const pageId = document.body.id;
     if (pageId === 'page-products') renderProducts();
-    else if (pageId === 'page-transitions') renderTransitions();
-    else if (pageId === 'page-insights') renderInsightsPage();
     else if (pageId === 'page-brand') renderBrandDashboard();
     window.closeGroupEditorModal();
 };
@@ -3577,57 +3558,7 @@ function applyFocusFromUrl(pageId) {
     if (pageId === 'page-products') {
         AppState.viewState.products.searchQuery = focusEntity;
         AppState.viewState.products.quadrant.selectedId = focusEntity;
-    } else if (pageId === 'page-transitions') {
-        AppState.viewState.transitions.searchQuery = focusEntity;
-        AppState.viewState.transitions.searchMode = 'id';
     }
-}
-
-async function loadInsightsData() {
-    const [brandScore, anchorScored, anchorTransition, productDemandGravity, productTransitionEdge, returnGravityLoopDetail, insightDemandGraphNodes, insightDemandGraphEdges, insightDemandGraphPatterns, cartAnchor, cartAnchorDetail, aaCohortJourney, aaTransitionPath, caProfile, biiWindow, brandImpactTimeseries, brandImpactDailyPulse, brandRevenueTimeseries, apfActionRules, productGroupMap] = await Promise.all([
-        loadOptionalDataFromDB(REQUIRED_FILES.brandScore, []),
-        loadOptionalDataFromDB(REQUIRED_FILES.anchorScored, []),
-        loadOptionalDataFromDB(REQUIRED_FILES.anchorTransition, []),
-        loadOptionalDataFromDB(REQUIRED_FILES.productDemandGravity, []),
-        loadOptionalDataFromDB(REQUIRED_FILES.productTransitionEdge, []),
-        loadOptionalDataFromDB(REQUIRED_FILES.returnGravityLoopDetail, []),
-        loadOptionalDataFromDB(REQUIRED_FILES.insightDemandGraphNodes, []),
-        loadOptionalDataFromDB(REQUIRED_FILES.insightDemandGraphEdges, []),
-        loadOptionalDataFromDB(REQUIRED_FILES.insightDemandGraphPatterns, []),
-        loadOptionalDataFromDB(REQUIRED_FILES.cartAnchor, []),
-        loadOptionalDataFromDB(REQUIRED_FILES.cartAnchorDetail, []),
-        loadOptionalDataFromDB(REQUIRED_FILES.aaCohortJourney, []),
-        loadOptionalDataFromDB(REQUIRED_FILES.aaTransitionPath, []),
-        loadOptionalDataFromDB(REQUIRED_FILES.caProfile, []),
-        loadOptionalDataFromDB(REQUIRED_FILES.biiWindow, []),
-        loadOptionalDataFromDB(REQUIRED_FILES.brandImpactTimeseries, []),
-        loadOptionalDataFromDB(REQUIRED_FILES.brandImpactDailyPulse, []),
-        loadOptionalDataFromDB(REQUIRED_FILES.brandRevenueTimeseries, []),
-        loadOptionalDataFromDB(REQUIRED_FILES.apfActionRules, []),
-        loadOptionalDataFromDB(REQUIRED_FILES.productGroupMap, [])
-    ]);
-
-    AppState.rawData.brandScore = brandScore;
-    AppState.rawData.anchorScored = anchorScored;
-    AppState.rawData.anchorTransition = anchorTransition;
-    AppState.rawData.productDemandGravity = productDemandGravity;
-    AppState.rawData.productTransitionEdge = productTransitionEdge;
-    AppState.rawData.returnGravityLoopDetail = returnGravityLoopDetail;
-    AppState.rawData.insightDemandGraphNodes = insightDemandGraphNodes;
-    AppState.rawData.insightDemandGraphEdges = insightDemandGraphEdges;
-    AppState.rawData.insightDemandGraphPatterns = insightDemandGraphPatterns;
-    AppState.rawData.cartAnchor = cartAnchor;
-    AppState.rawData.cartAnchorDetail = cartAnchorDetail;
-    AppState.rawData.aaCohortJourney = aaCohortJourney;
-    AppState.rawData.aaTransitionPath = aaTransitionPath;
-    AppState.rawData.caProfile = caProfile;
-    AppState.rawData.biiWindow = biiWindow;
-    AppState.rawData.brandImpactTimeseries = brandImpactTimeseries;
-    AppState.rawData.brandImpactDailyPulse = brandImpactDailyPulse;
-    AppState.rawData.brandRevenueTimeseries = brandRevenueTimeseries;
-    AppState.rawData.apfActionRules = apfActionRules;
-    AppState.rawData.productGroupMap = productGroupMap;
-    rebuildDerivedData();
 }
 
 async function init() {
@@ -3652,20 +3583,7 @@ async function init() {
             return;
         }
 
-        if (pageId === 'page-insights') {
-            await loadInsightsData();
-            applyFocusFromUrl(pageId);
-            renderInsightsPage();
-            applyFriendlyUi(document.body);
-            return;
-        }
-
-        if (pageId === 'page-overview') {
-            AppState.rawData.brandScore = await loadDataFromDB(REQUIRED_FILES.brandScore);
-            AppState.data.brandScore = AppState.rawData.brandScore;
-            renderOverview();
-            applyFriendlyUi(document.body);
-        } else if (pageId === 'page-products') {
+        if (pageId === 'page-products') {
             const [s, t, g, edgeRows, loopRows, insightNodeRows, insightEdgeRows, insightPatternRows, groupMap] = await Promise.all([
                 loadDataFromDB(REQUIRED_FILES.anchorScored),
                 loadOptionalDataFromDB(REQUIRED_FILES.anchorTransition, []),
@@ -3723,19 +3641,6 @@ async function init() {
             AppState.rawData.productGroupMap = groupMap;
             rebuildDerivedData();
             renderBrandDashboard();
-            applyFriendlyUi(document.body);
-        } else if (pageId === 'page-transitions') {
-            const [t, s, groupMap] = await Promise.all([
-                loadDataFromDB(REQUIRED_FILES.anchorTransition),
-                loadDataFromDB(REQUIRED_FILES.anchorScored),
-                loadOptionalDataFromDB(REQUIRED_FILES.productGroupMap, [])
-            ]);
-            AppState.rawData.anchorTransition = t;
-            AppState.rawData.anchorScored = s;
-            AppState.rawData.productGroupMap = groupMap;
-            rebuildDerivedData();
-            applyFocusFromUrl(pageId);
-            renderTransitions();
             applyFriendlyUi(document.body);
         }
     } catch (e) {
