@@ -2261,6 +2261,10 @@ function renderProductsTableOnly(model = null) {
     const currentSet = resolvedModel.sets[currentSortKey];
     const scopeLabel = resolvedModel.scopeMode === 'retention-emphasis' ? '현재 화면: 리텐션 발생 제품 강조' : '현재 화면: 전체 제품 보기';
     const rows = buildCoreDemandRowsHtml(resolvedModel.rows, focusEntityId, emphasisMode, currentSortKey);
+    const formatSummaryRatio = (count) => {
+        if (!resolvedModel.scopedProductCount || !Number.isFinite(count)) return '';
+        return ` (${formatPercent(count / resolvedModel.scopedProductCount, 1)})`;
+    };
 
     summaryCard.innerHTML = `
         <div class="core-demand-wrap">
@@ -2269,9 +2273,9 @@ function renderProductsTableOnly(model = null) {
                     <h3>최근 90일 핵심 수요 제품</h3>
                     <p>최근 1년 내 판매 이력이 있고, 최근 90일에도 실제 판매가 이어진 핵심 수요 제품을 보여줘요.</p>
                     <div class="core-demand-summary">
-                        <span>${escapeHtml(currentSortLabel)} 기준 80% 핵심 제품 ${formatNumber(currentSet.items.length, 0)}개</span>
-                        <span>4개 축 전체 핵심 제품 ${formatNumber(resolvedModel.totalCoreCount, 0)}개</span>
-                        ${resolvedModel.sharedCoreCount > 0 ? `<span>여러 축 핵심 제품 ${formatNumber(resolvedModel.sharedCoreCount, 0)}개</span>` : ''}
+                        <span>${escapeHtml(currentSortLabel)} 기준 80% 핵심 제품 ${formatNumber(currentSet.items.length, 0)}개${formatSummaryRatio(currentSet.items.length)}</span>
+                        <span>4개 축 전체 핵심 제품 ${formatNumber(resolvedModel.totalCoreCount, 0)}개${formatSummaryRatio(resolvedModel.totalCoreCount)}</span>
+                        ${resolvedModel.sharedCoreCount > 0 ? `<span>여러 축 핵심 제품 ${formatNumber(resolvedModel.sharedCoreCount, 0)}개${formatSummaryRatio(resolvedModel.sharedCoreCount)}</span>` : ''}
                     </div>
                 </div>
                 <span class="demand-driver-scope">${scopeLabel}</span>

@@ -11,6 +11,10 @@
     --primary-gradient: linear-gradient(135deg, #2167f4 0%, #22d4e6 100%);
     --accent: #2167f4;
     --ink-strong: #262626;
+    --toggle-bg: #ffffff;
+    --toggle-border: #cfe0eb;
+    --toggle-text: #5f7286;
+    --toggle-shadow: 0 1px 0 rgba(23, 36, 51, 0.03);
 
     --text-main: #172433;
     --text-muted: #5f7286;
@@ -695,24 +699,16 @@ body {
 .quadrant-scale-toggle .btn-primary {
     font-size: 0.74rem;
     padding: 0.34rem 0.56rem;
-    opacity: 0.72;
 }
 
 .quadrant-edge-toggle .btn-primary {
     font-size: 0.74rem;
     padding: 0.34rem 0.56rem;
-    opacity: 0.72;
 }
 
 .quadrant-scope-toggle .btn-primary {
     font-size: 0.74rem;
     padding: 0.34rem 0.56rem;
-    opacity: 0.72;
-}
-
-.quadrant-scope-toggle .btn-primary.is-active {
-    opacity: 1;
-    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
 }
 
 .quadrant-scope-toggle .metric-tooltip-target:hover::after,
@@ -722,16 +718,6 @@ body {
     bottom: auto;
     top: calc(100% + 8px);
     max-width: min(360px, 86vw);
-}
-
-.quadrant-scale-toggle .btn-primary.is-active {
-    opacity: 1;
-    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
-}
-
-.quadrant-edge-toggle .btn-primary.is-active {
-    opacity: 1;
-    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
 }
 
 .quadrant-edge-toggle .btn-primary:disabled {
@@ -1464,12 +1450,6 @@ button.pgm-role-chip:focus-visible {
 .demand-graph-tabs .btn-primary {
     font-size: 0.76rem;
     padding: 0.36rem 0.68rem;
-    opacity: 0.74;
-}
-
-.demand-graph-tabs .btn-primary.is-active {
-    opacity: 1;
-    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.26);
 }
 
 .demand-graph-helper {
@@ -1503,24 +1483,62 @@ button.pgm-role-chip:focus-visible {
 }
 
 .pgm-chart-toggle .btn-primary {
-    background: #eef2ff;
-    color: #667085;
-    border: 1px solid #dbe4ff;
-    box-shadow: none;
-    opacity: 0.72;
+    font-size: 0.76rem;
+    padding: 0.36rem 0.68rem;
 }
 
+.quadrant-scope-toggle .btn-primary,
+.quadrant-scale-toggle .btn-primary,
+.quadrant-edge-toggle .btn-primary,
+.demand-graph-tabs .btn-primary,
+.pgm-chart-toggle .btn-primary {
+    background: var(--toggle-bg);
+    color: var(--toggle-text);
+    border: 1px solid var(--toggle-border);
+    box-shadow: var(--toggle-shadow);
+    opacity: 1;
+}
+
+.quadrant-scope-toggle .btn-primary:hover,
+.quadrant-scale-toggle .btn-primary:hover,
+.quadrant-edge-toggle .btn-primary:hover,
+.demand-graph-tabs .btn-primary:hover,
 .pgm-chart-toggle .btn-primary:hover {
-    background: #e3e9ff;
-    color: #475467;
+    background: #f2fbff;
+    color: var(--primary-strong);
+    border-color: rgba(24, 150, 242, 0.3);
+    box-shadow: 0 6px 14px rgba(23, 36, 51, 0.06);
 }
 
+.quadrant-scope-toggle .btn-primary.is-active,
+.quadrant-scale-toggle .btn-primary.is-active,
+.quadrant-edge-toggle .btn-primary.is-active,
+.demand-graph-tabs .btn-primary.is-active,
 .pgm-chart-toggle .btn-primary.is-active {
-    background: var(--primary);
+    background: var(--primary-gradient);
     color: #ffffff;
     border-color: transparent;
-    opacity: 1;
-    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.26);
+    box-shadow: 0 10px 18px rgba(24, 150, 242, 0.24);
+}
+
+.quadrant-scope-toggle .btn-primary.is-active:hover,
+.quadrant-scale-toggle .btn-primary.is-active:hover,
+.quadrant-edge-toggle .btn-primary.is-active:hover,
+.demand-graph-tabs .btn-primary.is-active:hover,
+.pgm-chart-toggle .btn-primary.is-active:hover {
+    color: #ffffff;
+    border-color: transparent;
+}
+
+.quadrant-scope-toggle .btn-primary:focus-visible,
+.quadrant-scale-toggle .btn-primary:focus-visible,
+.quadrant-edge-toggle .btn-primary:focus-visible,
+.demand-graph-tabs .btn-primary:focus-visible,
+.pgm-chart-toggle .btn-primary:focus-visible,
+.settings-tab:focus-visible,
+.core-demand-tab:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(24, 150, 242, 0.14);
 }
 
 .demand-graph-empty {
@@ -1815,26 +1833,28 @@ button.pgm-role-chip:focus-visible {
 }
 
 .core-demand-tab {
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--toggle-border);
     border-radius: 999px;
-    background: #fff;
-    color: var(--text-muted);
+    background: var(--toggle-bg);
+    color: var(--toggle-text);
     padding: 0.52rem 0.88rem;
     font-size: 0.8rem;
     font-weight: 700;
     transition: all 0.18s ease;
+    box-shadow: var(--toggle-shadow);
 }
 
 .core-demand-tab:hover {
-    border-color: rgba(49, 83, 143, 0.24);
-    color: #31538f;
+    border-color: rgba(24, 150, 242, 0.3);
+    color: var(--primary-strong);
+    background: #f2fbff;
 }
 
 .core-demand-tab.is-active {
-    background: linear-gradient(135deg, rgba(66, 99, 235, 0.12), rgba(99, 102, 241, 0.12));
-    border-color: rgba(66, 99, 235, 0.26);
-    color: #31538f;
-    box-shadow: inset 0 0 0 1px rgba(66, 99, 235, 0.08);
+    background: var(--primary-gradient);
+    border-color: transparent;
+    color: #ffffff;
+    box-shadow: 0 10px 18px rgba(24, 150, 242, 0.2);
 }
 
 .core-demand-table td,
@@ -2371,20 +2391,23 @@ button.pgm-role-chip:focus-visible {
 }
 
 .settings-tab {
-    border: 1px solid var(--border-color);
-    background: #f8fbff;
-    color: var(--text-muted);
+    border: 1px solid var(--toggle-border);
+    background: var(--toggle-bg);
+    color: var(--toggle-text);
     border-radius: 999px;
     padding: 0.36rem 0.8rem;
     font-size: 0.8rem;
     font-weight: 600;
     cursor: pointer;
+    box-shadow: var(--toggle-shadow);
+    transition: all 0.18s ease;
 }
 
 .settings-tab.active {
-    background: var(--primary-light);
-    color: var(--primary);
-    border-color: #c7d2fe;
+    background: var(--primary-gradient);
+    color: #ffffff;
+    border-color: transparent;
+    box-shadow: 0 10px 18px rgba(24, 150, 242, 0.2);
 }
 
 .settings-panel {
