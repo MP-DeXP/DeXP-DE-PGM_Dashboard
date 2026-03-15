@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PGM 대시보드 - 제품 분석</title>
+    <title>PGM 대시보드 - 브랜드 구조</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,23 +19,20 @@
     <link rel="stylesheet" href="../../style.css">
 </head>
 
-<body id="page-products">
+<body id="page-brand">
     <div class="app-container">
         <nav class="sidebar">
             <div class="logo-area">
-                <img src="../../assets/logo.png" alt="PGM 로고" class="logo-mark">
-                <div class="logo-copy">
-                    <strong>PGM 대시보드</strong>
-                    <span>Product Gravity Model</span>
-                </div>
+                <i class="ph-fill ph-chart-polar"></i>
+                <span>PGM 대시보드</span>
             </div>
 
             <ul class="nav-links">
-                <li onclick="window.location.href='../../brand.html'">
+                <li class="active" onclick="window.location.href='../../brand.html'">
                     <i class="ph ph-buildings"></i>
                     <span>브랜드 구조</span>
                 </li>
-                <li class="active" onclick="window.location.href='../../products.html'">
+                <li onclick="window.location.href='../../products.html'">
                     <i class="ph ph-tag"></i>
                     <span>제품 분석</span>
                 </li>
@@ -46,20 +43,21 @@
 
         <main class="main-content">
             <header class="top-bar">
-                <h1 id="page-title">제품 분석</h1>
+                <h1 id="page-title">브랜드 구조</h1>
+                <div id="top-bar-actions"></div>
             </header>
 
             <div id="content-area">
                 <div id="loading-indicator" class="loading hidden">
                     <div class="spinner"></div>
-                    <p>제품 데이터를 불러오는 중...</p>
+                    <p>브랜드 구조 데이터를 불러오는 중...</p>
                 </div>
             </div>
         </main>
     </div>
 
     <script src="../../app.js"></script>
-    <script src="../../products.js"></script>
+    <script src="../../brand.js"></script>
 </body>
 
 </html>

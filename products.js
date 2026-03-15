@@ -1639,8 +1639,9 @@ function syncQuadrantPanelHeights() {
 
     chartCard.style.height = '';
     chartCard.style.minHeight = '';
-
     if (window.innerWidth <= 1080) {
+        chartCard.style.height = '';
+        chartCard.style.minHeight = '';
         return sideCard.getBoundingClientRect().height || 0;
     }
 

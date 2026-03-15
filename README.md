@@ -9,6 +9,7 @@
 - 지표를 실행 카드로 바로 연결하기
 
 ## 페이지 구성
+- `brand.html`: 브랜드 구조 대시보드
 - `insights.html`: 인사이트 스튜디오 (기본 진입)
 - `index.html?overview=1`: 대시보드 개요
 - `products.html`: 제품 분석 (제품 상태 4분면 포함)
@@ -53,6 +54,9 @@
 - `aa_transition_path`
 - `ca_profile`
 - `bii_window`
+- `brand_impact_timeseries` (선택)
+- `brand_impact_daily_pulse` (선택)
+- `brand_revenue_timeseries` (선택)
 - `apf_action_rules` (선택)
 - `product_group_map` (선택)
 

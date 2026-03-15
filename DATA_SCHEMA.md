@@ -152,7 +152,94 @@
 
 ---
 
-## 11) `product_group_map` (신규, 선택)
+## 11) `brand_impact_timeseries` (신규, 선택)
+용도: 브랜드 구조 페이지 - 최근 12주 구조 추이
+
+권장 파일명:
+- `brand_impact_timeseries.csv`
+- `_insight_brand_impact_timeseries.csv`
+
+필수 컬럼:
+- `as_of_date`
+- `window_days`
+- `bhi`
+- `bii` 또는 `bii_t`
+
+권장 컬럼:
+- `period_start`
+- `period_end`
+- `clv_norm` 또는 `clv_t_norm`
+- `customer_strength_norm` 또는 `customer_strength_t_norm`
+- `repeat_rate_t`
+- `attach_rate_t`
+- `depth_t`
+- `stage`
+- `baseline_days`
+- `confidence` 또는 `confidence_index`
+
+비고:
+- 업로드 시 `bii_t`, `clv_t_norm`, `customer_strength_t_norm`도 자동 호환합니다.
+- 이 파일이 없으면 브랜드 구조 페이지의 상단 delta와 12주 추이는 빈 상태로 표시됩니다.
+
+---
+
+## 12) `brand_impact_daily_pulse` (신규, 선택)
+용도: 브랜드 구조 페이지 - 일별 실제 구매 흐름(Daily Pulse)
+
+권장 파일명:
+- `brand_impact_daily_pulse.csv`
+- `_insight_brand_impact_daily_pulse.csv`
+
+필수 컬럼:
+- `as_of_date`
+- `daily_bii_pulse`
+
+권장 컬럼:
+- `bhi`
+- `confidence_index`
+- `baseline_days`
+- `active_customers_baseline`
+- `avg_clv_baseline`
+- `active_customers_t`
+- `repeat_rate_t`
+- `attach_rate_t`
+- `depth_t`
+- `avg_clv_t`
+- `clv_t_norm`
+- `customer_strength_t_norm`
+- `stage`
+- `scope`
+
+비고:
+- `Daily Pulse`는 날짜당 1행의 단일값을 전제로 합니다.
+- 이 파일이 없으면 브랜드 구조 페이지의 메인 일별 흐름 차트는 빈 상태로 표시되고, 보조 `brand_impact_timeseries` 차트는 계속 렌더링됩니다.
+
+## 13) `brand_revenue_timeseries` (신규, 선택)
+용도: 브랜드 구조 페이지 - Revenue vs. BII 진단 매트릭스
+
+권장 파일명:
+- `brand_revenue_timeseries.csv`
+- `_insight_brand_revenue_timeseries.csv`
+
+필수 컬럼:
+- `as_of_date`
+- `window_days`
+- `revenue_t`
+
+권장 컬럼:
+- `period_start`
+- `period_end`
+- `currency`
+- `scope`
+
+비고:
+- `window_days`는 `7`, `30`, `90`, `365`를 권장합니다.
+- 같은 날짜의 `selected window / 365일` 비율을 프런트에서 계산합니다.
+- 이 파일이 없으면 브랜드 구조 페이지의 `Revenue vs. BII` 매트릭스는 빈 상태로 표시되고, 다른 카드와 차트는 계속 렌더링됩니다.
+
+---
+
+## 14) `product_group_map` (신규, 선택)
 용도: 동일 제품군 수동 그룹 매핑/해제(전 페이지 집계 반영)
 
 권장 파일명:
@@ -165,7 +252,6 @@ alias:
 필수 컬럼:
 - `product_id`
 - `status` (`grouped` | `ungrouped`)
-
 조건부 필수 컬럼 (`status=grouped`일 때):
 - `group_id`
 - `group_name`
@@ -194,5 +280,8 @@ alias:
 - `aa_transition_path`
 - `ca_profile`
 - `bii_window`
+- `brand_impact_timeseries`
+- `brand_impact_daily_pulse`
+- `brand_revenue_timeseries`
 - `apf_action_rules`
 - `product_group_map`

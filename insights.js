@@ -791,7 +791,7 @@ function renderBrandFitness(model) {
                 <summary>원인 자세히 보기 (구성 요소/추세/기간별 수치)</summary>
                 <div class="fitness-details-body">
                     <div class="factor-block">
-                        <h3>브랜드 실전 건강도 구성 요소 (${selectedWindow}일)</h3>
+                        <h3>브랜드 구매 전환 구성 요소 (${selectedWindow}일)</h3>
                         <p class="chart-hint">구조, ${FITNESS_COMPONENT_LABELS.value}, ${FITNESS_COMPONENT_LABELS.strength} 중 어떤 요소가 변화를 만들었는지 확인합니다.</p>
                         <div class="factor-grid">
                             <div class="journey-kpi">
@@ -1241,7 +1241,7 @@ function renderInsightsCharts(model) {
                 plugins: {
                     title: {
                         display: true,
-                        text: '브랜드 실전 건강도 구성 요소 추세',
+                        text: '브랜드 구매 전환 구성 요소 추세',
                         color: '#1e293b'
                     }
                 }
