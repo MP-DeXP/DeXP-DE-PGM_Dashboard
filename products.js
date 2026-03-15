@@ -1620,9 +1620,59 @@ function renderProductQuadrant(model, coreDemandModel = null) {
     `;
 }
 
+function syncQuadrantCanvasWrapHeight() {
+    const wrap = document.querySelector('.quadrant-chart-canvas-wrap');
+    const stage = wrap?.closest('.pgm-chart-stage.is-quadrant-view');
+    const head = stage?.querySelector('.quadrant-chart-head');
+    if (!wrap || !stage) return 0;
+    const available = Math.max(260, stage.clientHeight - (head?.offsetHeight || 0));
+    wrap.style.height = `${available}px`;
+    wrap.style.flex = '0 0 auto';
+    return available;
+}
+
+function syncQuadrantPanelHeights() {
+    const body = document.querySelector('.pgm-quadrant-body');
+    const chartCard = body?.querySelector('.pgm-chart.card.chart-card');
+    const sideCard = body?.querySelector('.pgm-side.card');
+    if (!body || !chartCard || !sideCard) return 0;
+
+    chartCard.style.height = '';
+    chartCard.style.minHeight = '';
+
+    if (window.innerWidth <= 1080) {
+        return sideCard.getBoundingClientRect().height || 0;
+    }
+
+    const sideHeight = Math.ceil(sideCard.getBoundingClientRect().height || 0);
+    const baseHeight = 600;
+    const nextHeight = Math.max(baseHeight, sideHeight);
+    chartCard.style.height = `${nextHeight}px`;
+    chartCard.style.minHeight = `${nextHeight}px`;
+    return nextHeight;
+}
+
+function ensureQuadrantResizeHandler() {
+    if (AppState.helpers.productsQuadrantResizeBound) return;
+    window.addEventListener('resize', () => {
+        syncQuadrantPanelHeights();
+        if (AppState.viewState?.products?.chartView === 'quadrant') {
+            const available = syncQuadrantCanvasWrapHeight();
+            if (available > 0 && AppState.charts.pgmQuadrant) {
+                AppState.charts.pgmQuadrant.resize();
+            }
+        }
+        scheduleDemandGraphEdgeLayout();
+    });
+    AppState.helpers.productsQuadrantResizeBound = true;
+}
+
 function renderQuadrantChart(model) {
     const canvas = document.getElementById('pgmQuadrantChart');
     if (!canvas || !model) return;
+    ensureQuadrantResizeHandler();
+    syncQuadrantPanelHeights();
+    syncQuadrantCanvasWrapHeight();
     const ctx = canvas.getContext('2d');
     const centerX = model.centerEntry;
     const centerY = model.centerExpansion;
@@ -2343,6 +2393,8 @@ function renderProducts() {
     if (AppState.viewState.products.chartView !== 'demand-graph') {
         renderQuadrantChart(quadrantModel);
     } else {
+        ensureQuadrantResizeHandler();
+        syncQuadrantPanelHeights();
         ensureDemandGraphResizeHandler();
         scheduleDemandGraphEdgeLayout();
     }
@@ -2385,6 +2437,8 @@ function renderProducts() {
         if (AppState.viewState.products.chartView !== 'demand-graph') {
             renderQuadrantChart(nextQuadrantModel);
         } else {
+            ensureQuadrantResizeHandler();
+            syncQuadrantPanelHeights();
             ensureDemandGraphResizeHandler();
             scheduleDemandGraphEdgeLayout();
         }
