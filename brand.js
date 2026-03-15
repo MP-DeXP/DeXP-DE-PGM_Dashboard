@@ -97,57 +97,57 @@ const BRAND_MATRIX_RATIO_MAX = 1.6;
 
 const BRAND_DIAGNOSTIC_META = {
     structure: {
-        title: 'BHI vs. BII',
-        description: '구조 건강도와 최근 구매 전환을 함께 봐요.',
+        title: '브랜드 구조 건강도 vs. 브랜드 구매 전환력 (BII)',
+        description: '구조 건강도와 최근 브랜드 구매 전환력을 함께 봐요.',
         xAxisLabel: 'BHI (구조 건강도)',
-        yAxisLabel: 'BII / BII 365일',
+        yAxisLabel: '브랜드 구매 전환력 / 브랜드 구매 전환력 365일',
         quadrants: {
             highHigh: {
                 label: '최우수 (Optimal)',
-                summary: '구조도 좋고 최근 구매 전환도 함께 잘 작동하고 있어요.',
+                summary: '구조도 좋고 최근 브랜드 구매 전환력도 함께 잘 작동하고 있어요.',
                 tone: 'mint'
             },
             highLow: {
                 label: '실행력 저하 (Execution Drop)',
-                summary: '구조는 좋은데 최근 운영 난조로 구매 전환이 약해졌어요.',
+                summary: '구조는 좋은데 최근 운영 난조로 브랜드 구매 전환력이 약해졌어요.',
                 tone: 'amber'
             },
             lowHigh: {
                 label: '단기 펌핑 (Illusion)',
-                summary: '단기 구매 전환은 높지만 구조 리스크 점검이 필요해요.',
+                summary: '단기 브랜드 구매 전환력은 높지만 구조 리스크 점검이 필요해요.',
                 tone: 'orange'
             },
             lowLow: {
                 label: '전면 개선 필요 (Rebuild)',
-                summary: '구조와 최근 구매 전환이 모두 약해 기초부터 다시 봐야 해요.',
+                summary: '구조와 최근 브랜드 구매 전환력이 모두 약해 기초부터 다시 봐야 해요.',
                 tone: 'rose'
             }
         }
     },
     revenue: {
-        title: 'Revenue vs. BII',
-        description: '매출과 구매 전환을 함께 봐요. BII는 매출을 대체하지 않고, 매출의 구조적 기반을 설명해요.',
+        title: 'Revenue vs. 브랜드 구매 전환력 (BII)',
+        description: '매출과 브랜드 구매 전환력을 함께 봐요. BII는 매출을 대체하지 않고, 매출의 구조적 기반을 설명해요.',
         xAxisLabel: 'Revenue / Revenue 365일',
-        yAxisLabel: 'BII / BII 365일',
+        yAxisLabel: '브랜드 구매 전환력 / 브랜드 구매 전환력 365일',
         quadrants: {
             highHigh: {
                 label: '건강한 성장 (Healthy Growth)',
-                summary: '매출과 구조 기반 구매 전환이 함께 올라가는 이상적인 상태예요.',
+                summary: '매출과 구조 기반 브랜드 구매 전환력이 함께 올라가는 이상적인 상태예요.',
                 tone: 'mint'
             },
             highLow: {
                 label: '구조 리스크 (Danger Zone)',
-                summary: '매출은 버티지만 구조 기반 구매 전환은 약해지고 있어요.',
+                summary: '매출은 버티지만 구조 기반 브랜드 구매 전환력은 약해지고 있어요.',
                 tone: 'rose'
             },
             lowHigh: {
                 label: '장기 개선 신호 (Hidden Momentum)',
-                summary: '매출은 정체돼 보여도 내부 구매 전환 기반은 좋아지고 있어요.',
+                summary: '매출은 정체돼 보여도 내부 브랜드 구매 전환력 기반은 좋아지고 있어요.',
                 tone: 'sky'
             },
             lowLow: {
                 label: '동반 침체 (Decline)',
-                summary: '매출과 구매 전환이 함께 약해지고 있어 근본 점검이 필요해요.',
+                summary: '매출과 브랜드 구매 전환력이 함께 약해지고 있어 근본 점검이 필요해요.',
                 tone: 'slate'
             }
         }
@@ -683,7 +683,7 @@ function brandBuildStructureMatrix(healthCurrentScore, currentImpactRow, timeser
             empty: true,
             title: BRAND_DIAGNOSTIC_META.structure.title,
             description: BRAND_DIAGNOSTIC_META.structure.description,
-            note: '선택한 기간 또는 365일 기준 구매 전환 데이터가 없어 이 진단은 아직 표시하지 않아요.'
+            note: '선택한 기간 또는 365일 기준 브랜드 구매 전환력 데이터가 없어 이 진단은 아직 표시하지 않아요.'
         };
     }
 
@@ -732,7 +732,7 @@ function brandBuildRevenueMatrix(revenueTimeseries, impactTimeseries, diagnostic
             empty: true,
             title: BRAND_DIAGNOSTIC_META.revenue.title,
             description: BRAND_DIAGNOSTIC_META.revenue.description,
-            note: '매출 진단 데이터가 없어 Revenue vs. BII는 아직 표시하지 않아요.'
+            note: '매출 진단 데이터가 없어 Revenue vs. 브랜드 구매 전환력 (BII)은 아직 표시하지 않아요.'
         };
     }
 
@@ -757,7 +757,7 @@ function brandBuildRevenueMatrix(revenueTimeseries, impactTimeseries, diagnostic
             empty: true,
             title: BRAND_DIAGNOSTIC_META.revenue.title,
             description: BRAND_DIAGNOSTIC_META.revenue.description,
-            note: '같은 날짜 기준 매출과 구매 전환 데이터를 함께 읽을 수 없어 Revenue vs. BII는 아직 표시하지 않아요.'
+            note: '같은 날짜 기준 매출과 브랜드 구매 전환력 데이터를 함께 읽을 수 없어 Revenue vs. 브랜드 구매 전환력 (BII)은 아직 표시하지 않아요.'
         };
     }
 
@@ -1237,12 +1237,14 @@ function renderBrandDiagnosticMatrixCard(matrix) {
                     <div class="brand-matrix-overlay">
                         ${matrix.previousPoint ? `
                             <div
-                                class="brand-matrix-arrow"
-                                style="left:${previousLeft}%; bottom:${previousBottom}%; width:${arrowLength}%; transform:rotate(${arrowAngle}deg);"
+                                class="brand-matrix-arrow brand-matrix-arrow-animated"
+                                style="left:${previousLeft}%; bottom:${previousBottom}%; width:${arrowLength}%; --brand-matrix-angle:${arrowAngle}deg;"
                             ></div>
                             <span class="brand-matrix-point brand-matrix-point-prev" style="left:${previousLeft}%; bottom:${previousBottom}%;" title="4주 전"></span>
+                            <span class="brand-matrix-point-label brand-matrix-point-label-prev" style="left:${previousLeft}%; bottom:calc(${previousBottom}% + 18px);">4주 전</span>
                         ` : ''}
                         <span class="brand-matrix-point brand-matrix-point-current" style="left:${currentLeft}%; bottom:${currentBottom}%;" title="현재"></span>
+                        <span class="brand-matrix-point-label brand-matrix-point-label-current" style="left:${currentLeft}%; bottom:calc(${currentBottom}% - 24px);">현재</span>
                     </div>
                 </div>
                 <div class="brand-matrix-scale">
@@ -1261,7 +1263,7 @@ function renderBrandDiagnosticSection(model) {
             <div class="brand-section-head">
                 <div>
                     <h2>지금 브랜드 상태를 진단하면 어디에 있나?</h2>
-                    <p>BHI와 구매 전환, 그리고 매출을 함께 보면 지금 상태를 더 직관적으로 읽을 수 있어요.</p>
+                    <p>BHI와 브랜드 구매 전환력, 그리고 매출을 함께 보면 지금 상태를 더 직관적으로 읽을 수 있어요.</p>
                 </div>
             </div>
             <div class="brand-matrix-grid-wrap">
@@ -1407,47 +1409,15 @@ function renderBrandDashboard() {
 
             ${renderBrandTimelineSection(model)}
 
-            <section class="brand-driver-grid">
-                ${renderBrandDriverCard('어떤 제품이 구조 건강도를 만들고 있나?', '유입, 확장, 반복 구조를 실제로 받쳐 주는 제품을 보여줘요.', model.driversHealth)}
-                ${renderBrandDriverCard('어떤 제품이 구매 전환을 만들고 있나?', '실제 구매 흐름을 끌고 허브 역할을 하는 제품을 보여줘요.', model.driversImpact)}
-            </section>
-
-            <section class="card brand-pattern-card">
+            <section class="card brand-next-cta-card">
                 <div class="brand-section-head">
                     <div>
-                        <h2>수요 흐름 스냅샷</h2>
-                        <p>복잡한 전체 그래프 대신 대표 연쇄와 루프, 허브 수렴만 골라 보여줘요.</p>
+                        <h2>제품별 기여를 더 자세히 보려면</h2>
+                        <p>제품 단위 구조 기여, 구매 전환 기여, 수요 흐름과 역할 맵은 제품 분석 화면에서 이어서 볼 수 있어요.</p>
                     </div>
+                    <a class="btn-primary brand-next-cta-link" href="../../products.html">제품 분석으로 이동</a>
                 </div>
-                <div class="brand-pattern-grid">
-                    ${model.patternCards.map((card) => `
-                        <article class="brand-pattern-item">
-                            <span class="brand-pattern-tag">${escapeHtml(card.title)}</span>
-                            <h3>${escapeHtml(card.path)}</h3>
-                            <p>${escapeHtml(card.note)}</p>
-                        </article>
-                    `).join('')}
-                </div>
-            </section>
-
-            <section class="card brand-map-card">
-                <div class="brand-section-head">
-                    <div>
-                        <h2>수요 구조 맵</h2>
-                        <p>제품 역할 분포를 자세히 보고 싶을 때 아래 맵에서 확인해요.</p>
-                    </div>
-                </div>
-                <div class="brand-role-summary">
-                    ${Object.entries(model.roleCounts).map(([key, count]) => `
-                        <div class="brand-role-summary-item brand-role-summary-item-${escapeHtml(key)}">
-                            <strong>${escapeHtml(BRAND_ROLE_META[key].label)}</strong>
-                            <span>${formatNumber(count, 0)}개</span>
-                        </div>
-                    `).join('')}
-                </div>
-                <div class="brand-map-wrap">
-                    <canvas id="brand-role-map"></canvas>
-                </div>
+                <p class="brand-next-cta-note">브랜드 페이지에서는 현재 브랜드 상태와 진단에 집중하고, 제품별 drill-down과 구조 맵은 제품 분석 화면으로 분리했어요.</p>
             </section>
         </div>
     `;

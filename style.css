@@ -3880,10 +3880,13 @@ button.pgm-role-chip:focus-visible {
 }
 
 .brand-matrix-card {
+    display: flex;
+    flex-direction: column;
     border: 1px solid rgba(226, 232, 240, 0.95);
     border-radius: 18px;
     padding: 1rem 1rem 1.05rem;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94));
+    min-height: 560px;
 }
 
 .brand-matrix-card-empty {
@@ -3972,6 +3975,7 @@ button.pgm-role-chip:focus-visible {
     margin-top: 0.7rem;
     padding-top: 1.7rem;
     padding-bottom: 1.9rem;
+    margin-top: auto;
 }
 
 .brand-matrix-axis-label {
@@ -3995,6 +3999,7 @@ button.pgm-role-chip:focus-visible {
 
 .brand-matrix-grid {
     position: relative;
+    height: 286px;
     min-height: 286px;
     border-radius: 18px;
     overflow: hidden;
@@ -4126,6 +4131,23 @@ button.pgm-role-chip:focus-visible {
 .brand-matrix-point-current {
     background: #111827;
     border: 3px solid #fff;
+    animation: brandMatrixCurrentPulse 3.2s ease-out infinite;
+}
+
+.brand-matrix-point-label {
+    position: absolute;
+    transform: translate(-50%, 0);
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #475569;
+    white-space: nowrap;
+}
+
+.brand-matrix-point-label-prev {
+}
+
+.brand-matrix-point-label-current {
+    color: #111827;
 }
 
 .brand-matrix-arrow {
@@ -4133,6 +4155,25 @@ button.pgm-role-chip:focus-visible {
     height: 2px;
     background: linear-gradient(90deg, rgba(99, 102, 241, 0.28), rgba(99, 102, 241, 0.92));
     transform-origin: left center;
+    transform: rotate(var(--brand-matrix-angle, 0deg));
+}
+
+.brand-matrix-arrow-animated {
+    animation: brandMatrixArrowGlow 3.2s ease-in-out infinite;
+}
+
+.brand-matrix-arrow-animated::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #6366f1;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12);
+    transform: translateY(-50%);
+    animation: brandMatrixTracerMove 3.2s cubic-bezier(0.2, 0.7, 0.2, 1) infinite;
 }
 
 .brand-matrix-arrow::after {
@@ -4155,6 +4196,67 @@ button.pgm-role-chip:focus-visible {
     color: var(--text-muted);
     font-size: 0.78rem;
     font-weight: 600;
+}
+
+@keyframes brandMatrixArrowGlow {
+    0%,
+    100% {
+        opacity: 0.38;
+        filter: saturate(0.9);
+    }
+    20%,
+    62% {
+        opacity: 1;
+        filter: saturate(1.05);
+    }
+}
+
+@keyframes brandMatrixTracerMove {
+    0% {
+        left: 0;
+        opacity: 0;
+    }
+    10% {
+        left: 0;
+        opacity: 1;
+    }
+    62% {
+        left: calc(100% - 8px);
+        opacity: 1;
+    }
+    75%,
+    100% {
+        left: calc(100% - 8px);
+        opacity: 0;
+    }
+}
+
+@keyframes brandMatrixCurrentPulse {
+    0% {
+        box-shadow: 0 6px 16px rgba(15, 23, 42, 0.16);
+        transform: translate(-50%, 50%) scale(1);
+    }
+    18% {
+        box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.35);
+        transform: translate(-50%, 50%) scale(0.88);
+    }
+    36% {
+        box-shadow: 0 0 0 12px rgba(99, 102, 241, 0);
+        transform: translate(-50%, 50%) scale(1.06);
+    }
+    52%,
+    100% {
+        box-shadow: 0 6px 16px rgba(15, 23, 42, 0.16);
+        transform: translate(-50%, 50%) scale(1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .brand-matrix-point-current,
+    .brand-matrix-arrow-animated,
+    .brand-matrix-arrow-animated::before {
+        animation: none;
+    }
 }
 
 .brand-role-summary {
@@ -4290,6 +4392,31 @@ button.pgm-role-chip:focus-visible {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1.5rem;
+}
+
+.brand-next-cta-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    background:
+        radial-gradient(circle at top right, rgba(79, 70, 229, 0.08), rgba(79, 70, 229, 0)),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(243, 246, 255, 0.96));
+}
+
+.brand-next-cta-card .brand-section-head {
+    align-items: center;
+    gap: 1rem;
+}
+
+.brand-next-cta-link {
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+.brand-next-cta-note {
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin: 0;
 }
 
 .brand-driver-list {
@@ -4602,6 +4729,19 @@ button.pgm-role-chip:focus-visible {
     .brand-matrix-grid-wrap,
     .brand-driver-grid {
         grid-template-columns: 1fr;
+    }
+
+    .brand-next-cta-card .brand-section-head {
+        align-items: flex-start;
+    }
+
+    .brand-next-cta-link {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .brand-matrix-card {
+        min-height: auto;
     }
 
     .brand-components-card-compact,
