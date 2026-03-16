@@ -309,7 +309,7 @@ const TERM_LABELS = {
     PCA: '재구매 제품',
     CA: '장바구니 확장 제품',
     BHI: '브랜드 구조 건강도',
-    BII: '브랜드 구매 전환'
+    BII: '브랜드 구매력'
 };
 
 const AA_TYPE_LABELS = {
@@ -414,7 +414,7 @@ const METRIC_TOOLTIP_RULES = [
     { pattern: /^90일 대비 연간 흐름$/, description: '단기(90일)와 연간(365일) 흐름 비교값이에요. 1보다 크면 최근 흐름이 더 좋아요.' },
     { pattern: /^신뢰도$/, description: '지표를 믿고 의사결정해도 되는 정도를 보여줘요.' },
     { pattern: /^현재 단계 \(\d+일\)$/, description: '선택 기간 기준으로 지금 브랜드가 어느 단계인지 표시해요.' },
-    { pattern: /^브랜드 구매 전환 \d+일$/, description: '선택한 기간 기준의 브랜드 구매 전환 지수예요.' },
+    { pattern: /^브랜드 구매력 \d+일$/, description: '선택한 기간 기준의 브랜드 구매력 지수예요.' },
     { pattern: /^브랜드 구조 건강도$/, description: '제품 구조가 균형적인지 보는 기본 지표예요.' },
     { pattern: /^고객가치$/, description: '유입 고객이 만들어내는 가치 수준이에요.' },
     { pattern: /^재구매 강도$/, description: '고객이 반복 구매하는 힘을 보여줘요.' },

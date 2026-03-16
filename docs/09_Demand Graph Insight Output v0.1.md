@@ -196,7 +196,7 @@ Demand Graph insight output은 아래 레이어 원칙을 따른다.
 
 - `01`: Entry / Expansion / Basket 계산
 - `02`: Convergence / Return 및 공식 transition edge 계산
-- `03`: Brand Score / BII 계산
+- `03`: Brand Score / BII(브랜드 구매력) 계산
 - `04`: UI/insight layer CSV 생성
 
 따라서 Demand Graph CSV는 `02`에 넣지 않고 `04`에 둔다.

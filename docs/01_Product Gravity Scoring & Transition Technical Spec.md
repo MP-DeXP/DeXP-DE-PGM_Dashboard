@@ -9,7 +9,7 @@ Primary Artifacts:
 ## 1. 목적
 
 PGM(Product Gravity Model)은 단순 판매량 분석이 아니라
-제품 중심의 수요 구조를 설명하는 모델이다.
+상품 중심의 수요 구조를 설명하는 모델이다.
 
 PGM core는 다음 4개 gravity로 구성된다.
 
@@ -59,7 +59,7 @@ PGM shorthand:
 다음을 계산한다.
 
 - `Brand Score` (`BHI`, `Confidence_Index`)
-- `BII`
+- `BII (브랜드 구매력)`
 
 ### 2.3 후속 노트북
 
@@ -96,8 +96,8 @@ PGM shorthand:
 분석 전제:
 
 - 기본 관측 창은 `90일`
-- 고객별 제품 첫 구매 시점을 제품별 cohort의 기준점으로 둔다
-- 같은 주문의 동일 제품 재등장은 1회 이벤트로 간주한다
+- 고객별 상품 첫 구매 시점을 상품별 cohort의 기준점으로 둔다
+- 같은 주문의 동일 상품 재등장은 1회 이벤트로 간주한다
 - optional `member_group_id` static filter를 지원한다
 - config:
 - `USE_MEMBER_GROUP_FILTER`
@@ -111,12 +111,12 @@ PGM shorthand:
 
 ### 공식 정의
 
-제품이 고객 수요를 시작시키는 힘.
+상품이 고객 수요를 시작시키는 힘.
 특히 첫 구매 진입점으로 작동하는 정도.
 
 ### 공식 질문
 
-“이 제품은 얼마나 강하게 신규 수요를 여는가?”
+“이 상품은 얼마나 강하게 신규 수요를 여는가?”
 
 ### 현재 구현
 
@@ -134,11 +134,11 @@ Canonical alias:
 
 ### 공식 정의
 
-제품 구매 이후 다음 구매가 발생하도록 수요를 확장시키는 힘.
+상품 구매 이후 다음 구매가 발생하도록 수요를 확장시키는 힘.
 
 ### 공식 질문
 
-“이 제품은 얼마나 강하게 다음 구매를 일으키는가?”
+“이 상품은 얼마나 강하게 다음 구매를 일으키는가?”
 
 ### 현재 구현
 
@@ -156,7 +156,7 @@ Canonical alias:
 
 ### 공식 정의
 
-많은 서로 다른 prior product로부터 수요가 이 제품으로 모여드는 정도.
+많은 서로 다른 prior product로부터 수요가 이 상품으로 모여드는 정도.
 
 핵심 패턴:
 
@@ -166,20 +166,20 @@ Canonical alias:
 
 ### 공식 질문
 
-“고객은 여러 경로 끝에 이 제품으로 모이는가?”
+“고객은 여러 경로 끝에 이 상품으로 모이는가?”
 
 ### naive metric과의 차이
 
-Convergence Gravity는 단순 인기 제품 점수가 아니다.
+Convergence Gravity는 단순 인기 상품 점수가 아니다.
 
 - 판매량이 높아도 incoming source가 적으면 convergence는 낮을 수 있다.
 - 판매량이 중간이어도 다양한 source에서 도착하면 convergence는 높을 수 있다.
 
 ### 계산 원리
 
-- 각 제품의 고객별 첫 구매를 `source cohort`로 정의
+- 각 상품의 고객별 첫 구매를 `source cohort`로 정의
 - cohort 이후 `90일` 내 첫 next-product를 edge로 생성
-- target 제품 기준으로 incoming edge를 집계
+- target 상품 기준으로 incoming edge를 집계
 - 단, core `Convergence Gravity` score는 `source_product_id != target_product_id`인 non-self incoming edge만 사용한다.
 - `A -> A` self-loop는 버리지 않고 diagnostic metric으로 별도 저장한다.
 
@@ -202,8 +202,8 @@ Convergence Gravity는 단순 인기 제품 점수가 아니다.
 
 ### 공식 정의
 
-고객이 해당 제품을 떠난 뒤,
-중간 제품을 거쳐 다시 그 제품으로 돌아오는 정도.
+고객이 해당 상품을 떠난 뒤,
+중간 상품을 거쳐 다시 그 상품으로 돌아오는 정도.
 
 핵심 패턴:
 
@@ -212,7 +212,7 @@ Convergence Gravity는 단순 인기 제품 점수가 아니다.
 
 ### 공식 질문
 
-“이 제품은 중간 구매 뒤 다시 고객을 끌어당기는가?”
+“이 상품은 중간 구매 뒤 다시 고객을 끌어당기는가?”
 
 ### naive metric과의 차이
 
@@ -223,14 +223,14 @@ Return Gravity는 단순 재구매율이 아니다.
 
 즉:
 
-- repeat = 같은 제품을 다시 샀는가
-- return = 다른 제품을 거친 뒤 다시 돌아왔는가
+- repeat = 같은 상품을 다시 샀는가
+- return = 다른 상품을 거친 뒤 다시 돌아왔는가
 
 ### 계산 원리
 
-- 각 제품의 고객별 첫 구매를 source cohort로 정의
-- cohort 이후 `90일` 내 제품 시퀀스를 본다
-- `A`가 다시 등장하되 그 사이에 `A`가 아닌 제품이 1개 이상 있으면 qualified return으로 본다
+- 각 상품의 고객별 첫 구매를 source cohort로 정의
+- cohort 이후 `90일` 내 상품 시퀀스를 본다
+- `A`가 다시 등장하되 그 사이에 `A`가 아닌 상품이 1개 이상 있으면 qualified return으로 본다
 
 ### 핵심 raw metrics
 
@@ -261,7 +261,7 @@ Return Gravity는 단순 재구매율이 아니다.
 
 ### Return
 
-같은 제품을 떠났다가 다시 돌아온다.
+같은 상품을 떠났다가 다시 돌아온다.
 
 예:
 

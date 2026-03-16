@@ -7,7 +7,7 @@ const BRAND_ROLE_META = {
 
 const BRAND_COMPONENT_GROUPS = {
     health: '구조 건강도 해석',
-    impact: '구매 전환 해석'
+    impact: '브랜드 구매력 해석'
 };
 
 const BRAND_COMPONENT_META = {
@@ -57,8 +57,8 @@ const BRAND_COMPONENT_META = {
         label: '반복 전환 힘',
         chartLabel: '반복 구매 힘',
         badge: '측정값',
-        shortDescription: '반복 구매가 실제 구매로 이어지는 힘을 봐요.',
-        description: '반복 구매 깊이와 최근 운영 구간의 전환 힘을 함께 봐요.'
+        shortDescription: '반복 구매가 브랜드 구매력으로 이어지는 힘을 봐요.',
+        description: '반복 구매 깊이와 최근 운영 구간의 브랜드 구매력 힘을 함께 봐요.'
     },
     hubConcentration: {
         label: '허브 집중도',
@@ -77,9 +77,9 @@ const BRAND_INTERPRETATION_TEXT = {
         roleBalance: '제품 역할이 한쪽에 몰려 있어 균형이 부족해요.'
     },
     impact: {
-        coreInfluence: '핵심 제품은 보이지만 구매 전환을 끌어당기는 힘은 아직 약해요.',
-        graphStrength: '제품 사이 연결이 얇아 구매 전환이 넓게 퍼지지 않아요.',
-        returnPower: '반복 구매 힘이 약해서 구매 전환으로 충분히 이어지지 않아요.',
+        coreInfluence: '핵심 제품은 보이지만 브랜드 구매력을 끌어당기는 힘은 아직 약해요.',
+        graphStrength: '제품 사이 연결이 얇아 브랜드 구매력이 넓게 퍼지지 않아요.',
+        returnPower: '반복 구매 힘이 약해서 브랜드 구매력으로 충분히 이어지지 않아요.',
         hubConcentration: '소수 제품이 끌고는 있지만 그만큼 의존도도 높아요.'
     }
 };
@@ -87,9 +87,9 @@ const BRAND_INTERPRETATION_TEXT = {
 const BRAND_TIMELINE_WINDOW_ORDER = [7, 30, 90, 365];
 const BRAND_TIMELINE_WINDOW_GUIDE = {
     7: '최근 며칠 사이 흐름이 갑자기 붙거나 꺾였는지 볼 때 좋아요.',
-    30: '최근 한 달 운영이 구매 전환으로 이어지고 있는지 볼 때 좋아요.',
-    90: '단기 흔들림을 덜 타고, 구매 전환이 중기적으로 좋아지는지 볼 때 좋아요.',
-    365: '시즌성까지 포함해 구매 전환이 장기적으로 유지되는지 볼 때 좋아요.'
+    30: '최근 한 달 운영이 브랜드 구매력으로 이어지고 있는지 볼 때 좋아요.',
+    90: '단기 흔들림을 덜 타고, 브랜드 구매력이 중기적으로 좋아지는지 볼 때 좋아요.',
+    365: '시즌성까지 포함해 브랜드 구매력이 장기적으로 유지되는지 볼 때 좋아요.'
 };
 const BRAND_PULSE_LOOKBACK_DAYS = 90;
 const BRAND_DIAGNOSTIC_WINDOW_ORDER = [7, 30, 90];
@@ -97,57 +97,57 @@ const BRAND_MATRIX_RATIO_MAX = 1.6;
 
 const BRAND_DIAGNOSTIC_META = {
     structure: {
-        title: '브랜드 구조 건강도 vs. 브랜드 구매 전환력 (BII)',
-        description: '구조 건강도와 최근 브랜드 구매 전환력을 함께 봐요.',
+        title: '브랜드 구조 건강도 vs. 브랜드 구매력 (BII)',
+        description: '구조 건강도와 최근 브랜드 구매력을 함께 봐요.',
         xAxisLabel: 'BHI (구조 건강도)',
-        yAxisLabel: '브랜드 구매 전환력 / 브랜드 구매 전환력 365일',
+        yAxisLabel: '브랜드 구매력 / 브랜드 구매력 365일',
         quadrants: {
             highHigh: {
                 label: '최우수 (Optimal)',
-                summary: '구조도 좋고 최근 브랜드 구매 전환력도 함께 잘 작동하고 있어요.',
+                summary: '구조도 좋고 최근 브랜드 구매력도 함께 잘 작동하고 있어요.',
                 tone: 'mint'
             },
             highLow: {
                 label: '실행력 저하 (Execution Drop)',
-                summary: '구조는 좋은데 최근 운영 난조로 브랜드 구매 전환력이 약해졌어요.',
+                summary: '구조는 좋은데 최근 운영 난조로 브랜드 구매력이 약해졌어요.',
                 tone: 'amber'
             },
             lowHigh: {
                 label: '단기 펌핑 (Illusion)',
-                summary: '단기 브랜드 구매 전환력은 높지만 구조 리스크 점검이 필요해요.',
+                summary: '단기 브랜드 구매력은 높지만 구조 리스크 점검이 필요해요.',
                 tone: 'orange'
             },
             lowLow: {
                 label: '전면 개선 필요 (Rebuild)',
-                summary: '구조와 최근 브랜드 구매 전환력이 모두 약해 기초부터 다시 봐야 해요.',
+                summary: '구조와 최근 브랜드 구매력이 모두 약해 기초부터 다시 봐야 해요.',
                 tone: 'rose'
             }
         }
     },
     revenue: {
-        title: 'Revenue vs. 브랜드 구매 전환력 (BII)',
-        description: '매출과 브랜드 구매 전환력을 함께 봐요. BII는 매출을 대체하지 않고, 매출의 구조적 기반을 설명해요.',
+        title: 'Revenue vs. 브랜드 구매력 (BII)',
+        description: '매출과 브랜드 구매력을 함께 봐요. BII는 매출을 대체하지 않고, 매출의 구조적 기반을 설명해요.',
         xAxisLabel: 'Revenue / Revenue 365일',
-        yAxisLabel: '브랜드 구매 전환력 / 브랜드 구매 전환력 365일',
+        yAxisLabel: '브랜드 구매력 / 브랜드 구매력 365일',
         quadrants: {
             highHigh: {
                 label: '건강한 성장 (Healthy Growth)',
-                summary: '매출과 구조 기반 브랜드 구매 전환력이 함께 올라가는 이상적인 상태예요.',
+                summary: '매출과 구조 기반 브랜드 구매력이 함께 올라가는 이상적인 상태예요.',
                 tone: 'mint'
             },
             highLow: {
                 label: '구조 리스크 (Danger Zone)',
-                summary: '매출은 버티지만 구조 기반 브랜드 구매 전환력은 약해지고 있어요.',
+                summary: '매출은 버티지만 구조 기반 브랜드 구매력은 약해지고 있어요.',
                 tone: 'rose'
             },
             lowHigh: {
                 label: '장기 개선 신호 (Hidden Momentum)',
-                summary: '매출은 정체돼 보여도 내부 브랜드 구매 전환력 기반은 좋아지고 있어요.',
+                summary: '매출은 정체돼 보여도 내부 브랜드 구매력 기반은 좋아지고 있어요.',
                 tone: 'sky'
             },
             lowLow: {
                 label: '동반 침체 (Decline)',
-                summary: '매출과 브랜드 구매 전환력이 함께 약해지고 있어 근본 점검이 필요해요.',
+                summary: '매출과 브랜드 구매력이 함께 약해지고 있어 근본 점검이 필요해요.',
                 tone: 'slate'
             }
         }
@@ -356,9 +356,9 @@ function brandGetPointSummary(type, componentKey, score) {
             expansionLadder: '첫 구매 뒤 다음 구매로 이어지는 흐름이 살아 있어요.',
             loopStability: '반복 구매 흐름이 비교적 안정적으로 유지되고 있어요.',
             roleBalance: '제품 역할이 한쪽으로 심하게 기울지 않았어요.',
-            coreInfluence: '핵심 제품이 구매 전환의 중심을 잡고 있어요.',
-            graphStrength: '제품 사이 연결이 살아 있어 구매 전환이 이어지고 있어요.',
-            returnPower: '반복 구매 힘이 구매 전환으로 이어지고 있어요.',
+            coreInfluence: '핵심 제품이 브랜드 구매력의 중심을 잡고 있어요.',
+            graphStrength: '제품 사이 연결이 살아 있어 브랜드 구매력이 이어지고 있어요.',
+            returnPower: '반복 구매 힘이 브랜드 구매력으로 이어지고 있어요.',
             hubConcentration: '허브 제품이 분산돼 있어 특정 제품 쏠림이 덜해요.'
         };
         return `좋은 점: ${label}. ${messageMap[componentKey] || '비교적 안정적으로 유지되고 있어요.'}`;
@@ -368,16 +368,16 @@ function brandGetPointSummary(type, componentKey, score) {
         return `약한 점: ${label}. 지금은 뚜렷한 약점이 크게 보이지 않아요.`;
     }
 
-    const messageMap = {
-        entryDiversity: '유입이 일부 제품에 몰려 구조가 쉽게 흔들릴 수 있어요.',
-        expansionLadder: '첫 구매 뒤 다음 구매로 이어지는 연결이 약해요.',
-        loopStability: '반복 구매가 꾸준히 굳어지지 않았어요.',
-        roleBalance: '제품 역할이 한쪽에 몰려 있어 균형이 부족해요.',
-        coreInfluence: '핵심 제품이 구매 전환을 끌어당기는 힘이 아직 약해요.',
-        graphStrength: '제품 사이 연결이 얇아 구매 전환이 길게 이어지지 않아요.',
-        returnPower: '반복 구매 힘이 약해서 구매 전환으로 충분히 이어지지 않아요.',
-        hubConcentration: '실제 구매가 소수 제품에 몰려 의존도가 높아요.'
-    };
+        const messageMap = {
+            entryDiversity: '유입이 일부 제품에 몰려 구조가 쉽게 흔들릴 수 있어요.',
+            expansionLadder: '첫 구매 뒤 다음 구매로 이어지는 연결이 약해요.',
+            loopStability: '반복 구매가 꾸준히 굳어지지 않았어요.',
+            roleBalance: '제품 역할이 한쪽에 몰려 있어 균형이 부족해요.',
+            coreInfluence: '핵심 제품이 브랜드 구매력을 끌어당기는 힘이 아직 약해요.',
+            graphStrength: '제품 사이 연결이 얇아 브랜드 구매력이 길게 이어지지 않아요.',
+            returnPower: '반복 구매 힘이 약해서 브랜드 구매력으로 충분히 이어지지 않아요.',
+            hubConcentration: '브랜드 구매력이 소수 제품에 몰려 의존도가 높아요.'
+        };
     return `약한 점: ${label}. ${messageMap[componentKey] || '보강이 필요해 보여요.'}`;
 }
 
@@ -513,7 +513,7 @@ function brandBuildTimelineModel(timeseries, healthCurrent, impactWindowDays) {
             impactRows: [],
             healthDelta: null,
             impactDelta: null,
-            note: '최근 기간 기준 구매 전환 데이터가 없어 이 비교는 아직 표시하지 않아요.'
+            note: '최근 기간 기준 브랜드 구매력 데이터가 없어 이 비교는 아직 표시하지 않아요.'
         };
     }
 
@@ -568,7 +568,7 @@ function brandBuildDailyPulseModel(rows) {
             rows: [],
             delta: null,
             interpretation: '',
-            note: '일별 실제 구매 흐름 데이터가 없어 아직 표시하지 않아요.',
+            note: '일별 브랜드 구매력 데이터가 없어 아직 표시하지 않아요.',
             helper: '이 차트는 날짜별 단일값 데이터가 있을 때 보여줘요.'
         };
     }
@@ -683,7 +683,7 @@ function brandBuildStructureMatrix(healthCurrentScore, currentImpactRow, timeser
             empty: true,
             title: BRAND_DIAGNOSTIC_META.structure.title,
             description: BRAND_DIAGNOSTIC_META.structure.description,
-            note: '선택한 기간 또는 365일 기준 브랜드 구매 전환력 데이터가 없어 이 진단은 아직 표시하지 않아요.'
+            note: '선택한 기간 또는 365일 기준 브랜드 구매력 데이터가 없어 이 진단은 아직 표시하지 않아요.'
         };
     }
 
@@ -732,7 +732,7 @@ function brandBuildRevenueMatrix(revenueTimeseries, impactTimeseries, diagnostic
             empty: true,
             title: BRAND_DIAGNOSTIC_META.revenue.title,
             description: BRAND_DIAGNOSTIC_META.revenue.description,
-            note: '매출 진단 데이터가 없어 Revenue vs. 브랜드 구매 전환력 (BII)은 아직 표시하지 않아요.'
+            note: '매출 진단 데이터가 없어 Revenue vs. 브랜드 구매력 (BII)은 아직 표시하지 않아요.'
         };
     }
 
@@ -757,7 +757,7 @@ function brandBuildRevenueMatrix(revenueTimeseries, impactTimeseries, diagnostic
             empty: true,
             title: BRAND_DIAGNOSTIC_META.revenue.title,
             description: BRAND_DIAGNOSTIC_META.revenue.description,
-            note: '같은 날짜 기준 매출과 브랜드 구매 전환력 데이터를 함께 읽을 수 없어 Revenue vs. 브랜드 구매 전환력 (BII)은 아직 표시하지 않아요.'
+            note: '같은 날짜 기준 매출과 브랜드 구매력 데이터를 함께 읽을 수 없어 Revenue vs. 브랜드 구매력 (BII)은 아직 표시하지 않아요.'
         };
     }
 
@@ -985,8 +985,8 @@ function buildBrandDashboardModel() {
             const reasonText = {
                 hub: '여러 흐름을 받아 주는 수요 허브 역할을 해요.',
                 graph: '제품 사이 연결 폭을 넓히는 핵심 접속점이에요.',
-                demand: '기대 수요량이 커서 구매 전환이 넓게 퍼져요.',
-                core: '유입과 확장 강도가 함께 높아 구매 전환의 중심을 만듭니다.'
+                demand: '기대 수요량이 커서 브랜드 구매력이 넓게 퍼져요.',
+                core: '유입과 확장 강도가 함께 높아 브랜드 구매력의 중심을 만듭니다.'
             }[reasonKey];
             return {
                 ...row,
@@ -1010,18 +1010,18 @@ function buildBrandDashboardModel() {
         ? brandGetComponentInterpretation('health', weakestHealthKey, BRAND_COMPONENT_META[strongestHealthKey].label, BRAND_COMPONENT_META[weakestHealthKey].label)
         : '유입, 확장, 반복 흐름이 비교적 고르게 버티고 있어요.';
     const impactInterpretation = componentScores.hubConcentration >= 70 && componentScores.coreInfluence >= 60
-        ? '구매 전환은 소수 핵심 제품이 끌고 있고, 그만큼 특정 제품 의존도도 높아요.'
+        ? '브랜드 구매력은 소수 핵심 제품이 끌고 있고, 그만큼 특정 제품 의존도도 높아요.'
         : componentScores[weakestImpactKey] < 50
             ? brandGetComponentInterpretation('impact', weakestImpactKey, BRAND_COMPONENT_META[strongestImpactKey].label, BRAND_COMPONENT_META[weakestImpactKey].label)
-            : '핵심 제품과 제품 연결이 살아 있어 구조가 구매 전환으로 이어지고 있어요.';
+            : '핵심 제품과 제품 연결이 살아 있어 구조가 브랜드 구매력으로 이어지고 있어요.';
     const healthPrimaryReason = componentScores[weakestHealthKey] < 55
         ? brandGetPrimaryReason('health', weakestHealthKey)
         : `주된 원인: ${BRAND_COMPONENT_META[strongestHealthKey].label}. 구조의 약한 고리가 두드러지지 않아요.`;
     const impactPrimaryReason = componentScores.hubConcentration >= 70 && componentScores.coreInfluence >= 60
-        ? '주된 원인: 허브 집중도. 구매 전환이 소수 핵심 제품에 많이 몰려 있어요.'
+        ? '주된 원인: 허브 집중도. 브랜드 구매력이 소수 핵심 제품에 많이 몰려 있어요.'
         : componentScores[weakestImpactKey] < 50
             ? brandGetPrimaryReason('impact', weakestImpactKey)
-            : `주된 원인: ${BRAND_COMPONENT_META[strongestImpactKey].label}. 핵심 연결축이 구매 전환을 받고 있어요.`;
+            : `주된 원인: ${BRAND_COMPONENT_META[strongestImpactKey].label}. 핵심 연결축이 브랜드 구매력을 받고 있어요.`;
     const healthStrengthPoint = brandGetPointSummary('strength', strongestHealthKey, componentScores[strongestHealthKey]);
     const healthWeakPoint = brandGetPointSummary('weakness', weakestHealthKey, componentScores[weakestHealthKey]);
     const impactStrengthPoint = brandGetPointSummary('strength', strongestImpactKey, componentScores[strongestImpactKey]);
@@ -1209,17 +1209,6 @@ function renderBrandDiagnosticMatrixCard(matrix) {
     const currentBottom = brandScaleMatrixPoint(matrix.currentPoint.y, matrix.yRange);
     const previousLeft = matrix.previousPoint ? brandScaleMatrixPoint(matrix.previousPoint.x, matrix.xRange) : currentLeft;
     const previousBottom = matrix.previousPoint ? brandScaleMatrixPoint(matrix.previousPoint.y, matrix.yRange) : currentBottom;
-    const deltaX = currentLeft - previousLeft;
-    const deltaY = previousBottom - currentBottom;
-    const arrowLength = Math.sqrt((deltaX ** 2) + (deltaY ** 2));
-    const arrowAngle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
-    const vectorLength = Math.max(Math.sqrt((deltaX ** 2) + ((currentBottom - previousBottom) ** 2)), 0.0001);
-    const unitX = deltaX / vectorLength;
-    const unitY = (currentBottom - previousBottom) / vectorLength;
-    const previousLabelOffsetX = brandClamp(-unitX * 18, -24, 24);
-    const previousLabelOffsetY = brandClamp(unitY * 18 + 18, 12, 28);
-    const currentLabelOffsetX = brandClamp(unitX * 18, -24, 24);
-    const currentLabelOffsetY = brandClamp(-unitY * 18 - 22, -30, -14);
     const stageToneClass = `brand-matrix-stage-${escapeHtml(matrix.stage.tone)}`;
 
     return `
@@ -1241,17 +1230,19 @@ function renderBrandDiagnosticMatrixCard(matrix) {
                     <div class="brand-matrix-cell brand-matrix-cell-q2"><strong>${escapeHtml(matrix.kind === 'structure' ? '최우수' : '건강한 성장')}</strong></div>
                     <div class="brand-matrix-cell brand-matrix-cell-q3"><strong>${escapeHtml(matrix.kind === 'structure' ? '전면 개선 필요' : '동반 침체')}</strong></div>
                     <div class="brand-matrix-cell brand-matrix-cell-q4"><strong>${escapeHtml(matrix.kind === 'structure' ? '실행력 저하' : '구조 리스크')}</strong></div>
-                    <div class="brand-matrix-overlay">
+                    <div
+                        class="brand-matrix-overlay"
+                        data-current-left="${currentLeft}"
+                        data-current-bottom="${currentBottom}"
+                        ${matrix.previousPoint ? `data-previous-left="${previousLeft}" data-previous-bottom="${previousBottom}"` : ''}
+                    >
                         ${matrix.previousPoint ? `
-                            <div
-                                class="brand-matrix-arrow brand-matrix-arrow-animated"
-                                style="left:${previousLeft}%; bottom:${previousBottom}%; width:${arrowLength}%; --brand-matrix-angle:${arrowAngle}deg;"
-                            ></div>
-                            <span class="brand-matrix-point brand-matrix-point-prev" style="left:${previousLeft}%; bottom:${previousBottom}%;" title="4주 전"></span>
-                            <span class="brand-matrix-point-label brand-matrix-point-label-prev" style="left:${previousLeft}%; bottom:${previousBottom}%; --brand-point-label-x:${previousLabelOffsetX}px; --brand-point-label-y:${previousLabelOffsetY}px;">4주 전</span>
+                            <div class="brand-matrix-arrow brand-matrix-arrow-animated"></div>
+                            <span class="brand-matrix-point brand-matrix-point-prev" title="4주 전"></span>
+                            <span class="brand-matrix-point-label brand-matrix-point-label-prev">4주 전</span>
                         ` : ''}
-                        <span class="brand-matrix-point brand-matrix-point-current" style="left:${currentLeft}%; bottom:${currentBottom}%;" title="현재"></span>
-                        <span class="brand-matrix-point-label brand-matrix-point-label-current" style="left:${currentLeft}%; bottom:${currentBottom}%; --brand-point-label-x:${currentLabelOffsetX}px; --brand-point-label-y:${currentLabelOffsetY}px;">현재</span>
+                        <span class="brand-matrix-point brand-matrix-point-current" title="현재"></span>
+                        <span class="brand-matrix-point-label brand-matrix-point-label-current">현재</span>
                     </div>
                 </div>
                 <div class="brand-matrix-scale">
@@ -1270,7 +1261,7 @@ function renderBrandDiagnosticSection(model) {
             <div class="brand-section-head">
                 <div>
                     <h2>지금 브랜드 상태를 진단하면 어디에 있나?</h2>
-                    <p>BHI와 브랜드 구매 전환력, 그리고 매출을 함께 보면 지금 상태를 더 직관적으로 읽을 수 있어요.</p>
+                    <p>BHI와 브랜드 구매력, 그리고 매출을 함께 보면 지금 상태를 더 직관적으로 읽을 수 있어요.</p>
                 </div>
             </div>
             <div class="brand-matrix-grid-wrap">
@@ -1286,7 +1277,7 @@ function renderBrandPulsePanel(pulse) {
         return `
             <article class="brand-trend-panel brand-trend-panel-main">
                 <div class="brand-mini-chart-head">
-                    <h3>${brandRenderMetricName('일별 실제 구매 흐름', 'Daily Pulse')}</h3>
+                    <h3>${brandRenderMetricName('일별 브랜드 구매력 흐름', 'Daily Pulse')}</h3>
                     <span>데이터 없음</span>
                 </div>
                 <p class="brand-panel-compare"><strong>이 차트는 이런 때 봐요.</strong> 오늘이나 어제 흐름이 갑자기 좋아졌는지, 꺾였는지 바로 읽을 때 좋아요.</p>
@@ -1301,7 +1292,7 @@ function renderBrandPulsePanel(pulse) {
     return `
         <article class="brand-trend-panel brand-trend-panel-main">
             <div class="brand-mini-chart-head">
-                <h3>${brandRenderMetricName('일별 실제 구매 흐름', 'Daily Pulse')}</h3>
+                <h3>${brandRenderMetricName('일별 브랜드 구매력 흐름', 'Daily Pulse')}</h3>
                 <span>${escapeHtml(brandFormatPulseDelta(pulse.delta))}</span>
             </div>
             <p class="brand-panel-compare"><strong>이 차트는 이런 때 봐요.</strong> 오늘이나 어제 흐름이 갑자기 좋아졌는지, 꺾였는지 바로 읽을 때 좋아요.</p>
@@ -1316,14 +1307,14 @@ function renderBrandPulsePanel(pulse) {
 
 function renderBrandTimelineSupportPanel(timeline) {
     const selectedWindowLabel = `${formatNumber(timeline.selectedWindowDays || 30, 0)}일`;
-    const selectedWindowGuide = BRAND_TIMELINE_WINDOW_GUIDE[timeline.selectedWindowDays] || '선택한 기간 기준으로 구매 전환을 해석해요.';
+    const selectedWindowGuide = BRAND_TIMELINE_WINDOW_GUIDE[timeline.selectedWindowDays] || '선택한 기간 기준으로 브랜드 구매력을 해석해요.';
     if (!timeline.availableWindows.length) {
         return `
             <article class="brand-trend-panel brand-trend-panel-secondary">
                 <div class="brand-mini-chart-head brand-mini-chart-head-stack">
                     <div>
-                        <h3>최근 기간 기준으로 보면 구매 전환은 어떤가?</h3>
-                        <p>최근 7일, 30일처럼 기간을 묶어 실제 구매 전환 상태를 봐요.</p>
+                        <h3>최근 기간 기준으로 보면 브랜드 구매력은 어떤가?</h3>
+                        <p>최근 7일, 30일처럼 기간을 묶어 브랜드 구매력 상태를 봐요.</p>
                     </div>
                 </div>
                 <div class="brand-empty-state">
@@ -1337,18 +1328,18 @@ function renderBrandTimelineSupportPanel(timeline) {
         <article class="brand-trend-panel brand-trend-panel-secondary">
             <div class="brand-mini-chart-head brand-mini-chart-head-stack">
                 <div>
-                    <h3>최근 기간 기준으로 보면 구매 전환은 어떤가?</h3>
-                    <p>최근 ${escapeHtml(selectedWindowLabel)}을 묶어, 구조가 실제 구매 전환으로 얼마나 이어지는지 봐요.</p>
+                    <h3>최근 기간 기준으로 보면 브랜드 구매력은 어떤가?</h3>
+                    <p>최근 ${escapeHtml(selectedWindowLabel)}을 묶어, 구조가 브랜드 구매력으로 얼마나 나타나는지 봐요.</p>
                 </div>
             </div>
-            <p class="brand-panel-compare"><strong>이 차트는 이런 때 봐요.</strong> 최근 7일, 30일처럼 기간을 묶어 구조 상태가 구매 전환으로 이어지고 있는지 볼 때 좋아요.</p>
+            <p class="brand-panel-compare"><strong>이 차트는 이런 때 봐요.</strong> 최근 7일, 30일처럼 기간을 묶어 구조 상태가 브랜드 구매력으로 나타나고 있는지 볼 때 좋아요.</p>
             <div class="brand-explainer-card">
-                <p><strong>BII</strong>는 이 브랜드 구조가 최근 실제 구매 전환으로 얼마나 이어지고 있는지 보는 값이에요.</p>
+                <p><strong>BII</strong>는 이 브랜드 구조가 최근 브랜드 구매력으로 얼마나 나타나고 있는지 보는 값이에요.</p>
                 <p>Daily Pulse가 하루 흐름이라면, BII는 최근 ${escapeHtml(selectedWindowLabel)}처럼 기간을 묶어 본 구조 상태예요. 각 점은 하루 값이 아니라, 그날까지의 최근 ${escapeHtml(selectedWindowLabel)}을 묶어 계산한 값이에요.</p>
             </div>
             <p class="brand-timeline-context"><strong>${escapeHtml(selectedWindowLabel)} 기준은 이렇게 보면 돼요.</strong> ${escapeHtml(selectedWindowGuide)}</p>
             <div class="brand-mini-chart-head">
-                <h3>${brandRenderMetricName(`최근 ${selectedWindowLabel} 기준 구매 전환`, 'BII')}</h3>
+                <h3>${brandRenderMetricName(`최근 ${selectedWindowLabel} 기준 브랜드 구매력`, 'BII')}</h3>
                 <span>${escapeHtml(brandFormatDelta(timeline.impactDelta))}</span>
             </div>
             <div class="brand-mini-chart-wrap">
@@ -1364,8 +1355,8 @@ function renderBrandTimelineSection(model) {
         <section class="card brand-timeline-card">
             <div class="brand-section-head">
                 <div>
-                    <h2>요즘 실제 구매 흐름은 어떤가?</h2>
-                    <p>하루 단위 흐름은 메인 차트에서 보고, 최근 기간 기준 구매 전환은 아래에서 보조로 확인해요.</p>
+                    <h2>요즘 브랜드 구매력 흐름은 어떤가?</h2>
+                    <p>하루 단위 흐름은 메인 차트에서 보고, 최근 기간 기준 브랜드 구매력은 아래에서 보조로 확인해요.</p>
                 </div>
             </div>
             <div class="brand-trend-stack">
@@ -1390,7 +1381,7 @@ function renderBrandDashboard() {
     if (topBarActions) {
         topBarActions.innerHTML = `
             <div class="brand-topbar-window">
-                <span class="brand-topbar-window-label">구매 전환 기준 기간</span>
+                <span class="brand-topbar-window-label">브랜드 구매력 기준 기간</span>
                 <div class="brand-timeline-toggle brand-window-toggle">
                     ${BRAND_DIAGNOSTIC_WINDOW_ORDER.map((windowDays) => `
                         <button
@@ -1409,7 +1400,7 @@ function renderBrandDashboard() {
         <div class="brand-dashboard animate-fade-in">
             <section class="brand-state-grid">
                 ${renderBrandStateCard({ label: '이 브랜드 구조는 건강한가', abbr: 'BHI' }, '유입, 확장, 반복 구조가 균형 있게 버티는지 보는 값이에요.', model.healthCurrentScore, model.healthDelta, model.healthInterpretation, model.healthPrimaryReason, model.healthStrengthPoint, model.healthWeakPoint, '신뢰도', healthMeta, 'health', 'brand-health-radar-inline', healthDetailSection)}
-                ${renderBrandStateCard({ label: '이 브랜드 구조는 실제 구매로 이어지고 있나', abbr: 'BII' }, `최근 ${formatNumber(model.impactWindowDays, 0)}일 기준으로, 이 브랜드 구조가 실제 구매 전환으로 얼마나 이어지고 있는지 보는 값이에요.`, model.impactCurrentScore, model.impactDelta, model.impactInterpretation, model.impactPrimaryReason, model.impactStrengthPoint, model.impactWeakPoint, '기준 기간', impactMeta, 'impact', 'brand-impact-radar-inline', impactDetailSection)}
+                ${renderBrandStateCard({ label: '이 브랜드 구조는 브랜드 구매력으로 나타나고 있나', abbr: 'BII' }, `최근 ${formatNumber(model.impactWindowDays, 0)}일 기준으로, 이 브랜드 구조가 브랜드 구매력으로 얼마나 나타나고 있는지 보는 값이에요.`, model.impactCurrentScore, model.impactDelta, model.impactInterpretation, model.impactPrimaryReason, model.impactStrengthPoint, model.impactWeakPoint, '기준 기간', impactMeta, 'impact', 'brand-impact-radar-inline', impactDetailSection)}
             </section>
 
             ${renderBrandDiagnosticSection(model)}
@@ -1420,7 +1411,7 @@ function renderBrandDashboard() {
                 <div class="brand-section-head">
                     <div>
                         <h2>제품별 기여를 더 자세히 보려면</h2>
-                        <p>제품 단위 구조 기여, 구매 전환 기여, 수요 흐름과 역할 맵은 제품 분석 화면에서 이어서 볼 수 있어요.</p>
+                        <p>제품 단위 구조 기여, 브랜드 구매력 기여, 수요 흐름과 역할 맵은 제품 분석 화면에서 이어서 볼 수 있어요.</p>
                     </div>
                     <a class="btn-primary brand-next-cta-link" href="../products/">제품 분석으로 이동</a>
                 </div>
@@ -1432,6 +1423,8 @@ function renderBrandDashboard() {
     renderBrandStateRadarCharts(model);
     renderBrandRoleMapChart(model);
     renderBrandTimelineCharts(model);
+    syncBrandMatrixOverlays();
+    ensureBrandMatrixOverlayResizeBinding();
     applyFriendlyUi(container);
 }
 
@@ -1502,6 +1495,85 @@ function renderBrandStateRadarCharts(model) {
             'impact'
         );
     }
+}
+
+function syncBrandMatrixOverlays() {
+    document.querySelectorAll('.brand-matrix-grid').forEach((grid) => {
+        const overlay = grid.querySelector('.brand-matrix-overlay');
+        if (!overlay) return;
+
+        const width = grid.clientWidth;
+        const height = grid.clientHeight;
+        if (!width || !height) return;
+
+        const currentLeftPct = toNumber(overlay.dataset.currentLeft, NaN);
+        const currentBottomPct = toNumber(overlay.dataset.currentBottom, NaN);
+        if (!Number.isFinite(currentLeftPct) || !Number.isFinite(currentBottomPct)) return;
+
+        const currentX = (currentLeftPct / 100) * width;
+        const currentY = (currentBottomPct / 100) * height;
+        const previousLeftPct = toNumber(overlay.dataset.previousLeft, NaN);
+        const previousBottomPct = toNumber(overlay.dataset.previousBottom, NaN);
+        const hasPrevious = Number.isFinite(previousLeftPct) && Number.isFinite(previousBottomPct);
+        const previousX = hasPrevious ? (previousLeftPct / 100) * width : currentX;
+        const previousY = hasPrevious ? (previousBottomPct / 100) * height : currentY;
+
+        const currentPoint = overlay.querySelector('.brand-matrix-point-current');
+        const currentLabel = overlay.querySelector('.brand-matrix-point-label-current');
+        const previousPoint = overlay.querySelector('.brand-matrix-point-prev');
+        const previousLabel = overlay.querySelector('.brand-matrix-point-label-prev');
+        const arrow = overlay.querySelector('.brand-matrix-arrow');
+
+        if (currentPoint) {
+            currentPoint.style.left = `${currentX}px`;
+            currentPoint.style.bottom = `${currentY}px`;
+        }
+
+        if (hasPrevious && previousPoint) {
+            previousPoint.style.left = `${previousX}px`;
+            previousPoint.style.bottom = `${previousY}px`;
+        }
+
+        const deltaXPx = currentX - previousX;
+        const deltaYPx = currentY - previousY;
+        const vectorLength = Math.max(Math.sqrt((deltaXPx ** 2) + (deltaYPx ** 2)), 0.0001);
+        const unitX = deltaXPx / vectorLength;
+        const unitY = deltaYPx / vectorLength;
+        const previousLabelOffsetX = brandClamp(-unitX * 18, -24, 24);
+        const previousLabelOffsetY = brandClamp(unitY * 18 + 18, 12, 28);
+        const currentLabelOffsetX = brandClamp(unitX * 18, -24, 24);
+        const currentLabelOffsetY = brandClamp(-unitY * 18 - 22, -30, -14);
+
+        if (currentLabel) {
+            currentLabel.style.left = `${currentX}px`;
+            currentLabel.style.bottom = `${currentY}px`;
+            currentLabel.style.setProperty('--brand-point-label-x', `${currentLabelOffsetX}px`);
+            currentLabel.style.setProperty('--brand-point-label-y', `${currentLabelOffsetY}px`);
+        }
+
+        if (hasPrevious && previousLabel) {
+            previousLabel.style.left = `${previousX}px`;
+            previousLabel.style.bottom = `${previousY}px`;
+            previousLabel.style.setProperty('--brand-point-label-x', `${previousLabelOffsetX}px`);
+            previousLabel.style.setProperty('--brand-point-label-y', `${previousLabelOffsetY}px`);
+        }
+
+        if (hasPrevious && arrow) {
+            const arrowAngle = Math.atan2(-deltaYPx, deltaXPx) * (180 / Math.PI);
+            const arrowLength = Math.sqrt((deltaXPx ** 2) + (deltaYPx ** 2));
+            arrow.style.left = `${previousX}px`;
+            arrow.style.bottom = `${previousY}px`;
+            arrow.style.width = `${arrowLength}px`;
+            arrow.style.setProperty('--brand-matrix-angle', `${arrowAngle}deg`);
+        }
+    });
+}
+
+function ensureBrandMatrixOverlayResizeBinding() {
+    if (AppState.helpers.brandMatrixResizeBound) return;
+    const sync = () => window.requestAnimationFrame(syncBrandMatrixOverlays);
+    AppState.helpers.brandMatrixResizeBound = sync;
+    window.addEventListener('resize', sync);
 }
 
 function renderBrandRoleMapChart(model) {
@@ -1628,7 +1700,7 @@ function renderBrandTimelineCharts(model) {
             data: {
                 labels: model.dailyPulse.rows.map((row) => String(row.as_of_date || '').slice(5)),
                 datasets: [{
-                    label: '일별 실제 구매 흐름 (Daily Pulse)',
+                    label: '일별 브랜드 구매력 흐름 (Daily Pulse)',
                     data: pulseValues,
                     borderColor: '#2563eb',
                     backgroundColor: 'rgba(37, 99, 235, 0.12)',
@@ -1675,7 +1747,7 @@ function renderBrandTimelineCharts(model) {
         data: {
             labels: model.timeline.impactRows.map((row) => String(row.as_of_date || '').slice(5)),
             datasets: [{
-                label: '최근 기간 기준 구매 전환 (BII)',
+                label: '최근 기간 기준 브랜드 구매력 (BII)',
                 data: impactValues,
                 borderColor: '#d97706',
                 backgroundColor: 'rgba(217, 119, 6, 0.12)',
