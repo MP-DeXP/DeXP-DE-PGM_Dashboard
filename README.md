@@ -43,14 +43,10 @@
 - `anchor_transition`
 - `cart_anchor`
 - `cart_anchor_detail`
-- `aa_cohort_journey`
-- `aa_transition_path`
-- `ca_profile`
 - `bii_window`
 - `brand_impact_timeseries` (선택)
 - `brand_impact_daily_pulse` (선택)
 - `brand_revenue_timeseries` (선택)
-- `apf_action_rules` (선택)
 - `product_group_map` (선택)
 
 ## 딥링크 포커스
