@@ -54,6 +54,7 @@ Brand Score가 브랜드의 구조를 본다면, BII는 그 구조가 최근 운
 - 구현 위치: `03_PGM_BrandHealthImpact.ipynb`
 - 보조 구현 위치: `03a_PGM_BrandImpactDailyPulse.ipynb`
 - 보조 구현 위치: `03b_PGM_BrandRevenueTimeseries.ipynb`
+- 보조 구현 위치: `03c_PGM_BrandPurchaseDrivers.ipynb`
 - 범위: `candidate`
 - 윈도우: trailing fixed windows `1/7/30/90/365d`
 - 기본 시계열: `analysis_end_date` 기준 최근 90일, 일단위
@@ -69,6 +70,8 @@ Brand Score가 브랜드의 구조를 본다면, BII는 그 구조가 최근 운
   `as_of_date x window_days` long format 시계열
 - `brand_impact_daily_pulse.csv`
   날짜당 1행의 단일 pulse 출력
+- `brand_purchase_driver_timeseries.csv`
+  Hero / Drivers 섹션용 long format driver + momentum 출력
 - `brand_revenue_timeseries.csv`
   `as_of_date x window_days` long format rolling revenue 출력
 
@@ -123,6 +126,32 @@ Brand Score가 브랜드의 구조를 본다면, BII는 그 구조가 최근 운
 - `period_end`
 - `currency`
 - `scope`
+
+`brand_purchase_driver_timeseries.csv`의 주요 컬럼은 아래와 같다.
+
+- `as_of_date`
+- `window_days`
+- `bii_t`
+- `bii_365`
+- `momentum_t`
+- `active_customers_t`
+- `repeat_rate_t`
+- `attach_rate_t`
+- `avg_clv_t`
+- `customers_contribution`
+- `repeat_contribution`
+- `attach_contribution`
+- `clv_contribution`
+- `period_start`
+- `period_end`
+- `baseline_days`
+- `stage`
+- `scope`
+- `momentum_delta_pct`
+- `momentum_state`
+- `top_driver_1`
+- `top_driver_2`
+- `hero_summary`
 
 ## 시계열 해석 제약
 - 현재 구현은 `historical BHI+BII full recompute`가 아니다.
@@ -182,6 +211,42 @@ One-liner:
 - `Momentum`은 직전 시점 대비 증감률이 아니라 `BII_365` 대비 상대 강도다.
 - 따라서 `Momentum > 1.0`은 최근 구매력이 장기 기준보다 강하다는 뜻이지, 반드시 어제보다 상승했다는 뜻은 아니다.
 - `Momentum`은 별도 CSV 산출물이 아니라 `brand_impact_windows.csv`, `brand_impact_timeseries.csv`의 `BII_t`와 `BII_365`로 계산하는 해석 레이어다.
+
+## Brand Purchase Drivers
+`brand_purchase_driver_timeseries.csv`는 Hero와 Drivers 섹션을 동시에 지원하는 단일 source다.
+
+정의:
+
+- `window_days in {7,30,90,365}`
+- `Momentum_t = BII_t / BII_365`
+- contribution은 `Momentum_t - 1`을 설명하는 driver decomposition이다
+
+Driver는 아래 4개로 고정한다.
+
+- `active_customers`
+- `repeat_rate`
+- `attach_rate`
+- `avg_clv`
+
+기여도 계산은 heuristic이 아니라 같은 `as_of_date`의 `365d` row를 baseline으로 하는 Shapley decomposition을 사용한다.
+
+평가 함수:
+
+- `depth = clamp(0.7 * repeat_rate + 0.3 * attach_rate, 0, 1)`
+- `clv_norm = sqrt(avg_clv / avg_clv_baseline)`
+- `customer_strength_norm = sqrt((active_customers * depth) / active_customers_baseline)`
+- `bii_cf = bhi * clv_norm * customer_strength_norm`
+- `momentum_cf = bii_cf / bii_365`
+
+따라서 각 row에서 아래가 성립해야 한다.
+
+- `customers_contribution + repeat_contribution + attach_contribution + clv_contribution = momentum_t - 1`
+
+Hero 파생 컬럼은 아래 목적을 가진다.
+
+- `momentum_state`: `강화 중 / 안정 / 약화 중 / 회복 중`
+- `top_driver_1`, `top_driver_2`: Hero의 주요 원인 2개
+- `hero_summary`: 상태를 한 줄로 설명하는 문장
 
 ## 해석 가이드
 - `BHI` 높고 `BII`도 높음: 구조와 최근 브랜드 구매력이 함께 양호

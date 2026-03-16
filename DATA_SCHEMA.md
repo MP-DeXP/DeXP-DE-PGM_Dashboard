@@ -214,7 +214,47 @@
 - `Daily Pulse`는 날짜당 1행의 단일값을 전제로 합니다.
 - 이 파일이 없으면 브랜드 구조 페이지의 메인 일별 흐름 차트는 빈 상태로 표시되고, 보조 `brand_impact_timeseries` 차트는 계속 렌더링됩니다.
 
-## 13) `brand_revenue_timeseries` (신규, 선택)
+## 13) `brand_purchase_driver_timeseries` (신규, 선택)
+용도: 브랜드 구조 페이지 - Hero + Brand Purchase Drivers
+
+권장 파일명:
+- `brand_purchase_driver_timeseries.csv`
+- `_insight_brand_purchase_driver_timeseries.csv`
+
+필수 컬럼:
+- `as_of_date`
+- `window_days`
+- `bii_t`
+- `bii_365`
+- `momentum_t`
+- `active_customers_t`
+- `repeat_rate_t`
+- `attach_rate_t`
+- `avg_clv_t`
+- `customers_contribution`
+- `repeat_contribution`
+- `attach_contribution`
+- `clv_contribution`
+
+권장 컬럼:
+- `period_start`
+- `period_end`
+- `baseline_days`
+- `stage`
+- `scope`
+- `momentum_delta_pct`
+- `momentum_state`
+- `top_driver_1`
+- `top_driver_2`
+- `hero_summary`
+
+비고:
+- Hero와 Drivers 섹션을 함께 지원하는 단일 source입니다.
+- `window_days`는 `7`, `30`, `90`, `365`를 권장합니다.
+- `customers_contribution + repeat_contribution + attach_contribution + clv_contribution = momentum_t - 1` 관계를 기대합니다.
+- 이 파일이 없으면 브랜드 구조 페이지의 Hero는 축소 버전으로 표시되고, Drivers는 빈 상태 안내만 렌더링됩니다.
+
+## 14) `brand_revenue_timeseries` (신규, 선택)
 용도: 브랜드 구조 페이지 - Revenue vs. BII 진단 매트릭스
 
 권장 파일명:
@@ -239,7 +279,7 @@
 
 ---
 
-## 14) `product_group_map` (신규, 선택)
+## 15) `product_group_map` (신규, 선택)
 용도: 동일 제품군 수동 그룹 매핑/해제(전 페이지 집계 반영)
 
 권장 파일명:

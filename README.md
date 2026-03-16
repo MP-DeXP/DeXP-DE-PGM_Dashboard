@@ -47,6 +47,7 @@
 - `brand_impact_timeseries` (선택)
 - `brand_impact_daily_pulse` (선택)
 - `brand_revenue_timeseries` (선택)
+- `brand_purchase_driver_timeseries` (선택)
 - `product_group_map` (선택)
 
 ## 딥링크 포커스
@@ -57,5 +58,7 @@
 - CSV 파일명/컬럼명/코드 내부 데이터 키는 기존 호환성을 유지합니다.
 
 ## 브랜드 페이지 메모
+- 브랜드 페이지 상단은 `Hero = 상태`, `Brand Purchase Drivers = 원인` 구조로 구성합니다.
+- `brand_purchase_driver_timeseries`가 있으면 Hero/Drivers를 모두 렌더하고, 없으면 Hero는 축소 버전으로 표시하며 Drivers는 빈 상태 설명만 보여 줍니다.
 - 브랜드 페이지에서는 현재 브랜드 상태 진단에 집중하기 위해 제품별 기여 목록, 수요 흐름 스냅샷, 수요 구조 맵 UI를 메인 화면에서 숨기고 `apps/products/`로 이동하도록 구성합니다.
 - `brand.js` 안의 제품별 기여/흐름/구조 맵 계산 및 렌더링 코드는 향후 재활성화 가능성을 위해 유지합니다.

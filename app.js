@@ -94,6 +94,11 @@ const REQUIRED_FILES = {
         filename: '_insight_brand_revenue_timeseries.csv',
         aliases: ['brand_revenue_timeseries.csv']
     },
+    brandPurchaseDriverTimeseries: {
+        key: 'brand_purchase_driver_timeseries',
+        filename: '_insight_brand_purchase_driver_timeseries.csv',
+        aliases: ['brand_purchase_driver_timeseries.csv']
+    },
     apfActionRules: {
         key: 'apf_action_rules',
         filename: '_insight_pgm_action_rules.csv',
@@ -127,6 +132,7 @@ const AppState = {
         brandImpactTimeseries: [],
         brandImpactDailyPulse: [],
         brandRevenueTimeseries: [],
+        brandPurchaseDriverTimeseries: [],
         apfActionRules: [],
         productGroupMap: []
     },
@@ -149,6 +155,7 @@ const AppState = {
         brandImpactTimeseries: [],
         brandImpactDailyPulse: [],
         brandRevenueTimeseries: [],
+        brandPurchaseDriverTimeseries: [],
         apfActionRules: [],
         productGroupMap: []
     },
@@ -1855,6 +1862,7 @@ function rebuildDerivedData() {
     AppState.data.brandImpactTimeseries = transformBrandImpactTimeseriesRows(raw.brandImpactTimeseries || []);
     AppState.data.brandImpactDailyPulse = transformBrandImpactDailyPulseRows(raw.brandImpactDailyPulse || []);
     AppState.data.brandRevenueTimeseries = transformBrandRevenueTimeseriesRows(raw.brandRevenueTimeseries || []);
+    AppState.data.brandPurchaseDriverTimeseries = transformBrandPurchaseDriverTimeseriesRows(raw.brandPurchaseDriverTimeseries || []);
     AppState.data.apfActionRules = raw.apfActionRules || [];
     AppState.data.productGroupMap = sanitizeProductGroupMapRows(raw.productGroupMap || []);
 
@@ -2004,6 +2012,44 @@ const transformBrandRevenueTimeseriesRows = (rows) => {
         });
 };
 
+const transformBrandPurchaseDriverTimeseriesRows = (rows) => {
+    return normalizeCsvRows(rows).map((row) => {
+        const windowKey = String(withFallback(row.window_key, '')).trim();
+        const matched = windowKey.match(/(\d+)/);
+        const windowDays = asNullableNumber(firstDefinedValue(row.window_days, matched ? matched[1] : null));
+        return {
+            as_of_date: withFallback(firstDefinedValue(row.as_of_date, row.period_end, row.analysis_end_date), ''),
+            period_start: withFallback(row.period_start, ''),
+            period_end: withFallback(row.period_end, ''),
+            baseline_days: asNullableNumber(row.baseline_days),
+            window_key: windowKey,
+            window_days: windowDays,
+            bii_t: asNullableNumber(firstDefinedValue(row.bii_t, row.bii)),
+            bii_365: asNullableNumber(firstDefinedValue(row.bii_365, row.bii_365d)),
+            momentum_t: asNullableNumber(row.momentum_t),
+            active_customers_t: asNullableNumber(row.active_customers_t),
+            repeat_rate_t: asNullableNumber(row.repeat_rate_t),
+            attach_rate_t: asNullableNumber(row.attach_rate_t),
+            avg_clv_t: asNullableNumber(row.avg_clv_t),
+            customers_contribution: asNullableNumber(row.customers_contribution),
+            repeat_contribution: asNullableNumber(row.repeat_contribution),
+            attach_contribution: asNullableNumber(row.attach_contribution),
+            clv_contribution: asNullableNumber(row.clv_contribution),
+            momentum_delta_pct: asNullableNumber(row.momentum_delta_pct),
+            momentum_state: withFallback(row.momentum_state, ''),
+            top_driver_1: withFallback(row.top_driver_1, ''),
+            top_driver_2: withFallback(row.top_driver_2, ''),
+            hero_summary: withFallback(row.hero_summary, ''),
+            stage: withFallback(row.stage, '-'),
+            scope: withFallback(row.scope, '-')
+        };
+    }).filter((row) => row.as_of_date && row.window_days !== null && (row.momentum_t !== null || row.bii_t !== null))
+        .sort((a, b) => {
+            if (a.as_of_date === b.as_of_date) return toNumber(a.window_days, 0) - toNumber(b.window_days, 0);
+            return a.as_of_date < b.as_of_date ? -1 : 1;
+        });
+};
+
 const getUploadFileConfig = (filename) => {
     const lowerName = String(filename || '').toLowerCase();
     const configs = Object.values(REQUIRED_FILES);
@@ -2045,6 +2091,9 @@ const preprocessUploadRows = (config, filename, rows) => {
     }
     if (config.key === REQUIRED_FILES.brandRevenueTimeseries.key) {
         return transformBrandRevenueTimeseriesRows(rows);
+    }
+    if (config.key === REQUIRED_FILES.brandPurchaseDriverTimeseries.key) {
+        return transformBrandPurchaseDriverTimeseriesRows(rows);
     }
     return normalizeCsvRows(rows);
 };
@@ -3609,7 +3658,7 @@ async function init() {
             renderProducts();
             applyFriendlyUi(document.body);
         } else if (pageId === 'page-brand') {
-            const [brandScore, anchorScored, biiWindow, anchorTransition, productDemandGravity, returnGravityLoopDetail, insightDemandGraphNodes, insightDemandGraphEdges, insightDemandGraphPatterns, cartAnchor, brandImpactTimeseries, brandImpactDailyPulse, brandRevenueTimeseries, groupMap] = await Promise.all([
+            const [brandScore, anchorScored, biiWindow, anchorTransition, productDemandGravity, returnGravityLoopDetail, insightDemandGraphNodes, insightDemandGraphEdges, insightDemandGraphPatterns, cartAnchor, brandImpactTimeseries, brandImpactDailyPulse, brandRevenueTimeseries, brandPurchaseDriverTimeseries, groupMap] = await Promise.all([
                 loadDataFromDB(REQUIRED_FILES.brandScore),
                 loadDataFromDB(REQUIRED_FILES.anchorScored),
                 loadDataFromDB(REQUIRED_FILES.biiWindow),
@@ -3623,6 +3672,7 @@ async function init() {
                 loadOptionalDataFromDB(REQUIRED_FILES.brandImpactTimeseries, []),
                 loadOptionalDataFromDB(REQUIRED_FILES.brandImpactDailyPulse, []),
                 loadOptionalDataFromDB(REQUIRED_FILES.brandRevenueTimeseries, []),
+                loadOptionalDataFromDB(REQUIRED_FILES.brandPurchaseDriverTimeseries, []),
                 loadOptionalDataFromDB(REQUIRED_FILES.productGroupMap, [])
             ]);
             AppState.rawData.brandScore = brandScore;
@@ -3638,6 +3688,7 @@ async function init() {
             AppState.rawData.brandImpactTimeseries = brandImpactTimeseries;
             AppState.rawData.brandImpactDailyPulse = brandImpactDailyPulse;
             AppState.rawData.brandRevenueTimeseries = brandRevenueTimeseries;
+            AppState.rawData.brandPurchaseDriverTimeseries = brandPurchaseDriverTimeseries;
             AppState.rawData.productGroupMap = groupMap;
             rebuildDerivedData();
             renderBrandDashboard();
