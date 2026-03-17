@@ -58,8 +58,8 @@ PGM shorthand:
 `pgm_scored.csv`, `pgm_basket_gravity.csv`, `pgm_product_demand_gravity.csv`, `order_product_events.csv`를 입력으로 받아
 다음을 계산한다.
 
-- `Brand Score` (`BHI`, `Confidence_Index`)
-- `BII (브랜드 구매력)`
+- `Purchase Structure` (legacy technical column: `BHI`, `Confidence_Index`)
+- `PAI (Purchase Activation Index)`
 
 ### 2.3 후속 노트북
 

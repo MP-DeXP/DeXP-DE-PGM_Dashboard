@@ -254,8 +254,41 @@
 - `customers_contribution + repeat_contribution + attach_contribution + clv_contribution = momentum_t - 1` 관계를 기대합니다.
 - 이 파일이 없으면 브랜드 구조 페이지의 Hero는 축소 버전으로 표시되고, Drivers는 빈 상태 안내만 렌더링됩니다.
 
-## 14) `brand_revenue_timeseries` (신규, 선택)
-용도: 브랜드 구조 페이지 - Revenue vs. BII 진단 매트릭스
+## 14) `brand_structure_timeseries` (신규, 선택)
+용도: 브랜드 구조 페이지 - 판매 구조 4카드의 `7/30/90일` 기준 스냅샷
+
+권장 파일명:
+- `brand_structure_timeseries.csv`
+- `_insight_brand_structure_timeseries.csv`
+
+필수 컬럼:
+- `as_of_date`
+- `window_days`
+- `entry_product_ratio`
+- `flow_transition_rate`
+- `return_customer_rate`
+- `basket_items_per_order`
+- `ps_static`
+
+권장 컬럼:
+- `entry_top_product_share`
+- `flow_top_path_share`
+- `return_product_demand_share`
+- `basket_attach_rate`
+- `period_start`
+- `period_end`
+- `stage`
+- `scope`
+
+비고:
+- 이 파일은 `PS history`가 아니라 각 날짜 시점의 `windowed structure snapshot`입니다.
+- `ps_static`는 같은 날짜의 `7/30/90` row에서 반복되는 static anchor입니다.
+- 브랜드 페이지 판매 구조 섹션은 이 파일이 있으면 선택한 `7/30/90일` 기준으로 카드 수치와 dots를 함께 바꿉니다.
+- 이 파일이 없으면 현재 구조 기준 fallback 계산을 사용합니다.
+- 선택한 기간 row만 없으면 해당 기간에 한해 fallback으로 내려갑니다.
+
+## 15) `brand_revenue_timeseries` (신규, 선택)
+용도: 브랜드 구조 페이지 - Revenue vs. PAI 진단 매트릭스
 
 권장 파일명:
 - `brand_revenue_timeseries.csv`

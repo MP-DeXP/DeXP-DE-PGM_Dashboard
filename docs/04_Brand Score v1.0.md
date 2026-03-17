@@ -21,7 +21,7 @@ Brand Score는 브랜드를 매출이 아니라 수요 구조로 진단하는 �
 - `Convergence_Structure_Index`
 - `Return_Structure_Index`
 - `Basket_Structure_Index`
-- `BHI`
+- `PS` (`brand_score.csv` legacy column: `BHI`)
 - `Confidence_Index`
 
 보조 진단 컬럼:
@@ -42,7 +42,7 @@ Brand Score는 브랜드를 매출이 아니라 수요 구조로 진단하는 �
 - `pgm_basket_gravity.csv`
 - `pgm_product_demand_gravity.csv`
 
-`order_product_events.csv`는 Brand Score 자체보다 후속 `BII(브랜드 구매력)` 계산을 위해 같은 노트북에서 함께 요구된다.
+`order_product_events.csv`는 Brand Score 자체보다 후속 `PAI(Purchase Activation Index)` 계산을 위해 같은 노트북에서 함께 요구된다.
 
 ## 5축 정의
 ### Entry Structure
@@ -100,19 +100,19 @@ Brand Score는 브랜드를 매출이 아니라 수요 구조로 진단하는 �
 
 `Basket_Structure_Index = 0.4*avg(attach_rate) + 0.3*basket_coverage_ratio + 0.3*basket_balance_index`
 
-## BHI
-`BHI`는 5축 equal-axis health index다.
+## PS (Purchase Structure)
+`PS`는 5축 equal-axis purchase structure index다. 현재 구현의 legacy technical column name은 `BHI`다.
 
 공식 산식:
 
-`BHI = min(Entry, Expansion, Convergence, Return, Basket) + 0.03 * average(all 5 indices)`
+`PS = min(Entry, Expansion, Convergence, Return, Basket) + 0.03 * average(all 5 indices)`  (`brand_score.csv` legacy column: `BHI`)
 
 의도는 명확하다.
 
 - 브랜드의 최약점을 먼저 반영한다
 - 하지만 나머지 축의 평균 강도도 작은 보정항으로 남긴다
 
-따라서 `BHI`는 랭킹 점수보다 구조적 병목 탐지에 더 적합하다.
+따라서 `PS`는 랭킹 점수보다 구조적 병목 탐지에 더 적합하다.
 
 ## Confidence Index
 `Confidence_Index`는 구조 진단의 신뢰도를 표시하는 보조 레이어다.
@@ -129,12 +129,29 @@ Brand Score는 브랜드를 매출이 아니라 수요 구조로 진단하는 �
 ## 해석 원칙
 - Brand Score는 절대 매출을 직접 점수화하지 않는다.
 - Brand Score는 결과가 아니라 구조를 본다.
-- `BHI`가 높아도 특정 축이 낮으면 그 축이 구조 병목이다.
+- `PS` (`brand_score.csv` legacy column: `BHI`)가 높아도 특정 축이 낮으면 그 축이 구조 병목이다.
 - `Basket`은 보조 modifier가 아니라 다섯 번째 동등 축이다.
 
 ## 운영 메모
 - 구현 노트북: `03_PGM_BrandHealthImpact.ipynb`
+- 보조 구조 스냅샷 노트북: `03d_PGM_BrandStructureTimeseries.ipynb`
 - 선행 실행:
 1. `01_PGM_ProductGravity.ipynb`
 2. `02_PGM_ConvergenceReturnGravity.ipynb`
 3. `03_PGM_BrandHealthImpact.ipynb`
+
+## Windowed Structure Snapshot
+`brand_structure_timeseries.csv`는 `PS`의 공식 history가 아니다.
+
+이 파일은 특정 `as_of_date` 시점의 최근 `7/30/90일` 행동 데이터를 기준으로 Entry / Flow / Return / Basket 구조 신호를 같은 기간 언어로 정렬한 windowed structure snapshot이다.
+
+- `Entry` 카드 -> `entry_product_ratio`
+- `Flow` 카드 -> `flow_transition_rate`
+- `Return` 카드 -> `return_customer_rate`
+- `Basket` 카드 -> `basket_items_per_order`
+
+주의:
+
+- `ps_static`는 window별 재계산 구조값이 아니다.
+- `ps_static`는 `brand_score.csv`의 legacy `BHI` 컬럼에 저장된 `PS`를 그대로 반복한 static anchor structure다.
+- 따라서 `brand_structure_timeseries.csv`는 `PS timeseries`가 아니라 UI용 보조 구조 스냅샷으로 해석해야 한다.

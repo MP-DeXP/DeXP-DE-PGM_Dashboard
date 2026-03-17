@@ -7,7 +7,7 @@ const BRAND_ROLE_META = {
 
 const BRAND_COMPONENT_GROUPS = {
     health: '구조 건강도 해석',
-    impact: '브랜드 구매력 해석'
+    impact: '구매 활성도 해석'
 };
 
 const BRAND_COMPONENT_META = {
@@ -57,8 +57,8 @@ const BRAND_COMPONENT_META = {
         label: '반복 전환 힘',
         chartLabel: '반복 구매 힘',
         badge: '측정값',
-        shortDescription: '반복 구매가 브랜드 구매력으로 이어지는 힘을 봐요.',
-        description: '반복 구매 깊이와 최근 운영 구간의 브랜드 구매력 힘을 함께 봐요.'
+        shortDescription: '반복 구매가 구매 활성도로 이어지는 힘을 봐요.',
+        description: '반복 구매 깊이와 최근 운영 구간의 구매 활성도 힘을 함께 봐요.'
     },
     hubConcentration: {
         label: '허브 집중도',
@@ -73,13 +73,13 @@ const BRAND_INTERPRETATION_TEXT = {
     health: {
         entryDiversity: '일부 제품 쏠림이 있어 구조가 한쪽으로 기울고 있어요.',
         expansionLadder: '첫 구매 뒤 다음 구매로 이어지는 힘이 약해요.',
-        loopStability: '다시 사는 흐름은 있지만 아직 습관처럼 굳지는 않았어요.',
+        loopStability: '고객이 돌아오는 구조는 있지만 아직 안정적으로 굳지는 않았어요.',
         roleBalance: '제품 역할이 한쪽에 몰려 있어 균형이 부족해요.'
     },
     impact: {
-        coreInfluence: '핵심 제품은 보이지만 브랜드 구매력을 끌어당기는 힘은 아직 약해요.',
-        graphStrength: '제품 사이 연결이 얇아 브랜드 구매력이 넓게 퍼지지 않아요.',
-        returnPower: '반복 구매 힘이 약해서 브랜드 구매력으로 충분히 이어지지 않아요.',
+        coreInfluence: '핵심 제품은 보이지만 구매 활성도를 끌어당기는 힘은 아직 약해요.',
+        graphStrength: '제품 사이 연결이 얇아 구매 활성도가 넓게 퍼지지 않아요.',
+        returnPower: '고객이 돌아오는 힘이 약해서 구매 활성도로 충분히 이어지지 않아요.',
         hubConcentration: '소수 제품이 끌고는 있지만 그만큼 의존도도 높아요.'
     }
 };
@@ -87,9 +87,9 @@ const BRAND_INTERPRETATION_TEXT = {
 const BRAND_TIMELINE_WINDOW_ORDER = [7, 30, 90, 365];
 const BRAND_TIMELINE_WINDOW_GUIDE = {
     7: '최근 며칠 사이 흐름이 갑자기 붙거나 꺾였는지 볼 때 좋아요.',
-    30: '최근 한 달 운영이 브랜드 구매력으로 이어지고 있는지 볼 때 좋아요.',
-    90: '단기 흔들림을 덜 타고, 브랜드 구매력이 중기적으로 좋아지는지 볼 때 좋아요.',
-    365: '시즌성까지 포함해 브랜드 구매력이 장기적으로 유지되는지 볼 때 좋아요.'
+    30: '최근 한 달 운영이 구매 활성도로 이어지고 있는지 볼 때 좋아요.',
+    90: '단기 흔들림을 덜 타고, 구매 활성도가 중기적으로 좋아지는지 볼 때 좋아요.',
+    365: '시즌성까지 포함해 구매 활성도가 장기적으로 유지되는지 볼 때 좋아요.'
 };
 const BRAND_PULSE_LOOKBACK_DAYS = 90;
 const BRAND_DIAGNOSTIC_WINDOW_ORDER = [7, 30, 90];
@@ -97,57 +97,57 @@ const BRAND_MATRIX_RATIO_MAX = 1.6;
 
 const BRAND_DIAGNOSTIC_META = {
     structure: {
-        title: '브랜드 구조 건강도 vs. 브랜드 구매력 (BII)',
-        description: '구조 건강도와 최근 브랜드 구매력을 함께 봐요.',
-        xAxisLabel: 'BHI (구조 건강도)',
-        yAxisLabel: '브랜드 구매력 / 브랜드 구매력 365일',
+        title: '판매 구조와 구매 활성도',
+        description: '판매 구조와 최근 구매 흐름을 같이 보면 문제의 종류를 더 빨리 읽을 수 있어요.',
+        xAxisLabel: '판매 구조',
+        yAxisLabel: '최근 1년 대비 구매 활성도',
         quadrants: {
             highHigh: {
-                label: '최우수 (Optimal)',
-                summary: '구조도 좋고 최근 브랜드 구매력도 함께 잘 작동하고 있어요.',
+                label: '최우수',
+                summary: '구조도 좋고 최근 구매 활성도도 함께 잘 작동하고 있어요.',
                 tone: 'mint'
             },
             highLow: {
-                label: '실행력 저하 (Execution Drop)',
-                summary: '구조는 좋은데 최근 운영 난조로 브랜드 구매력이 약해졌어요.',
+                label: '실행력 저하',
+                summary: '구조는 좋은데 최근 운영 난조로 구매 활성도가 약해졌어요.',
                 tone: 'amber'
             },
             lowHigh: {
-                label: '단기 펌핑 (Illusion)',
-                summary: '단기 브랜드 구매력은 높지만 구조 리스크 점검이 필요해요.',
+                label: '단기 펌핑',
+                summary: '단기 구매 활성도는 높지만 구조 리스크 점검이 필요해요.',
                 tone: 'orange'
             },
             lowLow: {
-                label: '전면 개선 필요 (Rebuild)',
-                summary: '구조와 최근 브랜드 구매력이 모두 약해 기초부터 다시 봐야 해요.',
+                label: '전면 개선 필요',
+                summary: '구조와 최근 구매 활성도가 모두 약해 기초부터 다시 봐야 해요.',
                 tone: 'rose'
             }
         }
     },
     revenue: {
-        title: 'Revenue vs. 브랜드 구매력 (BII)',
-        description: '매출과 브랜드 구매력을 함께 봐요. BII는 매출을 대체하지 않고, 매출의 구조적 기반을 설명해요.',
-        xAxisLabel: 'Revenue / Revenue 365일',
-        yAxisLabel: '브랜드 구매력 / 브랜드 구매력 365일',
+        title: '매출과 구매 활성도',
+        description: '매출과 최근 구매 흐름을 함께 보면 지금 성과가 건강한지 같이 읽을 수 있어요.',
+        xAxisLabel: '최근 1년 대비 매출',
+        yAxisLabel: '최근 1년 대비 구매 활성도',
         quadrants: {
             highHigh: {
-                label: '건강한 성장 (Healthy Growth)',
-                summary: '매출과 구조 기반 브랜드 구매력이 함께 올라가는 이상적인 상태예요.',
+                label: '건강한 성장',
+                summary: '매출과 구조 기반 구매 활성도가 함께 올라가는 이상적인 상태예요.',
                 tone: 'mint'
             },
             highLow: {
-                label: '구조 리스크 (Danger Zone)',
-                summary: '매출은 버티지만 구조 기반 브랜드 구매력은 약해지고 있어요.',
+                label: '구조 리스크',
+                summary: '매출은 버티지만 구조 기반 구매 활성도는 약해지고 있어요.',
                 tone: 'rose'
             },
             lowHigh: {
-                label: '장기 개선 신호 (Hidden Momentum)',
-                summary: '매출은 정체돼 보여도 내부 브랜드 구매력 기반은 좋아지고 있어요.',
+                label: '장기 개선 신호',
+                summary: '매출은 정체돼 보여도 내부 구매 활성도 기반은 좋아지고 있어요.',
                 tone: 'sky'
             },
             lowLow: {
-                label: '동반 침체 (Decline)',
-                summary: '매출과 브랜드 구매력이 함께 약해지고 있어 근본 점검이 필요해요.',
+                label: '동반 침체',
+                summary: '매출과 구매 활성도가 함께 약해지고 있어 근본 점검이 필요해요.',
                 tone: 'slate'
             }
         }
@@ -284,11 +284,12 @@ function brandGetAvailableWindowValues(rows) {
     return BRAND_DIAGNOSTIC_WINDOW_ORDER.filter((value) => available.has(value));
 }
 
-function brandSelectPageWindow(driverRows, biiRows, timeseries) {
+function brandSelectPageWindow(driverRows, biiRows, timeseries, structureRows = []) {
     const available = new Set([
         ...brandGetAvailableWindowValues(driverRows),
         ...brandGetAvailableWindowValues(biiRows),
-        ...brandGetAvailableWindowValues(timeseries)
+        ...brandGetAvailableWindowValues(timeseries),
+        ...brandGetAvailableWindowValues(structureRows)
     ]);
     const ordered = BRAND_DIAGNOSTIC_WINDOW_ORDER.filter((value) => available.has(value));
     if (!ordered.length) return {
@@ -342,13 +343,21 @@ function brandBuildHeroStateFromMomentum(momentum, deltaPercent) {
 }
 
 function brandBuildHeroDirectionSentence(windowDays, momentum) {
-    if (!Number.isFinite(momentum)) return `최근 ${formatNumber(windowDays, 0)}일 기준 브랜드 구매력을 아직 충분히 읽지 못하고 있어요.`;
+    if (!Number.isFinite(momentum)) return `최근 ${formatNumber(windowDays, 0)}일 기준 구매 활성도를 아직 충분히 읽지 못하고 있어요.`;
     if (Math.abs(momentum - 1) < 0.03) {
-        return `최근 ${formatNumber(windowDays, 0)}일 기준 브랜드 구매력이 기준선과 비슷한 수준이에요.`;
+        return `최근 ${formatNumber(windowDays, 0)}일 구매 활성도가 최근 1년 평균과 비슷해요.`;
     }
     return momentum >= 1
-        ? `최근 ${formatNumber(windowDays, 0)}일 기준 브랜드 구매력이 기준선보다 높아요.`
-        : `최근 ${formatNumber(windowDays, 0)}일 기준 브랜드 구매력이 기준선보다 낮아요.`;
+        ? `최근 ${formatNumber(windowDays, 0)}일 구매 활성도가 최근 1년 평균보다 높아요.`
+        : `최근 ${formatNumber(windowDays, 0)}일 구매 활성도가 최근 1년 평균보다 낮아요.`;
+}
+
+function brandBuildHeroFlowSentence(stateLabel) {
+    const label = String(stateLabel || '').trim();
+    if (label === '회복 중') return '최근 흐름은 약한 구간에서 다시 살아나고 있어요.';
+    if (label === '강화 중') return '최근 흐름은 계속 좋아지는 쪽에 가까워요.';
+    if (label === '약화 중') return '최근 흐름은 다시 약해지는 쪽으로 움직이고 있어요.';
+    return '최근 흐름은 크게 흔들리지 않고 있어요.';
 }
 
 function brandGetFallbackHeroCauses(componentScores) {
@@ -376,7 +385,7 @@ function brandBuildHeroModel(driverRows, currentImpactRow, biiRows, timeseries, 
         return {
             empty: false,
             source: 'driver',
-            eyebrow: '브랜드 구매 상태',
+            eyebrow: '구매 활성도 상태',
             stateLabel: latestDriverRow.momentum_state || brandBuildHeroStateFromMomentum(momentum, directionValue),
             directionLabel: brandFormatSignedPercent(latestDriverRow.momentum_delta_pct),
             directionSentence: brandBuildHeroDirectionSentence(selectedWindowDays, momentum),
@@ -389,8 +398,8 @@ function brandBuildHeroModel(driverRows, currentImpactRow, biiRows, timeseries, 
     if (!currentImpactRow || !current365Row) {
         return {
             empty: true,
-            eyebrow: '브랜드 구매 상태',
-            note: '브랜드 구매 상태를 계산할 데이터가 아직 부족해요.'
+            eyebrow: '구매 활성도 상태',
+            note: '구매 활성도 상태를 계산할 데이터가 아직 부족해요.'
         };
     }
 
@@ -404,13 +413,13 @@ function brandBuildHeroModel(driverRows, currentImpactRow, biiRows, timeseries, 
     return {
         empty: false,
         source: 'fallback',
-        eyebrow: '브랜드 구매 상태',
+        eyebrow: '구매 활성도 상태',
         stateLabel: brandBuildHeroStateFromMomentum(momentum, deltaPercent),
         directionLabel: brandFormatSignedPercent(deltaPercent),
         directionSentence: brandBuildHeroDirectionSentence(selectedWindowDays, momentum),
         summary: impactInterpretation,
         causes: brandGetFallbackHeroCauses(componentScores),
-        helper: '드라이버 시계열이 없어 현재 브랜드 구매력 해석으로 축소 표시하고 있어요.'
+        helper: '드라이버 시계열이 없어 현재 구매 활성도 해석으로 축소 표시하고 있어요.'
     };
 }
 
@@ -436,11 +445,9 @@ function brandBuildHeroMetrics(selectedWindowDays, revenueTimeseries) {
 }
 
 function brandBuildDriverInterpretation(meta, deltaPercent, contribution) {
-    const positiveContribution = Number.isFinite(contribution) && contribution > 0;
-    const negativeContribution = Number.isFinite(contribution) && contribution < 0;
     if (meta.key === 'customers') {
-        if (Number.isFinite(deltaPercent) && deltaPercent > 0 && positiveContribution) return '활성 고객이 늘며 브랜드 구매력을 받치고 있어요.';
-        if (Number.isFinite(deltaPercent) && deltaPercent < 0 && negativeContribution) return '활성 고객이 줄며 브랜드 구매력을 약하게 만들고 있어요.';
+        if (Number.isFinite(deltaPercent) && deltaPercent > 0) return '최근 활성 고객이 늘고 있어요.';
+        if (Number.isFinite(deltaPercent) && deltaPercent < 0) return '최근 활성 고객이 줄고 있어요.';
     }
     if (meta.key === 'repeat') {
         if (Number.isFinite(deltaPercent) && deltaPercent < 0) return '최근 반복 구매가 감소했습니다.';
@@ -451,12 +458,12 @@ function brandBuildDriverInterpretation(meta, deltaPercent, contribution) {
         if (Number.isFinite(deltaPercent) && deltaPercent > 0) return '장바구니 확장이 다시 넓어지고 있어요.';
     }
     if (meta.key === 'clv') {
-        if (Number.isFinite(deltaPercent) && deltaPercent > 0 && positiveContribution) return '고객 가치가 올라 브랜드 구매력을 지지하고 있어요.';
-        if (Number.isFinite(deltaPercent) && deltaPercent < 0 && negativeContribution) return '고객 가치가 낮아지며 브랜드 구매력을 깎고 있어요.';
+        if (Number.isFinite(deltaPercent) && deltaPercent > 0) return '최근 고객 가치가 올라가고 있어요.';
+        if (Number.isFinite(deltaPercent) && deltaPercent < 0) return '최근 고객 가치가 낮아지고 있어요.';
     }
-    if (positiveContribution) return '최근 변화가 브랜드 구매력을 받치고 있어요.';
-    if (negativeContribution) return '최근 변화가 브랜드 구매력을 약하게 만들고 있어요.';
-    return '최근 변화는 크지 않지만 영향 방향을 함께 볼 필요가 있어요.';
+    if (Number.isFinite(contribution) && contribution > 0) return '최근 변화가 전체 흐름을 받치고 있어요.';
+    if (Number.isFinite(contribution) && contribution < 0) return '최근 변화가 전체 흐름을 약하게 만들고 있어요.';
+    return '최근 변화는 크지 않지만 같이 볼 필요가 있어요.';
 }
 
 function brandFormatDriverValue(driverKey, value) {
@@ -472,7 +479,7 @@ function brandBuildDriversModel(driverRows, selectedWindowDays) {
     if (!latestRow) {
         return {
             empty: true,
-            note: '브랜드 구매력 드라이버 데이터가 없어 원인 카드들은 아직 표시하지 않아요.',
+            note: '구매 활성도 드라이버 데이터가 없어 원인 카드들은 아직 표시하지 않아요.',
             helper: '이 섹션은 brand_purchase_driver_timeseries.csv가 있을 때 렌더돼요.',
             cards: [],
             maxAbsContribution: 0
@@ -549,6 +556,391 @@ function brandGetScoreBand(score) {
     if (score >= 75) return '양호';
     if (score >= 55) return '보통';
     return '주의';
+}
+
+function brandFormatRatioPercent(value, digits = 0) {
+    if (!Number.isFinite(value)) return '-';
+    if (value > 0 && value < 0.01) return '<1%';
+    return `${formatNumber(value * 100, digits)}%`;
+}
+
+function brandGetStructureIndicatorLevel(score) {
+    if (!Number.isFinite(score)) return 0;
+    return Math.max(1, Math.min(5, Math.round(brandClamp(score / 100, 0, 1) * 5)));
+}
+
+function brandBuildStructureIndicator(level) {
+    const safeLevel = Math.max(0, Math.min(5, toNumber(level, 0)));
+    return Array.from({ length: 5 }, (_, index) => `
+        <span class="brand-structure-indicator-dot ${index < safeLevel ? 'is-filled' : ''}"></span>
+    `).join('');
+}
+
+function brandBuildEntryStructureCard(structureRow, productRows, totalFirstCustomers, brandRow, selectedWindowDays, score) {
+    const snapshotRatio = toNumber(structureRow?.entry_product_ratio, NaN);
+    const snapshotTopShare = toNumber(structureRow?.entry_top_product_share, NaN);
+    if (Number.isFinite(snapshotRatio)) {
+        const entryCardScore = brandClamp(snapshotRatio / 0.35, 0, 1) * 100;
+        let interpretation = '첫 구매가 여러 제품에서 비교적 고르게 시작되고 있습니다.';
+        if (snapshotRatio < 0.12) interpretation = '첫 구매가 일부 제품에만 몰려 있습니다.';
+        else if (snapshotRatio < 0.25) interpretation = '첫 구매가 몇 개 핵심 제품 중심으로 만들어지고 있습니다.';
+        const metrics = [{
+            label: '첫 구매를 만든 제품 비율',
+            value: brandFormatRatioPercent(snapshotRatio, 0)
+        }];
+        if (Number.isFinite(snapshotTopShare)) {
+            metrics.push({
+                label: '대표 시작 제품 비중',
+                value: brandFormatRatioPercent(snapshotTopShare, 0)
+            });
+        }
+        return {
+            key: 'entry',
+            label: '첫 구매 시작 제품',
+            basisLabel: `최근 ${formatNumber(selectedWindowDays, 0)}일 기준`,
+            score: entryCardScore,
+            indicatorLevel: brandGetStructureIndicatorLevel(entryCardScore),
+            metrics,
+            interpretation
+        };
+    }
+
+    const validRows = (productRows || []).filter((row) => Math.max(0, toNumber(row.expectedDemand, 0)) > 0);
+    const entryProducts = validRows.filter((row) => Math.max(0, toNumber(row.firstCustomers, 0)) > 0);
+    const entryProductRatio = validRows.length ? entryProducts.length / validRows.length : NaN;
+    const entryCardScore = Number.isFinite(entryProductRatio)
+        ? brandClamp(entryProductRatio / 0.35, 0, 1) * 100
+        : score;
+    const aaConcentration = toNumber(brandRow?.AA_Concentration_Index, NaN);
+    let interpretation = '유입 구조를 아직 충분히 읽지 못하고 있어요.';
+
+    if (Number.isFinite(entryProductRatio)) {
+        if (entryProductRatio < 0.12) interpretation = '첫 구매가 일부 제품에만 몰려 있습니다.';
+        else if (entryProductRatio < 0.25) interpretation = '첫 구매가 몇 개 핵심 제품 중심으로 만들어지고 있습니다.';
+        else interpretation = '첫 구매가 여러 제품에서 비교적 고르게 시작되고 있습니다.';
+    } else if (Number.isFinite(aaConcentration)) {
+        interpretation = aaConcentration > 0.6
+            ? '유입 구조가 일부 제품에 치우쳐 있습니다.'
+            : '유입 구조가 비교적 고르게 분산되어 있습니다.';
+    }
+
+    const metrics = Number.isFinite(entryProductRatio)
+        ? [{
+            label: '첫 구매를 만든 제품 비율',
+            value: brandFormatRatioPercent(entryProductRatio, 0)
+        }]
+        : [{ label: 'AA 집중도', value: formatNumber(aaConcentration, 2) }];
+
+    return {
+        key: 'entry',
+        label: '첫 구매 시작 제품',
+        basisLabel: '현재 구조 기준',
+        score: entryCardScore,
+        indicatorLevel: brandGetStructureIndicatorLevel(entryCardScore),
+        metrics,
+        interpretation
+    };
+}
+
+function brandBuildFlowStructureCard(structureRow, edgeRows, totalFirstCustomers, selectedWindowDays, score) {
+    const snapshotTransitionRate = toNumber(structureRow?.flow_transition_rate, NaN);
+    const snapshotTopPathShare = toNumber(structureRow?.flow_top_path_share, NaN);
+    if (Number.isFinite(snapshotTransitionRate)) {
+        const transitionStrength = brandClamp(snapshotTransitionRate / 0.35, 0, 1);
+        const pathDiversityStrength = Number.isFinite(snapshotTopPathShare)
+            ? brandClamp((0.6 - snapshotTopPathShare) / 0.6, 0, 1)
+            : 0.5;
+        const cardScore = transitionStrength * (0.7 + (pathDiversityStrength * 0.3)) * 100;
+        let interpretation = '다음 구매로 비교적 자연스럽게 이어지고 있습니다.';
+        if (snapshotTransitionRate < 0.25 && Number.isFinite(snapshotTopPathShare) && snapshotTopPathShare > 0.45) {
+            interpretation = '구매 흐름이 일부 경로에만 집중되어 있습니다.';
+        } else if (snapshotTransitionRate < 0.25) {
+            interpretation = '다음 구매로 이어지는 흐름이 아직 약합니다.';
+        } else if (Number.isFinite(snapshotTopPathShare) && snapshotTopPathShare > 0.45) {
+            interpretation = '다음 구매 흐름은 생기지만 일부 경로에 집중되어 있습니다.';
+        }
+        const metrics = [
+            {
+                label: '첫 구매 뒤 다음 구매로 이어진 비율',
+                value: brandFormatRatioPercent(snapshotTransitionRate, 1)
+            }
+        ];
+        if (Number.isFinite(snapshotTopPathShare)) {
+            metrics.push({
+                label: '가장 많이 이어지는 경로 비중',
+                value: brandFormatRatioPercent(snapshotTopPathShare, 1)
+            });
+        }
+        return {
+            key: 'flow',
+            label: '다음 구매로 이어짐',
+            basisLabel: `최근 ${formatNumber(selectedWindowDays, 0)}일 기준`,
+            score: cardScore,
+            indicatorLevel: brandGetStructureIndicatorLevel(cardScore),
+            metrics,
+            interpretation
+        };
+    }
+
+    const totalTransitionCustomers = (edgeRows || []).reduce((sum, row) => sum + Math.max(0, toNumber(row.transition_customer_cnt, 0)), 0);
+    const topPathCustomers = (edgeRows || []).reduce((max, row) => Math.max(max, Math.max(0, toNumber(row.transition_customer_cnt, 0))), 0);
+    const transitionRate = totalFirstCustomers > 0
+        ? brandClamp(brandSafeDivide(totalTransitionCustomers, totalFirstCustomers, 0))
+        : NaN;
+    const topPathShare = totalTransitionCustomers > 0
+        ? brandSafeDivide(topPathCustomers, totalTransitionCustomers, NaN)
+        : NaN;
+    const transitionStrength = Number.isFinite(transitionRate)
+        ? brandClamp(transitionRate / 0.35, 0, 1)
+        : NaN;
+    const pathDiversityStrength = Number.isFinite(topPathShare)
+        ? brandClamp((0.6 - topPathShare) / 0.6, 0, 1)
+        : 0.5;
+    const normalizedScore = Number.isFinite(transitionStrength)
+        ? transitionStrength * (0.7 + (pathDiversityStrength * 0.3))
+        : brandClamp(score / 100, 0, 1);
+    const cardScore = normalizedScore * 100;
+
+    let interpretation = '구매 흐름 데이터를 아직 충분히 읽지 못하고 있어요.';
+    if (Number.isFinite(transitionRate)) {
+        if (transitionRate < 0.25 && Number.isFinite(topPathShare) && topPathShare > 0.45) {
+            interpretation = '구매 흐름이 일부 경로에만 집중되어 있습니다.';
+        } else if (transitionRate < 0.25) {
+            interpretation = '다음 구매로 이어지는 흐름이 아직 약합니다.';
+        } else if (Number.isFinite(topPathShare) && topPathShare > 0.45) {
+            interpretation = '다음 구매 흐름은 생기지만 일부 경로에 집중되어 있습니다.';
+        } else {
+            interpretation = '다음 구매로 비교적 자연스럽게 이어지고 있습니다.';
+        }
+    }
+
+    const metrics = [
+        { label: '첫 구매 뒤 다음 구매로 이어진 비율', value: brandFormatRatioPercent(transitionRate, 1) }
+    ];
+    if (Number.isFinite(topPathShare)) {
+        metrics.push({ label: '가장 많이 이어지는 경로 비중', value: brandFormatRatioPercent(topPathShare, 1) });
+    }
+
+    return {
+        key: 'flow',
+        label: '다음 구매로 이어짐',
+        basisLabel: '현재 구조 기준',
+        score: cardScore,
+        indicatorLevel: brandGetStructureIndicatorLevel(cardScore),
+        metrics,
+        interpretation
+    };
+}
+
+function brandBuildReturnStructureCard(structureRow, productRows, currentImpactRow, weightedRepurchase, score, selectedWindowDays) {
+    const snapshotReturnRate = toNumber(structureRow?.return_customer_rate, NaN);
+    const snapshotDemandShare = toNumber(structureRow?.return_product_demand_share, NaN);
+    if (Number.isFinite(snapshotReturnRate)) {
+        const returnScore = brandClamp(snapshotReturnRate / 0.4, 0, 1) * 100;
+        let interpretation = '고객이 다시 돌아오는 구조가 비교적 안정적으로 만들어지고 있습니다.';
+        if (snapshotReturnRate < 0.2) interpretation = '고객이 다시 돌아오는 구조가 아직 약합니다.';
+        else if (snapshotReturnRate < 0.35) interpretation = '고객이 다시 돌아오지만 아직 충분히 두껍지는 않아요.';
+        const metrics = [{
+            label: '고객이 다시 돌아온 비율',
+            value: brandFormatRatioPercent(snapshotReturnRate, 0)
+        }];
+        if (Number.isFinite(snapshotDemandShare)) {
+            metrics.push({
+                label: '고객이 돌아오는 제품 수요 비중',
+                value: brandFormatRatioPercent(snapshotDemandShare, 0)
+            });
+        }
+        return {
+            key: 'return',
+            label: '고객이 돌아오는 제품',
+            basisLabel: `최근 ${formatNumber(selectedWindowDays, 0)}일 기준`,
+            score: returnScore,
+            indicatorLevel: brandGetStructureIndicatorLevel(returnScore),
+            metrics,
+            interpretation
+        };
+    }
+
+    const repeatRate = toNumber(firstDefinedValue(currentImpactRow?.repeat_rate_t, weightedRepurchase), NaN);
+    const validRows = (productRows || []).filter((row) => Number.isFinite(toNumber(row.loopRate, NaN)) || Number.isFinite(toNumber(row.repurchaseRate, NaN)));
+    const returnProducts = validRows
+        .map((row) => ({
+            ...row,
+            returnSignal: Math.max(toNumber(row.loopRate, 0), toNumber(row.repurchaseRate, 0))
+        }))
+        .filter((row) => row.returnSignal >= 0.35)
+        .sort((a, b) => b.returnSignal - a.returnSignal);
+    const totalDemand = validRows.reduce((sum, row) => sum + Math.max(0, toNumber(row.expectedDemand, 0)), 0);
+    const returnDemandShare = totalDemand > 0
+        ? returnProducts.reduce((sum, row) => sum + Math.max(0, toNumber(row.expectedDemand, 0)), 0) / totalDemand
+        : NaN;
+    let interpretation = '고객이 다시 돌아오는 구조를 아직 충분히 읽지 못하고 있어요.';
+    if (Number.isFinite(repeatRate)) {
+        if (repeatRate < 0.2) interpretation = '고객이 다시 돌아오는 구조가 아직 약합니다.';
+        else if (repeatRate < 0.35) interpretation = '고객이 다시 돌아오지만 아직 충분히 두껍지는 않아요.';
+        else interpretation = '고객이 다시 돌아오는 구조가 비교적 안정적으로 만들어지고 있습니다.';
+    } else if (Number.isFinite(returnDemandShare)) {
+        if (returnDemandShare < 0.2) interpretation = '고객이 돌아오는 제품이 아직 뚜렷하지 않습니다.';
+        else if (returnDemandShare < 0.4) interpretation = '고객이 돌아오는 제품은 보이지만 아직 중심이 약합니다.';
+        else interpretation = '고객이 돌아오는 제품이 비교적 뚜렷하게 형성되어 있습니다.';
+    }
+
+    const metrics = [];
+    if (Number.isFinite(repeatRate)) {
+        metrics.push({ label: '고객이 다시 돌아온 비율', value: brandFormatRatioPercent(repeatRate, 0) });
+    } else if (Number.isFinite(returnDemandShare)) {
+        metrics.push({ label: '고객이 돌아오는 제품 수요 비중', value: brandFormatRatioPercent(returnDemandShare, 0) });
+    }
+
+    return {
+        key: 'return',
+        label: '고객이 돌아오는 제품',
+        basisLabel: Number.isFinite(toNumber(currentImpactRow?.repeat_rate_t, NaN)) ? `최근 ${formatNumber(selectedWindowDays, 0)}일 기준` : '현재 구조 기준',
+        score,
+        indicatorLevel: brandGetStructureIndicatorLevel(score),
+        metrics,
+        interpretation
+    };
+}
+
+function brandBuildBasketStructureCard(structureRow, productRows, totalExpectedDemand, currentImpactRow, weightedAttach, selectedWindowDays) {
+    const snapshotItemsPerOrder = toNumber(structureRow?.basket_items_per_order, NaN);
+    const snapshotAttachRate = toNumber(structureRow?.basket_attach_rate, NaN);
+    if (Number.isFinite(snapshotItemsPerOrder)) {
+        const score = brandClamp((snapshotItemsPerOrder - 1) / 1.5, 0, 1) * 100;
+        let interpretation = '함께 사는 구조가 비교적 잘 형성되어 있습니다.';
+        if (snapshotItemsPerOrder < 1.5) interpretation = '동시 구매 구조가 약합니다.';
+        else if (snapshotItemsPerOrder < 2) interpretation = '장바구니 확장이 일부 제품 중심으로 나타납니다.';
+        const metrics = [{
+            label: '평균 구매 제품 수',
+            value: formatNumber(snapshotItemsPerOrder, 2)
+        }];
+        if (Number.isFinite(snapshotAttachRate)) {
+            metrics.push({
+                label: '장바구니 확장도',
+                value: formatNumber(snapshotAttachRate, 2)
+            });
+        }
+        return {
+            key: 'basket',
+            label: '장바구니 확장',
+            basisLabel: `최근 ${formatNumber(selectedWindowDays, 0)}일 기준`,
+            score,
+            indicatorLevel: brandGetStructureIndicatorLevel(score),
+            metrics,
+            interpretation
+        };
+    }
+
+    const weightedItemsPerOrder = totalExpectedDemand > 0
+        ? brandSafeDivide(
+            (productRows || []).reduce((sum, row) => {
+                const cartSize = toNumber(row.medianCartSize, NaN);
+                if (!Number.isFinite(cartSize) || cartSize <= 0) return sum;
+                return sum + (cartSize * row.expectedDemand);
+            }, 0),
+            (productRows || []).reduce((sum, row) => {
+                const cartSize = toNumber(row.medianCartSize, NaN);
+                if (!Number.isFinite(cartSize) || cartSize <= 0) return sum;
+                return sum + row.expectedDemand;
+            }, 0),
+            NaN
+        )
+        : NaN;
+    const attachRate = toNumber(firstDefinedValue(currentImpactRow?.attach_rate_t, weightedAttach), NaN);
+    const hasItemsPerOrder = Number.isFinite(weightedItemsPerOrder);
+    const score = hasItemsPerOrder
+        ? brandClamp((weightedItemsPerOrder - 1) / 1.5, 0, 1) * 100
+        : brandClamp(brandSafeDivide(attachRate, 0.4, 0), 0, 1) * 100;
+
+    let interpretation = '동시 구매 구조를 아직 충분히 읽지 못하고 있어요.';
+    if (hasItemsPerOrder) {
+        if (weightedItemsPerOrder < 1.5) interpretation = '동시 구매 구조가 약합니다.';
+        else if (weightedItemsPerOrder < 2) interpretation = '장바구니 확장이 일부 제품 중심으로 나타납니다.';
+        else interpretation = '함께 사는 구조가 비교적 잘 형성되어 있습니다.';
+    } else if (Number.isFinite(attachRate)) {
+        if (attachRate < 0.15) interpretation = '동시 구매 구조가 약합니다.';
+        else if (attachRate < 0.3) interpretation = '장바구니 확장이 일부 제품 중심으로 나타납니다.';
+        else interpretation = '함께 사는 구조가 비교적 잘 형성되어 있습니다.';
+    }
+
+    const metrics = hasItemsPerOrder
+        ? [{ label: '평균 구매 제품 수', value: formatNumber(weightedItemsPerOrder, 2) }]
+        : [{ label: '장바구니 확장도', value: formatNumber(attachRate, 2) }];
+
+    if (!hasItemsPerOrder && Number.isFinite(attachRate)) {
+        metrics.push({ label: 'Attach Rate', value: brandFormatRatioPercent(attachRate, 0) });
+    }
+
+    return {
+        key: 'basket',
+        label: '장바구니 확장',
+        basisLabel: Number.isFinite(attachRate) ? `최근 ${formatNumber(selectedWindowDays, 0)}일 기준` : '현재 구조 기준',
+        score,
+        indicatorLevel: brandGetStructureIndicatorLevel(score),
+        metrics,
+        interpretation
+    };
+}
+
+function brandBuildStructureCards(structureRow, productRows, edgeRows, totalFirstCustomers, totalExpectedDemand, brandRow, currentImpactRow, componentScores, weightedRepurchase, weightedAttach, selectedWindowDays) {
+    return [
+        brandBuildEntryStructureCard(structureRow, productRows, totalFirstCustomers, brandRow, selectedWindowDays, componentScores.entryDiversity),
+        brandBuildFlowStructureCard(structureRow, edgeRows, totalFirstCustomers, selectedWindowDays, componentScores.expansionLadder),
+        brandBuildReturnStructureCard(structureRow, productRows, currentImpactRow, weightedRepurchase, componentScores.loopStability, selectedWindowDays),
+        brandBuildBasketStructureCard(structureRow, productRows, totalExpectedDemand, currentImpactRow, weightedAttach, selectedWindowDays)
+    ];
+}
+
+function brandBuildStructureOverview(cards, healthCurrentScore, healthDelta, healthInterpretation, roleBalanceScore) {
+    const ordered = [...(cards || [])].sort((a, b) => toNumber(b.score, 0) - toNumber(a.score, 0));
+    const strongest = ordered[0] || null;
+    const weakOrdered = [...(cards || [])].sort((a, b) => toNumber(a.score, 0) - toNumber(b.score, 0));
+    const weakCandidates = weakOrdered.filter((card) => toNumber(card.score, 0) < 55).slice(0, 2);
+    const weakItems = weakCandidates.length ? weakCandidates : weakOrdered.slice(0, 1);
+
+    let summary = healthInterpretation;
+    if (weakItems.length >= 2) {
+        summary = `${weakItems[0].label}과 ${weakItems[1].label} 쪽 구조 보강이 필요해요.`;
+    } else if (weakItems.length === 1 && toNumber(weakItems[0].score, 0) < 60) {
+        summary = `${weakItems[0].label}이 어디서 막히는지 먼저 확인해 보세요.`;
+    } else if (strongest) {
+        summary = `${strongest.label} 구조가 비교적 강하고 전반도 안정적인 편이에요.`;
+    }
+
+    if (Number.isFinite(roleBalanceScore) && roleBalanceScore < 45) {
+        summary += ' 제품 역할 균형도 함께 점검할 필요가 있어요.';
+    }
+
+    return {
+        label: '판매 구조',
+        score: healthCurrentScore,
+        delta: healthDelta,
+        strongest: strongest?.label || '-',
+        weakest: weakItems.map((item) => item.label),
+        summary
+    };
+}
+
+function brandBuildStructureDriverHints(purchaseDrivers) {
+    const cards = purchaseDrivers?.cards || [];
+    const hints = [];
+    const repeatCard = cards.find((card) => card.key === 'repeat');
+    const attachCard = cards.find((card) => card.key === 'attach');
+
+    if (repeatCard && toNumber(repeatCard.contribution, 0) < 0) {
+        hints.push('반복 구매율이 약하면 → 고객이 돌아오는 제품 확인');
+    }
+    if (attachCard && toNumber(attachCard.contribution, 0) < 0) {
+        hints.push('장바구니 확장도가 약하면 → 장바구니 확장 구조 확인');
+    }
+
+    if (!hints.length) {
+        hints.push('반복 구매율이 약하면 → 고객이 돌아오는 제품 확인');
+        hints.push('장바구니 확장도가 약하면 → 장바구니 확장 구조 확인');
+    }
+
+    return hints.slice(0, 2);
 }
 
 function brandGetRoleKey(entry, expansion, centerEntry, centerExpansion) {
@@ -642,11 +1034,11 @@ function brandGetPointSummary(type, componentKey, score) {
         const messageMap = {
             entryDiversity: '유입이 한 제품에만 과하게 몰리지 않고 있어요.',
             expansionLadder: '첫 구매 뒤 다음 구매로 이어지는 흐름이 살아 있어요.',
-            loopStability: '반복 구매 흐름이 비교적 안정적으로 유지되고 있어요.',
+            loopStability: '고객이 다시 돌아오는 구조가 비교적 안정적으로 유지되고 있어요.',
             roleBalance: '제품 역할이 한쪽으로 심하게 기울지 않았어요.',
-            coreInfluence: '핵심 제품이 브랜드 구매력의 중심을 잡고 있어요.',
-            graphStrength: '제품 사이 연결이 살아 있어 브랜드 구매력이 이어지고 있어요.',
-            returnPower: '반복 구매 힘이 브랜드 구매력으로 이어지고 있어요.',
+            coreInfluence: '핵심 제품이 구매 활성도의 중심을 잡고 있어요.',
+            graphStrength: '제품 사이 연결이 살아 있어 구매 활성도가 이어지고 있어요.',
+            returnPower: '고객이 다시 돌아오는 힘이 구매 활성도로 이어지고 있어요.',
             hubConcentration: '허브 제품이 분산돼 있어 특정 제품 쏠림이 덜해요.'
         };
         return `좋은 점: ${label}. ${messageMap[componentKey] || '비교적 안정적으로 유지되고 있어요.'}`;
@@ -659,12 +1051,12 @@ function brandGetPointSummary(type, componentKey, score) {
         const messageMap = {
             entryDiversity: '유입이 일부 제품에 몰려 구조가 쉽게 흔들릴 수 있어요.',
             expansionLadder: '첫 구매 뒤 다음 구매로 이어지는 연결이 약해요.',
-            loopStability: '반복 구매가 꾸준히 굳어지지 않았어요.',
+            loopStability: '고객이 돌아오는 구조가 꾸준히 만들어지지 않았어요.',
             roleBalance: '제품 역할이 한쪽에 몰려 있어 균형이 부족해요.',
-            coreInfluence: '핵심 제품이 브랜드 구매력을 끌어당기는 힘이 아직 약해요.',
-            graphStrength: '제품 사이 연결이 얇아 브랜드 구매력이 길게 이어지지 않아요.',
-            returnPower: '반복 구매 힘이 약해서 브랜드 구매력으로 충분히 이어지지 않아요.',
-            hubConcentration: '브랜드 구매력이 소수 제품에 몰려 의존도가 높아요.'
+            coreInfluence: '핵심 제품이 구매 활성도를 끌어당기는 힘이 아직 약해요.',
+            graphStrength: '제품 사이 연결이 얇아 구매 활성도가 길게 이어지지 않아요.',
+            returnPower: '고객이 돌아오는 힘이 약해서 구매 활성도로 충분히 이어지지 않아요.',
+            hubConcentration: '구매 활성도가 소수 제품에 몰려 의존도가 높아요.'
         };
     return `약한 점: ${label}. ${messageMap[componentKey] || '보강이 필요해 보여요.'}`;
 }
@@ -801,7 +1193,7 @@ function brandBuildTimelineModel(timeseries, healthCurrent, impactWindowDays) {
             impactRows: [],
             healthDelta: null,
             impactDelta: null,
-            note: '최근 기간 기준 브랜드 구매력 데이터가 없어 이 비교는 아직 표시하지 않아요.'
+            note: '최근 기간 기준 구매 활성도 데이터가 없어 이 비교는 아직 표시하지 않아요.'
         };
     }
 
@@ -855,7 +1247,7 @@ function brandBuildDailyPulseModel(rows) {
             rows: [],
             delta: null,
             interpretation: '',
-            note: '일별 브랜드 구매력 데이터가 없어 아직 표시하지 않아요.',
+            note: '일별 구매 활성도 데이터가 없어 아직 표시하지 않아요.',
             helper: '이 차트는 날짜별 단일값 데이터가 있을 때 보여줘요.'
         };
     }
@@ -970,7 +1362,7 @@ function brandBuildStructureMatrix(healthCurrentScore, currentImpactRow, timeser
             empty: true,
             title: BRAND_DIAGNOSTIC_META.structure.title,
             description: BRAND_DIAGNOSTIC_META.structure.description,
-            note: '선택한 기간 또는 365일 기준 브랜드 구매력 데이터가 없어 이 진단은 아직 표시하지 않아요.'
+            note: '선택한 기간 또는 365일 기준 구매 활성도 데이터가 없어 이 진단은 아직 표시하지 않아요.'
         };
     }
 
@@ -1019,7 +1411,7 @@ function brandBuildRevenueMatrix(revenueTimeseries, impactTimeseries, diagnostic
             empty: true,
             title: BRAND_DIAGNOSTIC_META.revenue.title,
             description: BRAND_DIAGNOSTIC_META.revenue.description,
-            note: '매출 진단 데이터가 없어 Revenue vs. 브랜드 구매력 (BII)은 아직 표시하지 않아요.'
+            note: '매출 진단 데이터가 없어 매출과 구매 활성도 비교는 아직 표시하지 않아요.'
         };
     }
 
@@ -1044,7 +1436,7 @@ function brandBuildRevenueMatrix(revenueTimeseries, impactTimeseries, diagnostic
             empty: true,
             title: BRAND_DIAGNOSTIC_META.revenue.title,
             description: BRAND_DIAGNOSTIC_META.revenue.description,
-            note: '같은 날짜 기준 매출과 브랜드 구매력 데이터를 함께 읽을 수 없어 Revenue vs. 브랜드 구매력 (BII)은 아직 표시하지 않아요.'
+            note: '같은 날짜 기준 매출과 구매 활성도 데이터를 함께 읽을 수 없어 이 비교는 아직 표시하지 않아요.'
         };
     }
 
@@ -1084,15 +1476,18 @@ function buildBrandDashboardModel() {
     const edgeRows = brandBuildEdgeRows();
     const maps = brandBuildMaps(edgeRows);
     const driverTimeseries = AppState.data.brandPurchaseDriverTimeseries || [];
+    const structureTimeseries = AppState.data.brandStructureTimeseries || [];
     const { selectedWindowDays, availableWindows } = brandSelectPageWindow(
         driverTimeseries,
         AppState.data.biiWindow || [],
-        AppState.data.brandImpactTimeseries || []
+        AppState.data.brandImpactTimeseries || [],
+        structureTimeseries
     );
     const defaultImpactRow = brandSelectCurrentImpactRow(AppState.data.biiWindow || [], selectedWindowDays);
     const timeseries = AppState.data.brandImpactTimeseries || [];
     const dailyPulseRows = AppState.data.brandImpactDailyPulse || [];
     const revenueTimeseries = AppState.data.brandRevenueTimeseries || [];
+    const currentStructureRow = brandGetLatestRowForWindow(structureTimeseries, selectedWindowDays);
     const currentImpactRow = (AppState.data.biiWindow || []).find((row) => toNumber(row.window_days, null) === selectedWindowDays) || defaultImpactRow;
 
     const centerEntry = products.length ? products.reduce((sum, row) => sum + toNumber(row.Entry_Gravity_Score, 0), 0) / products.length : 0;
@@ -1125,6 +1520,7 @@ function buildBrandDashboardModel() {
             repurchaseRate
         );
         const attachRate = toNumber(cart.attach_rate, 0);
+        const medianCartSize = toNumber(cart.median_cart_size, NaN);
         const combinedStrength = entry + expansion;
         return {
             id,
@@ -1136,6 +1532,7 @@ function buildBrandDashboardModel() {
             firstCustomerRatio: toNumber(row.first_customer_ratio, 0),
             repurchaseRate,
             attachRate,
+            medianCartSize,
             loopRate,
             inboundCustomers,
             outboundCustomers,
@@ -1242,7 +1639,7 @@ function buildBrandDashboardModel() {
             const reasonText = {
                 entry: '유입 진입점을 단단하게 받쳐 줘요.',
                 expansion: '다음 구매 사다리를 이어 주는 확장 연결축이에요.',
-                loop: '반복 구매가 안정적으로 이어지는 루프 축이에요.',
+                loop: '고객이 다시 돌아오는 구조를 만드는 핵심 축이에요.',
                 attach: '장바구니 결합으로 구조를 넓혀 주는 확장 보조축이에요.'
             }[reasonKey];
             return {
@@ -1277,8 +1674,8 @@ function buildBrandDashboardModel() {
             const reasonText = {
                 hub: '여러 흐름을 받아 주는 수요 허브 역할을 해요.',
                 graph: '제품 사이 연결 폭을 넓히는 핵심 접속점이에요.',
-                demand: '기대 수요량이 커서 브랜드 구매력이 넓게 퍼져요.',
-                core: '유입과 확장 강도가 함께 높아 브랜드 구매력의 중심을 만듭니다.'
+                demand: '기대 수요량이 커서 구매 활성도가 넓게 퍼져요.',
+                core: '유입과 확장 강도가 함께 높아 구매 활성도의 중심을 만듭니다.'
             }[reasonKey];
             return {
                 ...row,
@@ -1302,18 +1699,18 @@ function buildBrandDashboardModel() {
         ? brandGetComponentInterpretation('health', weakestHealthKey, BRAND_COMPONENT_META[strongestHealthKey].label, BRAND_COMPONENT_META[weakestHealthKey].label)
         : '유입, 확장, 반복 흐름이 비교적 고르게 버티고 있어요.';
     const impactInterpretation = componentScores.hubConcentration >= 70 && componentScores.coreInfluence >= 60
-        ? '브랜드 구매력은 소수 핵심 제품이 끌고 있고, 그만큼 특정 제품 의존도도 높아요.'
+        ? '구매 활성도는 소수 핵심 제품이 끌고 있고, 그만큼 특정 제품 의존도도 높아요.'
         : componentScores[weakestImpactKey] < 50
             ? brandGetComponentInterpretation('impact', weakestImpactKey, BRAND_COMPONENT_META[strongestImpactKey].label, BRAND_COMPONENT_META[weakestImpactKey].label)
-            : '핵심 제품과 제품 연결이 살아 있어 구조가 브랜드 구매력으로 이어지고 있어요.';
+            : '핵심 제품과 제품 연결이 살아 있어 구조가 구매 활성도로 이어지고 있어요.';
     const healthPrimaryReason = componentScores[weakestHealthKey] < 55
         ? brandGetPrimaryReason('health', weakestHealthKey)
         : `주된 원인: ${BRAND_COMPONENT_META[strongestHealthKey].label}. 구조의 약한 고리가 두드러지지 않아요.`;
     const impactPrimaryReason = componentScores.hubConcentration >= 70 && componentScores.coreInfluence >= 60
-        ? '주된 원인: 허브 집중도. 브랜드 구매력이 소수 핵심 제품에 많이 몰려 있어요.'
+        ? '주된 원인: 허브 집중도. 구매 활성도가 소수 핵심 제품에 많이 몰려 있어요.'
         : componentScores[weakestImpactKey] < 50
             ? brandGetPrimaryReason('impact', weakestImpactKey)
-            : `주된 원인: ${BRAND_COMPONENT_META[strongestImpactKey].label}. 핵심 연결축이 브랜드 구매력을 받고 있어요.`;
+            : `주된 원인: ${BRAND_COMPONENT_META[strongestImpactKey].label}. 핵심 연결축이 구매 활성도를 받고 있어요.`;
     const healthStrengthPoint = brandGetPointSummary('strength', strongestHealthKey, componentScores[strongestHealthKey]);
     const healthWeakPoint = brandGetPointSummary('weakness', weakestHealthKey, componentScores[weakestHealthKey]);
     const impactStrengthPoint = brandGetPointSummary('strength', strongestImpactKey, componentScores[strongestImpactKey]);
@@ -1329,6 +1726,33 @@ function buildBrandDashboardModel() {
     );
     const heroMetrics = brandBuildHeroMetrics(selectedWindowDays, revenueTimeseries);
     const purchaseDrivers = brandBuildDriversModel(driverTimeseries, selectedWindowDays);
+    const structureCards = brandBuildStructureCards(
+        currentStructureRow,
+        productRows,
+        edgeRows,
+        totalFirstCustomers,
+        totalExpectedDemand,
+        brandRow,
+        currentImpactRow,
+        componentScores,
+        weightedRepurchase,
+        weightedAttach,
+        selectedWindowDays
+    );
+    const structureOverview = brandBuildStructureOverview(
+        structureCards,
+        Number.isFinite(toNumber(currentStructureRow?.ps_static, NaN))
+            ? toNumber(currentStructureRow.ps_static, 0) * 100
+            : healthCurrentScore,
+        diagnosticHealthDelta,
+        healthInterpretation,
+        componentScores.roleBalance
+    );
+    const structureBasisNote = currentStructureRow
+        ? ''
+        : (structureTimeseries.length
+            ? '선택한 기간 구조 스냅샷이 없어 현재 구조 기준으로 보여줘요.'
+            : '구조 스냅샷 파일이 없어 현재 구조 기준으로 보여줘요.');
     const diagnosticMatrices = {
         availableWindows,
         selectedWindowDays,
@@ -1365,6 +1789,10 @@ function buildBrandDashboardModel() {
         hero,
         heroMetrics,
         purchaseDrivers,
+        structureCards,
+        structureOverview,
+        structureBasisNote,
+        structureDriverHints: brandBuildStructureDriverHints(purchaseDrivers),
         dailyPulse,
         timeline,
         diagnosticMatrices,
@@ -1476,9 +1904,9 @@ function renderBrandHeroSection(hero, selectedWindowDays, heroMetrics = []) {
     if (!hero || hero.empty) {
         return `
             <section class="brand-hero-card brand-hero-card-empty">
-                <div class="brand-hero-eyebrow">브랜드 구매 상태</div>
+                <div class="brand-hero-eyebrow">구매 활성도 상태</div>
                 <div class="brand-empty-state">
-                    <p>${escapeHtml(hero?.note || '브랜드 구매 상태를 아직 계산하지 못하고 있어요.')}</p>
+                    <p>${escapeHtml(hero?.note || '구매 활성도 상태를 아직 계산하지 못하고 있어요.')}</p>
                 </div>
             </section>
         `;
@@ -1493,10 +1921,15 @@ function renderBrandHeroSection(hero, selectedWindowDays, heroMetrics = []) {
                     <div class="brand-hero-bar-main">
                         <div class="brand-hero-state-block">
                             <div class="brand-hero-state-line">
-                                <h2 class="brand-hero-state">${escapeHtml(hero.stateLabel)}</h2>
-                                <span class="brand-hero-direction">${escapeHtml(hero.directionLabel)}</span>
+                                <div class="brand-hero-state-group">
+                                    <span class="brand-hero-state-basis">최근 흐름 기준 상태</span>
+                                    <h2 class="brand-hero-state">${escapeHtml(hero.stateLabel)}</h2>
+                                </div>
+                                <div class="brand-hero-direction-wrap">
+                                    <span class="brand-hero-direction-label">최근 1년 기준 현재 수준</span>
+                                    <span class="brand-hero-direction">${escapeHtml(hero.directionLabel)}</span>
+                                </div>
                             </div>
-                            <p class="brand-hero-direction-note">이 변화는 브랜드 구매력이 기준선 대비 4주 전보다 얼마나 달라졌는지 보여줘요.</p>
                             ${revenueMetric ? `
                                 <div class="brand-hero-revenue-inline" title="${escapeHtml(`${revenueMetric.label} ${revenueMetric.value} · ${revenueMetric.meta}`)}">
                                     <span class="brand-hero-revenue-inline-label">${escapeHtml(revenueMetric.label)}</span>
@@ -1506,7 +1939,16 @@ function renderBrandHeroSection(hero, selectedWindowDays, heroMetrics = []) {
                             ` : ''}
                         </div>
                         <div class="brand-hero-bar-copy">
+                            <div class="brand-hero-sparkline-block">
+                                <div class="brand-hero-sparkline-head">
+                                    <span>최근 ${escapeHtml(formatNumber(selectedWindowDays, 0))}일 흐름</span>
+                                </div>
+                                <div class="brand-hero-sparkline-wrap">
+                                    <canvas id="brand-hero-sparkline"></canvas>
+                                </div>
+                            </div>
                             <p class="brand-hero-direction-copy">${escapeHtml(hero.directionSentence)}</p>
+                            <p class="brand-hero-flow-copy">${escapeHtml(brandBuildHeroFlowSentence(hero.stateLabel))}</p>
                             <p class="brand-hero-summary">${escapeHtml(hero.summary)}</p>
                             ${hero.helper ? `<p class="brand-hero-helper">${escapeHtml(hero.helper)}</p>` : ''}
                         </div>
@@ -1521,42 +1963,72 @@ function renderBrandHeroSection(hero, selectedWindowDays, heroMetrics = []) {
                             </div>
                         </div>
                     </div>
-                    <p class="brand-hero-cause-note">최근 ${escapeHtml(formatNumber(selectedWindowDays, 0))}일 기준으로 읽고 있어요.</p>
+                    <p class="brand-hero-cause-note">상태는 최근 흐름, 수치는 최근 1년 평균과 비교한 현재 수준이에요.</p>
                 </div>
             </div>
         </section>
     `;
 }
 
-function renderBrandHeroStructureSection(items, strongestKey, weakestKey) {
+function renderBrandStructureOverviewCard(overview) {
     return `
-        <section class="brand-hero-structure-card">
-            <div class="brand-hero-health-head">
-                <p class="brand-hero-health-label">구조 건강도 요약</p>
-                <p class="brand-hero-health-copy">구조 쪽 강한 축과 약한 축을 빠르게 확인해요.</p>
+        <div class="brand-structure-overview-card">
+            <div class="brand-structure-overview-main">
+                <p class="brand-structure-overview-label">${overview.label}</p>
+                <p class="brand-structure-overview-summary">${escapeHtml(overview.summary)}</p>
             </div>
-            <div class="brand-hero-structure-bars">
-                ${(items || []).map((item) => {
-                    const tone = item.key === strongestKey ? 'strong' : (item.key === weakestKey ? 'weak' : 'neutral');
-                    return `
-                        <div class="brand-hero-structure-row brand-hero-structure-row-${tone}">
-                            <div class="brand-hero-structure-meta">
-                                <span class="brand-hero-structure-name">${escapeHtml(item.chartLabel || item.label)}</span>
-                                <strong class="brand-hero-structure-score">${brandFormatScore(item.score)}</strong>
-                            </div>
-                            <div class="brand-hero-structure-track">
-                                <span class="brand-hero-structure-fill brand-hero-structure-fill-${tone}" style="width:${brandClamp(toNumber(item.score, 0) / 100, 0, 1) * 100}%"></span>
-                            </div>
+            <div class="brand-structure-overview-aside">
+                <div class="brand-structure-overview-group brand-structure-overview-group-strong">
+                    <span class="brand-structure-overview-group-label">강한 구조</span>
+                    <strong>${escapeHtml(overview.strongest)}</strong>
+                </div>
+                <div class="brand-structure-overview-group brand-structure-overview-group-weak">
+                    <span class="brand-structure-overview-group-label">약한 구조</span>
+                    <div class="brand-structure-overview-weak-list">
+                        ${(overview.weakest || []).map((label) => `<strong>${escapeHtml(label)}</strong>`).join('')}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderBrandStructureAxisCards(cards) {
+    const getCtaHref = (cardKey) => {
+        if (cardKey === 'entry') return '../products/?core=entry';
+        if (cardKey === 'flow') return '../products/?core=expansion';
+        if (cardKey === 'return') return '../products/?core=return';
+        if (cardKey === 'basket') return '../products/?chart=demand-graph&demandTab=basket';
+        return '../products/';
+    };
+    return `
+        <div class="brand-structure-axis-grid">
+            ${(cards || []).map((card) => `
+                <article class="brand-structure-axis-card">
+                    <div class="brand-structure-axis-head">
+                        <div class="brand-structure-axis-title-wrap">
+                            <p class="brand-structure-axis-label">${escapeHtml(card.label)}</p>
+                            ${card.basisLabel ? `<span class="brand-structure-axis-basis">${escapeHtml(card.basisLabel)}</span>` : ''}
                         </div>
-                    `;
-                }).join('')}
-            </div>
-            <p class="brand-hero-structure-caption">
-                강한 축: ${escapeHtml((items || []).find((item) => item.key === strongestKey)?.label || '-')}
-                <span>/</span>
-                약한 축: ${escapeHtml((items || []).find((item) => item.key === weakestKey)?.label || '-')}
-            </p>
-        </section>
+                        <div class="brand-structure-axis-indicator" aria-label="${escapeHtml(`${card.indicatorLevel}/5`)}">
+                            ${brandBuildStructureIndicator(card.indicatorLevel)}
+                        </div>
+                    </div>
+                    <div class="brand-structure-axis-metrics">
+                        ${(card.metrics || []).map((metric) => `
+                            <div class="brand-structure-axis-metric">
+                                <span class="brand-structure-axis-metric-label">${escapeHtml(metric.label)}</span>
+                                <strong class="brand-structure-axis-metric-value">${escapeHtml(metric.value)}</strong>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <p class="brand-structure-axis-copy">${escapeHtml(card.interpretation)}</p>
+                    <div class="brand-structure-axis-cta-wrap">
+                        <a class="brand-structure-axis-cta" href="${escapeHtml(getCtaHref(card.key))}">제품 분석에서 보기</a>
+                    </div>
+                </article>
+            `).join('')}
+        </div>
     `;
 }
 
@@ -1565,18 +2037,62 @@ function renderBrandStructureSection(model) {
         <section class="card brand-structure-card">
             <div class="brand-section-head">
                 <div>
-                    <h2>Structure</h2>
-                    <p>브랜드 구매력의 바탕이 되는 구조 건강도를 봐요.</p>
-                </div>
-                <div class="brand-structure-score-block">
-                    <span class="brand-structure-score-label">${brandRenderMetricName('구조 건강도', 'BHI')}</span>
-                    <strong class="brand-structure-score-value">${brandFormatScore(model.healthCurrentScore)}</strong>
-                    <span class="brand-structure-score-delta">${escapeHtml(brandFormatDelta(model.healthDelta))}</span>
+                    <h2>판매 구조</h2>
+                    <p>구매 활성도의 바탕이 되는 구조 건강도를 봐요.</p>
                 </div>
             </div>
-            <p class="brand-structure-summary">${escapeHtml(model.healthInterpretation)}</p>
-            ${renderBrandHeroStructureSection(model.componentGroups[0].items, model.healthStrongestKey, model.healthWeakestKey)}
+            <p class="brand-structure-guide">원인 지표가 약할 때, 판매 구조도 약한지 여기서 확인해요.</p>
+            ${model.structureBasisNote ? `<p class="brand-structure-basis-note">${escapeHtml(model.structureBasisNote)}</p>` : ''}
+            <div class="brand-structure-hints">
+                ${(model.structureDriverHints || []).map((hint) => `<span class="brand-structure-hint">${escapeHtml(hint)}</span>`).join('')}
+            </div>
+            ${renderBrandStructureOverviewCard(model.structureOverview)}
+            ${renderBrandStructureAxisCards(model.structureCards)}
         </section>
+    `;
+}
+
+function renderBrandPurchaseEngine(cards) {
+    const orderedCards = cards || [];
+    const weakestCard = [...orderedCards].sort((a, b) => toNumber(a.contribution, 0) - toNumber(b.contribution, 0))[0] || null;
+    const strongestCard = [...orderedCards].sort((a, b) => toNumber(b.contribution, 0) - toNumber(a.contribution, 0))[0] || null;
+    const weakestValue = toNumber(weakestCard?.contribution, 0);
+    const strongestValue = toNumber(strongestCard?.contribution, 0);
+
+    const getTone = (card) => {
+        if (weakestCard && card.key === weakestCard.key && weakestValue < -0.01) return 'is-critical';
+        if (strongestCard && card.key === strongestCard.key && strongestValue > 0.01) return 'is-supporting';
+        return 'is-neutral';
+    };
+
+    const getStatusLabel = (card) => {
+        const value = toNumber(card.contribution, 0);
+        if (weakestCard && card.key === weakestCard.key && weakestValue < -0.01) return '가장 약함';
+        if (strongestCard && card.key === strongestCard.key && strongestValue > 0.01) return '받치고 있음';
+        if (value < -0.01) return '약함';
+        if (value > 0.01) return '보통 이상';
+        return '보통';
+    };
+
+    const summary = weakestCard && weakestValue < -0.01
+        ? `지금은 ${weakestCard.label} 단계가 가장 약합니다.`
+        : strongestCard && strongestValue > 0.01
+            ? `지금은 ${strongestCard.label} 단계가 전체 흐름을 가장 잘 받치고 있어요.`
+            : '지금은 4개 신호가 크게 갈리지 않아요.';
+
+    return `
+        <div class="brand-purchase-engine-wrap">
+            <div class="brand-purchase-engine-flow" aria-label="구매 활성도 흐름">
+            ${orderedCards.map((card, index) => `
+                <div class="brand-purchase-engine-step ${getTone(card)}">
+                    <span class="brand-purchase-engine-step-label">${escapeHtml(card.label)}</span>
+                    <span class="brand-purchase-engine-step-state">${escapeHtml(getStatusLabel(card))}</span>
+                </div>
+                ${index < orderedCards.length - 1 ? '<span class="brand-purchase-engine-arrow">→</span>' : ''}
+            `).join('')}
+            </div>
+            <p class="brand-purchase-engine-summary">${escapeHtml(summary)}</p>
+        </div>
     `;
 }
 
@@ -1586,11 +2102,11 @@ function renderBrandPurchaseDriversSection(drivers) {
             <section class="brand-purchase-drivers-card">
                 <div class="brand-section-head">
                     <div>
-                        <h2>Brand Purchase Drivers</h2>
-                        <p>브랜드 구매력은 아래 고객 행동 지표에서 만들어집니다. 최근 변화와 기여도를 함께 확인하세요.</p>
+                        <h2>왜 이런 상태인지</h2>
+                        <p>구매 활성도가 왜 좋아지거나 약해졌는지, 아래 4개 신호에서 먼저 확인하세요.</p>
                     </div>
                 </div>
-                <p class="brand-purchase-engine">Customers → Repeat → Attach → CLV</p>
+                <p class="brand-purchase-engine">어디서 약해지는지 먼저 보세요.</p>
                 <div class="brand-empty-state">
                     <p>${escapeHtml(drivers.note)}</p>
                     <p class="brand-empty-state-sub">${escapeHtml(drivers.helper)}</p>
@@ -1603,17 +2119,15 @@ function renderBrandPurchaseDriversSection(drivers) {
         <section class="brand-purchase-drivers-card">
             <div class="brand-section-head">
                 <div>
-                    <h2>Brand Purchase Drivers</h2>
-                    <p>브랜드 구매력은 아래 고객 행동 지표에서 만들어집니다. 최근 변화와 기여도를 함께 확인하세요.</p>
+                    <h2>왜 이런 상태인지</h2>
+                    <p>구매 활성도가 왜 좋아지거나 약해졌는지, 아래 4개 신호에서 먼저 확인하세요.</p>
                 </div>
             </div>
-            <p class="brand-purchase-engine">Customers → Repeat → Attach → CLV</p>
+            <p class="brand-purchase-engine">어디서 약해지는지 먼저 보세요.</p>
+            ${renderBrandPurchaseEngine(drivers.cards)}
+            <p class="brand-purchase-driver-guide">각 카드 아래 수치는 최근 1년 평균과 비교했을 때, 전체 구매 활성도가 바뀌는 데 얼마나 영향을 줬는지 보여줘요.</p>
             <div class="brand-purchase-drivers-grid">
                 ${drivers.cards.map((card) => {
-                    const contributionWidth = Math.max((Math.abs(toNumber(card.contribution, 0)) / drivers.maxAbsContribution) * 100, 6);
-                    const contributionClass = toNumber(card.contribution, 0) >= 0
-                        ? 'brand-driver-contribution-positive'
-                        : 'brand-driver-contribution-negative';
                     return `
                         <article class="brand-purchase-driver-item">
                             <div class="brand-purchase-driver-top">
@@ -1626,11 +2140,11 @@ function renderBrandPurchaseDriversSection(drivers) {
                             <p class="brand-purchase-driver-copy">${escapeHtml(card.interpretation)}</p>
                             <div class="brand-purchase-driver-impact">
                                 <div class="brand-purchase-driver-impact-head">
-                                    <span>브랜드 구매력 영향</span>
+                                    <div class="brand-purchase-driver-impact-meta">
+                                        <span>최근 변화 기여</span>
+                                        <span class="brand-purchase-driver-impact-baseline">최근 1년 기준 변화 기여</span>
+                                    </div>
                                     <strong>${escapeHtml(card.contributionLabel)}</strong>
-                                </div>
-                                <div class="brand-driver-contribution-bar">
-                                    <span class="brand-driver-contribution-fill ${contributionClass}" style="width:${contributionWidth}%"></span>
                                 </div>
                             </div>
                         </article>
@@ -1646,8 +2160,7 @@ function renderBrandPurchaseOverviewSection(model) {
         <section class="card brand-purchase-overview-card">
             <div class="brand-section-head brand-section-head-overview">
                 <div>
-                    <h2>지금 브랜드 구매력은 어떤 상태인가?</h2>
-                    <p>상단에서 지금 상태를 먼저 읽고, 바로 아래에서 어떤 고객 행동 지표가 원인이 되는지 이어서 확인하세요.</p>
+                    <h2>지금 구매 활성도는 어떤 상태인가?</h2>
                 </div>
             </div>
             <div class="brand-purchase-overview-stack">
@@ -1762,7 +2275,7 @@ function renderBrandDiagnosticSection(model) {
             <div class="brand-section-head">
                 <div>
                     <h2>지금 브랜드 상태를 진단하면 어디에 있나?</h2>
-                    <p>BHI와 브랜드 구매력, 그리고 매출을 함께 보면 지금 상태를 더 직관적으로 읽을 수 있어요.</p>
+                    <p>판매 구조, 구매 활성도, 매출을 함께 보면 지금 문제의 종류를 더 빨리 읽을 수 있어요.</p>
                 </div>
             </div>
             <div class="brand-matrix-grid-wrap">
@@ -1778,7 +2291,7 @@ function renderBrandPulsePanel(pulse) {
         return `
             <article class="brand-trend-panel brand-trend-panel-main">
                 <div class="brand-mini-chart-head">
-                    <h3>${brandRenderMetricName('일별 브랜드 구매력 흐름', 'Daily Pulse')}</h3>
+                    <h3>일별 구매 활성도 흐름</h3>
                     <span>데이터 없음</span>
                 </div>
                 <p class="brand-panel-compare"><strong>이 차트는 이런 때 봐요.</strong> 오늘이나 어제 흐름이 갑자기 좋아졌는지, 꺾였는지 바로 읽을 때 좋아요.</p>
@@ -1793,7 +2306,7 @@ function renderBrandPulsePanel(pulse) {
     return `
         <article class="brand-trend-panel brand-trend-panel-main">
             <div class="brand-mini-chart-head">
-                <h3>${brandRenderMetricName('일별 브랜드 구매력 흐름', 'Daily Pulse')}</h3>
+                <h3>일별 구매 활성도 흐름</h3>
                 <span>${escapeHtml(brandFormatPulseDelta(pulse.delta))}</span>
             </div>
             <p class="brand-panel-compare"><strong>이 차트는 이런 때 봐요.</strong> 오늘이나 어제 흐름이 갑자기 좋아졌는지, 꺾였는지 바로 읽을 때 좋아요.</p>
@@ -1808,14 +2321,14 @@ function renderBrandPulsePanel(pulse) {
 
 function renderBrandTimelineSupportPanel(timeline) {
     const selectedWindowLabel = `${formatNumber(timeline.selectedWindowDays || 30, 0)}일`;
-    const selectedWindowGuide = BRAND_TIMELINE_WINDOW_GUIDE[timeline.selectedWindowDays] || '선택한 기간 기준으로 브랜드 구매력을 해석해요.';
+    const selectedWindowGuide = BRAND_TIMELINE_WINDOW_GUIDE[timeline.selectedWindowDays] || '선택한 기간 기준으로 구매 활성도를 해석해요.';
     if (!timeline.availableWindows.length) {
         return `
             <article class="brand-trend-panel brand-trend-panel-secondary">
                 <div class="brand-mini-chart-head brand-mini-chart-head-stack">
                     <div>
-                        <h3>최근 기간 기준으로 보면 브랜드 구매력은 어떤가?</h3>
-                        <p>최근 7일, 30일처럼 기간을 묶어 브랜드 구매력 상태를 봐요.</p>
+                        <h3>최근 기간 기준으로 보면 구매 활성도는 어떤가?</h3>
+                        <p>최근 7일, 30일처럼 기간을 묶어 최근 흐름이 얼마나 이어지는지 봐요.</p>
                     </div>
                 </div>
                 <div class="brand-empty-state">
@@ -1829,18 +2342,18 @@ function renderBrandTimelineSupportPanel(timeline) {
         <article class="brand-trend-panel brand-trend-panel-secondary">
             <div class="brand-mini-chart-head brand-mini-chart-head-stack">
                 <div>
-                    <h3>최근 기간 기준으로 보면 브랜드 구매력은 어떤가?</h3>
-                    <p>최근 ${escapeHtml(selectedWindowLabel)}을 묶어, 구조가 브랜드 구매력으로 얼마나 나타나는지 봐요.</p>
+                    <h3>최근 기간 기준으로 보면 구매 활성도는 어떤가?</h3>
+                    <p>최근 ${escapeHtml(selectedWindowLabel)}을 묶어, 지금 구매 활성도가 얼마나 살아 있는지 봐요.</p>
                 </div>
             </div>
-            <p class="brand-panel-compare"><strong>이 차트는 이런 때 봐요.</strong> 최근 7일, 30일처럼 기간을 묶어 구조 상태가 브랜드 구매력으로 나타나고 있는지 볼 때 좋아요.</p>
+            <p class="brand-panel-compare"><strong>이 차트는 이런 때 봐요.</strong> 하루 흐름보다 조금 더 길게, 최근 운영이 실제 구매로 이어지고 있는지 볼 때 좋아요.</p>
             <div class="brand-explainer-card">
-                <p><strong>BII</strong>는 이 브랜드 구조가 최근 브랜드 구매력으로 얼마나 나타나고 있는지 보는 값이에요.</p>
-                <p>Daily Pulse가 하루 흐름이라면, BII는 최근 ${escapeHtml(selectedWindowLabel)}처럼 기간을 묶어 본 구조 상태예요. 각 점은 하루 값이 아니라, 그날까지의 최근 ${escapeHtml(selectedWindowLabel)}을 묶어 계산한 값이에요.</p>
+                <p><strong>구매 활성도</strong>는 최근 고객 반응이 실제 구매로 얼마나 이어지고 있는지 보여줘요.</p>
+                <p>위 차트가 하루 흐름이라면, 이 차트는 최근 ${escapeHtml(selectedWindowLabel)}을 한 번에 묶어 읽는 그림이에요. 각 점은 하루 값이 아니라 그날까지의 최근 ${escapeHtml(selectedWindowLabel)}을 묶어 계산한 값이에요.</p>
             </div>
             <p class="brand-timeline-context"><strong>${escapeHtml(selectedWindowLabel)} 기준은 이렇게 보면 돼요.</strong> ${escapeHtml(selectedWindowGuide)}</p>
             <div class="brand-mini-chart-head">
-                <h3>${brandRenderMetricName(`최근 ${selectedWindowLabel} 기준 브랜드 구매력`, 'BII')}</h3>
+                <h3>최근 ${escapeHtml(selectedWindowLabel)} 기준 구매 활성도</h3>
                 <span>${escapeHtml(brandFormatDelta(timeline.impactDelta))}</span>
             </div>
             <div class="brand-mini-chart-wrap">
@@ -1856,8 +2369,8 @@ function renderBrandTimelineSection(model) {
         <section class="card brand-timeline-card">
             <div class="brand-section-head">
                 <div>
-                    <h2>요즘 브랜드 구매력 흐름은 어떤가?</h2>
-                    <p>하루 단위 흐름은 메인 차트에서 보고, 최근 기간 기준 브랜드 구매력은 아래에서 보조로 확인해요.</p>
+                    <h2>요즘 구매 활성도 흐름은 어떤가?</h2>
+                    <p>하루 흐름은 위에서 보고, 조금 더 길게 본 흐름은 아래에서 같이 확인해요.</p>
                 </div>
             </div>
             <div class="brand-trend-stack">
@@ -1877,7 +2390,7 @@ function renderBrandDashboard() {
     if (topBarActions) {
         topBarActions.innerHTML = `
             <div class="brand-topbar-window">
-                <span class="brand-topbar-window-label">브랜드 구매력 기준 기간</span>
+                <span class="brand-topbar-window-label">구매 활성도 기준 기간</span>
                 <div class="brand-timeline-toggle brand-window-toggle">
                     ${BRAND_DIAGNOSTIC_WINDOW_ORDER.map((windowDays) => `
                         <button
@@ -1906,7 +2419,7 @@ function renderBrandDashboard() {
                 <div class="brand-section-head">
                     <div>
                         <h2>제품별 기여를 더 자세히 보려면</h2>
-                        <p>제품 단위 구조 기여, 브랜드 구매력 기여, 수요 흐름과 역할 맵은 제품 분석 화면에서 이어서 볼 수 있어요.</p>
+                        <p>제품 단위 구조 기여, 구매 활성도 기여, 수요 흐름과 역할 맵은 제품 분석 화면에서 이어서 볼 수 있어요.</p>
                     </div>
                     <a class="btn-primary brand-next-cta-link" href="../products/">제품 분석으로 이동</a>
                 </div>
@@ -2176,6 +2689,98 @@ function renderBrandRoleMapChart(model) {
 }
 
 function renderBrandTimelineCharts(model) {
+    const heroSparkCanvas = document.getElementById('brand-hero-sparkline');
+    if (heroSparkCanvas && model.timeline?.impactRows?.length) {
+        const heroSparkRows = model.timeline.impactRows.slice(-24);
+        const heroSparkValues = heroSparkRows.map((row) => toNumber(row.bii, 0) * 100);
+        const lastHighlightCount = Math.min(6, heroSparkValues.length);
+        const lastHighlightStart = Math.max(0, heroSparkValues.length - lastHighlightCount);
+        const lowIndex = heroSparkValues.reduce((bestIndex, value, index, arr) => (
+            bestIndex === -1 || value < arr[bestIndex] ? index : bestIndex
+        ), -1);
+        const heroSparkMin = Math.min(...heroSparkValues);
+        const heroSparkMax = Math.max(...heroSparkValues);
+        const heroSparkSpan = Math.max(heroSparkMax - heroSparkMin, 1);
+        const heroSparkPad = Math.max(heroSparkSpan * 0.22, 0.8);
+        AppState.charts.brandHeroSparkline = new Chart(heroSparkCanvas, {
+            type: 'line',
+            data: {
+                labels: heroSparkRows.map((row) => String(row.as_of_date || '').slice(5)),
+                datasets: [{
+                    label: '최근 흐름',
+                    data: heroSparkValues,
+                    borderColor: 'rgba(99, 102, 241, 0.38)',
+                    backgroundColor: 'rgba(99, 102, 241, 0.07)',
+                    borderWidth: 1.8,
+                    tension: 0.32,
+                    pointRadius: 0,
+                    pointHoverRadius: 0,
+                    fill: true
+                }, {
+                    label: '최근 구간',
+                    data: heroSparkValues.map((value, index) => (index >= lastHighlightStart ? value : null)),
+                    borderColor: '#4f46e5',
+                    backgroundColor: 'rgba(0, 0, 0, 0)',
+                    borderWidth: 2.7,
+                    tension: 0.32,
+                    pointRadius: 0,
+                    pointHoverRadius: 0,
+                    fill: false
+                }, {
+                    label: '저점',
+                    data: heroSparkValues.map((value, index) => (index === lowIndex ? value : null)),
+                    borderColor: 'rgba(0,0,0,0)',
+                    backgroundColor: 'rgba(0,0,0,0)',
+                    pointRadius: 3.4,
+                    pointHoverRadius: 0,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#818cf8',
+                    pointBorderWidth: 2,
+                    showLine: false
+                }, {
+                    label: '현재',
+                    data: heroSparkValues.map((value, index) => (index === heroSparkValues.length - 1 ? value : null)),
+                    borderColor: 'rgba(0,0,0,0)',
+                    backgroundColor: 'rgba(0,0,0,0)',
+                    pointRadius: 3.6,
+                    pointHoverRadius: 0,
+                    pointBackgroundColor: '#4338ca',
+                    pointBorderColor: '#c7d2fe',
+                    pointBorderWidth: 2,
+                    showLine: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: false }
+                },
+                scales: {
+                    x: {
+                        display: false,
+                        grid: { display: false },
+                        border: { display: false }
+                    },
+                    y: {
+                        display: false,
+                        min: heroSparkMin - heroSparkPad,
+                        max: heroSparkMax + heroSparkPad,
+                        grid: { display: false },
+                        border: { display: false }
+                    }
+                },
+                elements: {
+                    line: {
+                        capBezierPoints: true
+                    }
+                }
+            }
+        });
+    }
+
     const pulseCanvas = document.getElementById('brand-daily-pulse-timeline');
     if (pulseCanvas && model.dailyPulse.rows.length) {
         const pulseValues = model.dailyPulse.rows.map((row) => toNumber(row.daily_bii_pulse, 0) * 100);
@@ -2184,7 +2789,7 @@ function renderBrandTimelineCharts(model) {
             data: {
                 labels: model.dailyPulse.rows.map((row) => String(row.as_of_date || '').slice(5)),
                 datasets: [{
-                    label: '일별 브랜드 구매력 흐름 (Daily Pulse)',
+                    label: '일별 구매 활성도 흐름',
                     data: pulseValues,
                     borderColor: '#2563eb',
                     backgroundColor: 'rgba(37, 99, 235, 0.12)',
@@ -2231,7 +2836,7 @@ function renderBrandTimelineCharts(model) {
         data: {
             labels: model.timeline.impactRows.map((row) => String(row.as_of_date || '').slice(5)),
             datasets: [{
-                label: '최근 기간 기준 브랜드 구매력 (BII)',
+                label: '최근 기간 기준 구매 활성도',
                 data: impactValues,
                 borderColor: '#d97706',
                 backgroundColor: 'rgba(217, 119, 6, 0.12)',
