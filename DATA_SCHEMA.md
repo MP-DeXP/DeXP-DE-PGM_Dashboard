@@ -214,10 +214,14 @@
 - `Daily Pulse`는 날짜당 1행의 단일값을 전제로 합니다.
 - 이 파일이 없으면 브랜드 구조 페이지의 메인 일별 흐름 차트는 빈 상태로 표시되고, 보조 `brand_impact_timeseries` 차트는 계속 렌더링됩니다.
 
-## 13) `brand_purchase_driver_timeseries` (신규, 선택)
+## 13) `purchase_activation_driver_timeseries` (신규, 선택)
 용도: 브랜드 구조 페이지 - Hero + Brand Purchase Drivers
 
 권장 파일명:
+- `purchase_activation_driver_timeseries.csv`
+- `_insight_purchase_activation_driver_timeseries.csv`
+
+호환 alias:
 - `brand_purchase_driver_timeseries.csv`
 - `_insight_brand_purchase_driver_timeseries.csv`
 

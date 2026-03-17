@@ -77,17 +77,17 @@ const REQUIRED_FILES = {
     biiWindow: {
         key: 'bii_window',
         filename: '_insight_bii_window.csv',
-        aliases: ['bii_window.csv', 'brand_impact_windows.csv', 'brand_impact_index.csv']
+        aliases: ['bii_window.csv', 'brand_impact_windows.csv', 'brand_impact_index.csv', 'purchase_activation_windows.csv', 'purchase_activation_index.csv']
     },
     brandImpactTimeseries: {
         key: 'brand_impact_timeseries',
         filename: '_insight_brand_impact_timeseries.csv',
-        aliases: ['brand_impact_timeseries.csv']
+        aliases: ['brand_impact_timeseries.csv', 'purchase_activation_timeseries.csv', '_insight_purchase_activation_timeseries.csv']
     },
     brandImpactDailyPulse: {
         key: 'brand_impact_daily_pulse',
         filename: '_insight_brand_impact_daily_pulse.csv',
-        aliases: ['brand_impact_daily_pulse.csv']
+        aliases: ['brand_impact_daily_pulse.csv', 'purchase_activation_daily_pulse.csv', '_insight_purchase_activation_daily_pulse.csv']
     },
     brandRevenueTimeseries: {
         key: 'brand_revenue_timeseries',
@@ -96,8 +96,8 @@ const REQUIRED_FILES = {
     },
     brandPurchaseDriverTimeseries: {
         key: 'brand_purchase_driver_timeseries',
-        filename: '_insight_brand_purchase_driver_timeseries.csv',
-        aliases: ['brand_purchase_driver_timeseries.csv']
+        filename: '_insight_purchase_activation_driver_timeseries.csv',
+        aliases: ['purchase_activation_driver_timeseries.csv', '_insight_brand_purchase_driver_timeseries.csv', 'brand_purchase_driver_timeseries.csv']
     },
     brandStructureTimeseries: {
         key: 'brand_structure_timeseries',
@@ -1908,7 +1908,7 @@ const convertBrandImpactWindowsToBiiWindow = (rows) => {
         return {
             as_of_date: withFallback(row.period_end, row.as_of_date || ''),
             window_days: windowDays,
-            bii: asNullableNumber(row.bii_t),
+            bii: asNullableNumber(firstDefinedValue(row.bii_t, row.pai_t)),
             bhi: asNullableNumber(row.bhi),
             clv_norm: asNullableNumber(row.clv_t_norm),
             customer_strength_norm: asNullableNumber(row.customer_strength_t_norm),
@@ -1921,18 +1921,18 @@ const convertBrandImpactWindowsToBiiWindow = (rows) => {
 
 const convertBrandImpactIndexToBiiWindow = (rows) => {
     const windowMap = [
-        { days: 1, field: 'bii_1d' },
-        { days: 7, field: 'bii_7d' },
-        { days: 30, field: 'bii_30d' },
-        { days: 90, field: 'bii_90d' },
-        { days: 365, field: 'bii_365d' }
+        { days: 1, fields: ['bii_1d', 'pai_1d'] },
+        { days: 7, fields: ['bii_7d', 'pai_7d'] },
+        { days: 30, fields: ['bii_30d', 'pai_30d'] },
+        { days: 90, fields: ['bii_90d', 'pai_90d'] },
+        { days: 365, fields: ['bii_365d', 'pai_365d'] }
     ];
 
     const normalizedRows = normalizeCsvRows(rows);
     const result = [];
     normalizedRows.forEach((row) => {
         windowMap.forEach((w) => {
-            const bii = asNullableNumber(row[w.field]);
+            const bii = asNullableNumber(firstDefinedValue(...w.fields.map((field) => row[field])));
             if (bii === null) return;
             result.push({
                 as_of_date: withFallback(row.analysis_end_date, row.as_of_date || ''),
@@ -1963,7 +1963,7 @@ const transformBrandImpactTimeseriesRows = (rows) => {
             window_key: windowKey,
             window_days: windowDays,
             bhi: asNullableNumber(row.bhi),
-            bii: asNullableNumber(firstDefinedValue(row.bii, row.bii_t)),
+            bii: asNullableNumber(firstDefinedValue(row.bii, row.bii_t, row.pai_t)),
             clv_norm: asNullableNumber(firstDefinedValue(row.clv_norm, row.clv_t_norm)),
             customer_strength_norm: asNullableNumber(firstDefinedValue(row.customer_strength_norm, row.customer_strength_t_norm)),
             repeat_rate_t: asNullableNumber(row.repeat_rate_t),
@@ -1984,7 +1984,7 @@ const transformBrandImpactDailyPulseRows = (rows) => {
     return normalizeCsvRows(rows).map((row) => ({
         as_of_date: withFallback(firstDefinedValue(row.as_of_date, row.analysis_end_date, row.period_end), ''),
         bhi: asNullableNumber(row.bhi),
-        daily_bii_pulse: asNullableNumber(row.daily_bii_pulse),
+        daily_bii_pulse: asNullableNumber(firstDefinedValue(row.daily_bii_pulse, row.daily_pai_pulse)),
         confidence_index: withFallback(firstDefinedValue(row.confidence_index, row.confidence), '-'),
         baseline_days: asNullableNumber(row.baseline_days),
         active_customers_baseline: asNullableNumber(row.active_customers_baseline),
@@ -2036,8 +2036,8 @@ const transformBrandPurchaseDriverTimeseriesRows = (rows) => {
             baseline_days: asNullableNumber(row.baseline_days),
             window_key: windowKey,
             window_days: windowDays,
-            bii_t: asNullableNumber(firstDefinedValue(row.bii_t, row.bii)),
-            bii_365: asNullableNumber(firstDefinedValue(row.bii_365, row.bii_365d)),
+            bii_t: asNullableNumber(firstDefinedValue(row.pai_t, row.bii_t, row.bii)),
+            bii_365: asNullableNumber(firstDefinedValue(row.pai_365, row.bii_365, row.bii_365d)),
             momentum_t: asNullableNumber(row.momentum_t),
             active_customers_t: asNullableNumber(row.active_customers_t),
             repeat_rate_t: asNullableNumber(row.repeat_rate_t),
@@ -2122,7 +2122,13 @@ const preprocessUploadRows = (config, filename, rows) => {
     if (config.key === REQUIRED_FILES.biiWindow.key && lowerName.includes('brand_impact_windows')) {
         return convertBrandImpactWindowsToBiiWindow(rows);
     }
+    if (config.key === REQUIRED_FILES.biiWindow.key && lowerName.includes('purchase_activation_windows')) {
+        return convertBrandImpactWindowsToBiiWindow(rows);
+    }
     if (config.key === REQUIRED_FILES.biiWindow.key && lowerName.includes('brand_impact_index')) {
+        return convertBrandImpactIndexToBiiWindow(rows);
+    }
+    if (config.key === REQUIRED_FILES.biiWindow.key && lowerName.includes('purchase_activation_index')) {
         return convertBrandImpactIndexToBiiWindow(rows);
     }
     if (config.key === REQUIRED_FILES.brandImpactTimeseries.key) {

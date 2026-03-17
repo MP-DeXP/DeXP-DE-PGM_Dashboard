@@ -47,7 +47,7 @@
 - `brand_impact_timeseries` (선택)
 - `brand_impact_daily_pulse` (선택)
 - `brand_revenue_timeseries` (선택)
-- `brand_purchase_driver_timeseries` (선택)
+- `purchase_activation_driver_timeseries` (선택)
 - `brand_structure_timeseries` (선택)
 - `product_group_map` (선택)
 
@@ -60,7 +60,8 @@
 
 ## 브랜드 페이지 메모
 - 브랜드 페이지 상단은 `Hero = 상태`, `Brand Purchase Drivers = 원인` 구조로 구성합니다.
-- `brand_purchase_driver_timeseries`가 있으면 Hero/Drivers를 모두 렌더하고, 없으면 Hero는 축소 버전으로 표시하며 Drivers는 빈 상태 설명만 보여 줍니다.
+- `purchase_activation_driver_timeseries`가 있으면 Hero/Drivers를 모두 렌더하고, 없으면 Hero는 축소 버전으로 표시하며 Drivers는 빈 상태 설명만 보여 줍니다.
+- 구버전 파일명 `brand_purchase_driver_timeseries.csv`도 alias로 계속 지원합니다.
 - `brand_structure_timeseries`가 있으면 판매 구조 4카드는 선택한 `7/30/90일` 기준으로 함께 바뀝니다.
 - `brand_structure_timeseries`가 없으면 판매 구조 섹션은 현재 구조 기준 fallback 계산으로 보여 주고, 화면에 그 기준을 명시합니다.
 - 브랜드 페이지에서는 현재 브랜드 상태 진단에 집중하기 위해 제품별 기여 목록, 수요 흐름 스냅샷, 수요 구조 맵 UI를 메인 화면에서 숨기고 `apps/products/`로 이동하도록 구성합니다.

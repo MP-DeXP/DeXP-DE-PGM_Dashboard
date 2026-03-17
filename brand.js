@@ -157,7 +157,7 @@ const BRAND_DIAGNOSTIC_META = {
 const BRAND_PURCHASE_DRIVER_META = {
     customers: {
         key: 'customers',
-        label: '활성 고객',
+        label: '구매 고객',
         engineLabel: 'Customers',
         valueField: 'active_customers_t',
         contributionField: 'customers_contribution'
@@ -334,6 +334,21 @@ function brandResolveDriverLabel(driverKey) {
     return driverKey || '';
 }
 
+function brandNormalizeUiCopy(text) {
+    return String(text || '')
+        .replaceAll('활성 고객', '구매 고객')
+        .replaceAll('브랜드 구매력', '구매 활성도')
+        .replaceAll('active customers', 'purchase customers')
+        .replaceAll('Active Customers', 'Purchase Customers')
+        .replaceAll('반등하고 있습니다', '반등하고 있어요')
+        .replaceAll('상승하고 있습니다', '올라가고 있어요')
+        .replaceAll('하락하고 있습니다', '낮아지고 있어요')
+        .replaceAll('회복하고 있습니다', '회복되고 있어요')
+        .replaceAll('최근 구매 고객 회복으로', '최근 구매 고객이 회복되며')
+        .replaceAll('최근 활성 고객 회복으로', '최근 구매 고객이 회복되며')
+        .trim();
+}
+
 function brandBuildHeroStateFromMomentum(momentum, deltaPercent) {
     if (!Number.isFinite(momentum)) return '안정';
     if (momentum < 1 && Number.isFinite(deltaPercent) && deltaPercent > 1) return '회복 중';
@@ -389,7 +404,7 @@ function brandBuildHeroModel(driverRows, currentImpactRow, biiRows, timeseries, 
             stateLabel: latestDriverRow.momentum_state || brandBuildHeroStateFromMomentum(momentum, directionValue),
             directionLabel: brandFormatSignedPercent(latestDriverRow.momentum_delta_pct),
             directionSentence: brandBuildHeroDirectionSentence(selectedWindowDays, momentum),
-            summary: latestDriverRow.hero_summary || impactInterpretation,
+            summary: brandNormalizeUiCopy(latestDriverRow.hero_summary || impactInterpretation),
             causes: causes.length ? causes : brandGetFallbackHeroCauses(componentScores)
         };
     }
@@ -438,7 +453,7 @@ function brandBuildHeroMetrics(selectedWindowDays, revenueTimeseries) {
         : null;
 
     return [{
-        label: 'Revenue',
+        label: '매출',
         value: revenueCurrentRow ? brandFormatCurrencyValue(toNumber(revenueCurrentRow.revenue_t, NaN)) : '데이터 없음',
         meta: revenueCurrentRow ? brandFormatSignedPercent(revenueDeltaPct) : '데이터 없음'
     }];
@@ -446,8 +461,8 @@ function brandBuildHeroMetrics(selectedWindowDays, revenueTimeseries) {
 
 function brandBuildDriverInterpretation(meta, deltaPercent, contribution) {
     if (meta.key === 'customers') {
-        if (Number.isFinite(deltaPercent) && deltaPercent > 0) return '최근 활성 고객이 늘고 있어요.';
-        if (Number.isFinite(deltaPercent) && deltaPercent < 0) return '최근 활성 고객이 줄고 있어요.';
+        if (Number.isFinite(deltaPercent) && deltaPercent > 0) return '최근 구매 고객이 늘고 있어요.';
+        if (Number.isFinite(deltaPercent) && deltaPercent < 0) return '최근 구매 고객이 줄고 있어요.';
     }
     if (meta.key === 'repeat') {
         if (Number.isFinite(deltaPercent) && deltaPercent < 0) return '최근 반복 구매가 감소했습니다.';
@@ -480,9 +495,8 @@ function brandBuildDriversModel(driverRows, selectedWindowDays) {
         return {
             empty: true,
             note: '구매 활성도 드라이버 데이터가 없어 원인 카드들은 아직 표시하지 않아요.',
-            helper: '이 섹션은 brand_purchase_driver_timeseries.csv가 있을 때 렌더돼요.',
-            cards: [],
-            maxAbsContribution: 0
+            helper: '이 섹션은 purchase_activation_driver_timeseries.csv가 있을 때 렌더돼요.',
+            cards: []
         };
     }
 
@@ -502,15 +516,13 @@ function brandBuildDriversModel(driverRows, selectedWindowDays) {
             deltaPercent,
             deltaLabel: brandFormatSignedPercent(deltaPercent),
             contribution,
-            contributionLabel: brandFormatSignedPercent(contribution),
             interpretation: brandBuildDriverInterpretation(meta, deltaPercent, contribution)
         };
     });
 
     return {
         empty: false,
-        cards,
-        maxAbsContribution: Math.max(...cards.map((card) => Math.abs(toNumber(card.contribution, 0))), 0.001)
+        cards
     };
 }
 
@@ -920,27 +932,6 @@ function brandBuildStructureOverview(cards, healthCurrentScore, healthDelta, hea
         weakest: weakItems.map((item) => item.label),
         summary
     };
-}
-
-function brandBuildStructureDriverHints(purchaseDrivers) {
-    const cards = purchaseDrivers?.cards || [];
-    const hints = [];
-    const repeatCard = cards.find((card) => card.key === 'repeat');
-    const attachCard = cards.find((card) => card.key === 'attach');
-
-    if (repeatCard && toNumber(repeatCard.contribution, 0) < 0) {
-        hints.push('반복 구매율이 약하면 → 고객이 돌아오는 제품 확인');
-    }
-    if (attachCard && toNumber(attachCard.contribution, 0) < 0) {
-        hints.push('장바구니 확장도가 약하면 → 장바구니 확장 구조 확인');
-    }
-
-    if (!hints.length) {
-        hints.push('반복 구매율이 약하면 → 고객이 돌아오는 제품 확인');
-        hints.push('장바구니 확장도가 약하면 → 장바구니 확장 구조 확인');
-    }
-
-    return hints.slice(0, 2);
 }
 
 function brandGetRoleKey(entry, expansion, centerEntry, centerExpansion) {
@@ -1792,7 +1783,6 @@ function buildBrandDashboardModel() {
         structureCards,
         structureOverview,
         structureBasisNote,
-        structureDriverHints: brandBuildStructureDriverHints(purchaseDrivers),
         dailyPulse,
         timeline,
         diagnosticMatrices,
@@ -1922,11 +1912,11 @@ function renderBrandHeroSection(hero, selectedWindowDays, heroMetrics = []) {
                         <div class="brand-hero-state-block">
                             <div class="brand-hero-state-line">
                                 <div class="brand-hero-state-group">
-                                    <span class="brand-hero-state-basis">최근 흐름 기준 상태</span>
+                                    <span class="brand-hero-state-basis">최근 흐름 기준</span>
                                     <h2 class="brand-hero-state">${escapeHtml(hero.stateLabel)}</h2>
                                 </div>
                                 <div class="brand-hero-direction-wrap">
-                                    <span class="brand-hero-direction-label">최근 1년 기준 현재 수준</span>
+                                    <span class="brand-hero-direction-label">최근 1년 기준</span>
                                     <span class="brand-hero-direction">${escapeHtml(hero.directionLabel)}</span>
                                 </div>
                             </div>
@@ -1942,15 +1932,16 @@ function renderBrandHeroSection(hero, selectedWindowDays, heroMetrics = []) {
                             <div class="brand-hero-sparkline-block">
                                 <div class="brand-hero-sparkline-head">
                                     <span>최근 ${escapeHtml(formatNumber(selectedWindowDays, 0))}일 흐름</span>
+                                    <button class="brand-hero-sparkline-cta" type="button" onclick="scrollToBrandTrendSection()">자세히 보기</button>
                                 </div>
-                                <div class="brand-hero-sparkline-wrap">
+                                <div class="brand-hero-sparkline-wrap" role="button" tabindex="0" aria-label="하단 추이 섹션으로 이동" onclick="scrollToBrandTrendSection()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();scrollToBrandTrendSection();}">
                                     <canvas id="brand-hero-sparkline"></canvas>
                                 </div>
                             </div>
-                            <p class="brand-hero-direction-copy">${escapeHtml(hero.directionSentence)}</p>
-                            <p class="brand-hero-flow-copy">${escapeHtml(brandBuildHeroFlowSentence(hero.stateLabel))}</p>
-                            <p class="brand-hero-summary">${escapeHtml(hero.summary)}</p>
-                            ${hero.helper ? `<p class="brand-hero-helper">${escapeHtml(hero.helper)}</p>` : ''}
+                            <p class="brand-hero-direction-copy">${escapeHtml(brandNormalizeUiCopy(hero.directionSentence))}</p>
+                            <p class="brand-hero-flow-copy">${escapeHtml(brandNormalizeUiCopy(brandBuildHeroFlowSentence(hero.stateLabel)))}</p>
+                            <p class="brand-hero-summary">${escapeHtml(brandNormalizeUiCopy(hero.summary))}</p>
+                            ${hero.helper ? `<p class="brand-hero-helper">${escapeHtml(brandNormalizeUiCopy(hero.helper))}</p>` : ''}
                         </div>
                         <div class="brand-hero-bar-side">
                             <div class="brand-hero-bar-cause">
@@ -1958,7 +1949,7 @@ function renderBrandHeroSection(hero, selectedWindowDays, heroMetrics = []) {
                                     <p class="brand-hero-cause-label">주요 원인</p>
                                 </div>
                                 <ul class="brand-hero-cause-list">
-                                    ${(hero.causes || []).slice(0, 2).map((cause) => `<li>${escapeHtml(cause)}</li>`).join('') || '<li>원인 요약 데이터가 아직 부족해요.</li>'}
+                                    ${(hero.causes || []).slice(0, 2).map((cause) => `<li>${escapeHtml(brandNormalizeUiCopy(cause))}</li>`).join('') || '<li>원인 요약 데이터가 아직 부족해요.</li>'}
                                 </ul>
                             </div>
                         </div>
@@ -2041,11 +2032,7 @@ function renderBrandStructureSection(model) {
                     <p>구매 활성도의 바탕이 되는 구조 건강도를 봐요.</p>
                 </div>
             </div>
-            <p class="brand-structure-guide">원인 지표가 약할 때, 판매 구조도 약한지 여기서 확인해요.</p>
             ${model.structureBasisNote ? `<p class="brand-structure-basis-note">${escapeHtml(model.structureBasisNote)}</p>` : ''}
-            <div class="brand-structure-hints">
-                ${(model.structureDriverHints || []).map((hint) => `<span class="brand-structure-hint">${escapeHtml(hint)}</span>`).join('')}
-            </div>
             ${renderBrandStructureOverviewCard(model.structureOverview)}
             ${renderBrandStructureAxisCards(model.structureCards)}
         </section>
@@ -2068,7 +2055,7 @@ function renderBrandPurchaseEngine(cards) {
     const getStatusLabel = (card) => {
         const value = toNumber(card.contribution, 0);
         if (weakestCard && card.key === weakestCard.key && weakestValue < -0.01) return '가장 약함';
-        if (strongestCard && card.key === strongestCard.key && strongestValue > 0.01) return '받치고 있음';
+        if (strongestCard && card.key === strongestCard.key && strongestValue > 0.01) return '안정';
         if (value < -0.01) return '약함';
         if (value > 0.01) return '보통 이상';
         return '보통';
@@ -2123,9 +2110,7 @@ function renderBrandPurchaseDriversSection(drivers) {
                     <p>구매 활성도가 왜 좋아지거나 약해졌는지, 아래 4개 신호에서 먼저 확인하세요.</p>
                 </div>
             </div>
-            <p class="brand-purchase-engine">어디서 약해지는지 먼저 보세요.</p>
             ${renderBrandPurchaseEngine(drivers.cards)}
-            <p class="brand-purchase-driver-guide">각 카드 아래 수치는 최근 1년 평균과 비교했을 때, 전체 구매 활성도가 바뀌는 데 얼마나 영향을 줬는지 보여줘요.</p>
             <div class="brand-purchase-drivers-grid">
                 ${drivers.cards.map((card) => {
                     return `
@@ -2138,15 +2123,6 @@ function renderBrandPurchaseDriversSection(drivers) {
                                 <span class="brand-purchase-driver-delta">${escapeHtml(card.deltaLabel)}</span>
                             </div>
                             <p class="brand-purchase-driver-copy">${escapeHtml(card.interpretation)}</p>
-                            <div class="brand-purchase-driver-impact">
-                                <div class="brand-purchase-driver-impact-head">
-                                    <div class="brand-purchase-driver-impact-meta">
-                                        <span>최근 변화 기여</span>
-                                        <span class="brand-purchase-driver-impact-baseline">최근 1년 기준 변화 기여</span>
-                                    </div>
-                                    <strong>${escapeHtml(card.contributionLabel)}</strong>
-                                </div>
-                            </div>
                         </article>
                     `;
                 }).join('')}
@@ -2209,7 +2185,6 @@ function renderBrandDiagnosticMatrixCard(matrix) {
                 <div class="brand-matrix-head">
                     <div>
                         <h3>${escapeHtml(matrix.title)}</h3>
-                        <p>${escapeHtml(matrix.description)}</p>
                     </div>
                 </div>
                 <div class="brand-empty-state">
@@ -2230,14 +2205,12 @@ function renderBrandDiagnosticMatrixCard(matrix) {
             <div class="brand-matrix-head">
                 <div>
                     <h3>${escapeHtml(matrix.title)}</h3>
-                    <p>${escapeHtml(matrix.description)}</p>
                 </div>
                 <span class="brand-matrix-stage ${stageToneClass}">${escapeHtml(matrix.stage.label)}</span>
             </div>
             <p class="brand-matrix-summary">${escapeHtml(matrix.stage.summary)}</p>
             <p class="brand-matrix-note">${escapeHtml(matrix.note)}</p>
             <div class="brand-matrix-visual">
-                <div class="brand-matrix-axis-label brand-matrix-axis-label-y">${escapeHtml(matrix.yAxisLabel)}</div>
                 <div class="brand-matrix-axis-label brand-matrix-axis-label-x">${escapeHtml(matrix.xAxisLabel)}</div>
                 <div class="brand-matrix-grid brand-matrix-grid-${escapeHtml(matrix.kind)}" style="--matrix-threshold-x:${brandScaleMatrixPoint(matrix.thresholdX, matrix.xRange)}%; --matrix-threshold-y:${brandScaleMatrixPoint(matrix.thresholdY, matrix.yRange)}%;">
                     <div class="brand-matrix-cell brand-matrix-cell-q1"><strong>${escapeHtml(matrix.kind === 'structure' ? '단기 펌핑' : '장기 개선 신호')}</strong></div>
@@ -2880,6 +2853,14 @@ function renderBrandTimelineCharts(model) {
 window.setBrandWindow = (windowDays) => {
     AppState.viewState.brand.brandWindowDays = toNumber(windowDays, 30);
     renderBrandDashboard();
+};
+
+window.scrollToBrandTrendSection = () => {
+    const section = document.querySelector('.brand-timeline-card');
+    if (!section) return;
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    section.classList.add('is-highlighted');
+    window.setTimeout(() => section.classList.remove('is-highlighted'), 1400);
 };
 
 window.renderBrandDashboard = renderBrandDashboard;

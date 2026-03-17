@@ -25,6 +25,7 @@
 여기서 `Customer_Strength_t_norm` 안에는 반복구매와 장바구니 깊이가 같이 들어간다.
 
 - `Depth_t = 0.7 × RepeatRate_t + 0.3 × AttachRate_t`
+- 현재 구현에서 `RepeatRate_t`는 선택 기간 안 활성 고객 중 같은 기간에 2회 이상 주문한 고객 비율이다.
 
 ## 역할 분리
 - `PS` (`brand_score.csv` legacy column: `BHI`)는 구조의 본질을 본다.
@@ -56,6 +57,11 @@
 `brand_structure_timeseries.csv`는 `PS`나 `PAI`를 대체하는 지표가 아니다.
 
 이 파일은 각 `as_of_date` 시점의 최근 `7/30/90일` 행동 데이터를 기준으로 Structure UI 4카드를 같은 기간 기준으로 맞춰주기 위한 windowed structure snapshot이다.
+
+`Entry/Flow`는 window 안 첫 관측 주문을 쓰지 않는다.
+
+- `Entry`: 고객의 브랜드 전체 이력 기준 실제 첫 구매가 window 안에 들어온 cohort
+- `Flow`: 그 cohort의 실제 두 번째 구매가 window 안에 들어온 비율과 대표 경로
 
 - Entry -> `entry_product_ratio`
 - Flow -> `flow_transition_rate`

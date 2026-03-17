@@ -17,6 +17,17 @@ Brand Score가 브랜드의 구조를 본다면, PAI는 그 구조가 최근 운
 - `Customer_Strength_t_norm = sqrt((Active_Customers_t × Depth_t) / Active_Customers_baseline)`
 - `Depth_t = 0.7 × RepeatRate_t + 0.3 × AttachRate_t`
 
+현재 구현에서 `RepeatRate_t`와 `AttachRate_t`의 business definition은 아래와 같다.
+
+- `active_customers_t`: 선택 기간 안에서 1회 이상 주문한 distinct customer 수
+- `repeat_customers_t`: 선택 기간 안에서 distinct order가 2회 이상인 customer 수
+- `repeat_rate_t = repeat_customers_t / active_customers_t`
+- `attach_orders_t`: 선택 기간 안에서 cart size가 2 이상인 order 수
+- `total_orders_t`: 선택 기간 안 전체 distinct order 수
+- `attach_rate_t = attach_orders_t / total_orders_t`
+
+즉 `repeat_rate_t`는 첫 구매 cohort 기준 재구매율이 아니라, 선택 기간 안의 활성 고객 중 같은 기간에 2회 이상 주문한 고객 비율이다.
+
 ## PAI가 보는 것
 - 구조 건강도는 이미 충분한가
 - 그 구조가 최근 기간에 실제 고객 가치로 전환되는가
@@ -98,6 +109,12 @@ Brand Score가 브랜드의 구조를 본다면, PAI는 그 구조가 최근 운
 - `stage`
 - `scope`
 
+`repeat_rate_t`는 아래 의미를 갖는다.
+
+- 분모: 선택 기간 안에서 1회 이상 주문한 `active_customers_t`
+- 분자: 선택 기간 안에서 distinct order가 2회 이상인 `repeat_customers_t`
+- 해석: 선택 기간 안에서 고객이 다시 구매하는 정도를 나타내는 고객 기준 반복구매율
+
 `purchase_activation_daily_pulse.csv`의 주요 컬럼은 아래와 같다.
 
 - `as_of_date`
@@ -116,6 +133,8 @@ Brand Score가 브랜드의 구조를 본다면, PAI는 그 구조가 최근 운
 - `daily_pai_pulse`
 - `stage`
 - `scope`
+
+이 파일의 `repeat_rate_t`도 같은 정의를 따른다.
 
 `brand_revenue_timeseries.csv`의 주요 컬럼은 아래와 같다.
 
@@ -152,6 +171,8 @@ Brand Score가 브랜드의 구조를 본다면, PAI는 그 구조가 최근 운
 - `top_driver_1`
 - `top_driver_2`
 - `hero_summary`
+
+이 파일의 `repeat_rate_t` 역시 같은 정의를 사용하며, `Depth_t = 0.7 × RepeatRate_t + 0.3 × AttachRate_t`의 `RepeatRate_t`에 그대로 들어간다.
 
 ## 시계열 해석 제약
 - 현재 구현은 `historical PS+PAI full recompute`가 아니다.
