@@ -350,11 +350,11 @@ function brandNormalizeUiCopy(text) {
 }
 
 function brandBuildHeroStateFromMomentum(momentum, deltaPercent) {
-    if (!Number.isFinite(momentum)) return '안정';
-    if (momentum < 1 && Number.isFinite(deltaPercent) && deltaPercent > 1) return '회복 중';
-    if (momentum > 1.1) return '강화 중';
-    if (momentum < 0.9) return '약화 중';
-    return '안정';
+    if (!Number.isFinite(momentum)) return '안정적';
+    if (momentum < 1 && Number.isFinite(deltaPercent) && deltaPercent > 1) return '반등 중';
+    if (momentum > 1.1) return '좋아지는 중';
+    if (momentum < 0.9) return '약해지는 중';
+    return '안정적';
 }
 
 function brandBuildHeroDirectionSentence(windowDays, momentum) {
@@ -369,10 +369,19 @@ function brandBuildHeroDirectionSentence(windowDays, momentum) {
 
 function brandBuildHeroFlowSentence(stateLabel) {
     const label = String(stateLabel || '').trim();
-    if (label === '회복 중') return '최근 흐름은 약한 구간에서 다시 살아나고 있어요.';
-    if (label === '강화 중') return '최근 흐름은 계속 좋아지는 쪽에 가까워요.';
-    if (label === '약화 중') return '최근 흐름은 다시 약해지는 쪽으로 움직이고 있어요.';
+    if (label === '반등 중') return '최근 흐름은 약한 구간에서 다시 살아나고 있어요.';
+    if (label === '좋아지는 중') return '최근 흐름은 계속 좋아지는 쪽에 가까워요.';
+    if (label === '약해지는 중') return '최근 흐름은 다시 약해지는 쪽으로 움직이고 있어요.';
     return '최근 흐름은 크게 흔들리지 않고 있어요.';
+}
+
+function brandNormalizeHeroStateLabel(label) {
+    const normalized = String(label || '').trim();
+    if (normalized === '회복 중') return '반등 중';
+    if (normalized === '강화 중') return '좋아지는 중';
+    if (normalized === '약화 중') return '약해지는 중';
+    if (normalized === '안정') return '안정적';
+    return normalized || '안정적';
 }
 
 function brandGetFallbackHeroCauses(componentScores) {
@@ -401,7 +410,7 @@ function brandBuildHeroModel(driverRows, currentImpactRow, biiRows, timeseries, 
             empty: false,
             source: 'driver',
             eyebrow: '구매 활성도 상태',
-            stateLabel: latestDriverRow.momentum_state || brandBuildHeroStateFromMomentum(momentum, directionValue),
+            stateLabel: brandNormalizeHeroStateLabel(latestDriverRow.momentum_state || brandBuildHeroStateFromMomentum(momentum, directionValue)),
             directionLabel: brandFormatSignedPercent(latestDriverRow.momentum_delta_pct),
             directionSentence: brandBuildHeroDirectionSentence(selectedWindowDays, momentum),
             summary: brandNormalizeUiCopy(latestDriverRow.hero_summary || impactInterpretation),
@@ -429,7 +438,7 @@ function brandBuildHeroModel(driverRows, currentImpactRow, biiRows, timeseries, 
         empty: false,
         source: 'fallback',
         eyebrow: '구매 활성도 상태',
-        stateLabel: brandBuildHeroStateFromMomentum(momentum, deltaPercent),
+        stateLabel: brandNormalizeHeroStateLabel(brandBuildHeroStateFromMomentum(momentum, deltaPercent)),
         directionLabel: brandFormatSignedPercent(deltaPercent),
         directionSentence: brandBuildHeroDirectionSentence(selectedWindowDays, momentum),
         summary: impactInterpretation,
@@ -2015,7 +2024,7 @@ function renderBrandStructureAxisCards(cards) {
                     </div>
                     <p class="brand-structure-axis-copy">${escapeHtml(card.interpretation)}</p>
                     <div class="brand-structure-axis-cta-wrap">
-                        <a class="brand-structure-axis-cta" href="${escapeHtml(getCtaHref(card.key))}">제품 분석에서 보기</a>
+                        <a class="brand-structure-axis-cta" href="${escapeHtml(getCtaHref(card.key))}">제품 관계 분석에서 보기</a>
                     </div>
                 </article>
             `).join('')}
@@ -2137,6 +2146,7 @@ function renderBrandPurchaseOverviewSection(model) {
             <div class="brand-section-head brand-section-head-overview">
                 <div>
                     <h2>지금 구매 활성도는 어떤 상태인가?</h2>
+                    <p>판매 구조가 실제 구매까지 얼마나 이어지고 있는지 보여줘요.</p>
                 </div>
             </div>
             <div class="brand-purchase-overview-stack">
@@ -2363,7 +2373,12 @@ function renderBrandDashboard() {
     if (topBarActions) {
         topBarActions.innerHTML = `
             <div class="brand-topbar-window">
-                <span class="brand-topbar-window-label">구매 활성도 기준 기간</span>
+                <div class="brand-topbar-window-copy">
+                    <div class="brand-topbar-window-head">
+                        <span class="brand-topbar-window-label">구매 활성도 묶음 기준</span>
+                        <span class="brand-topbar-window-helper">조회 90일 고정</span>
+                    </div>
+                </div>
                 <div class="brand-timeline-toggle brand-window-toggle">
                     ${BRAND_DIAGNOSTIC_WINDOW_ORDER.map((windowDays) => `
                         <button
@@ -2371,7 +2386,7 @@ function renderBrandDashboard() {
                             type="button"
                             onclick="setBrandWindow(${windowDays})"
                             ${model.availableWindows?.includes(windowDays) ? '' : 'disabled'}
-                        >${formatNumber(windowDays, 0)}일</button>
+                        >${formatNumber(windowDays, 0)}일 묶음</button>
                     `).join('')}
                 </div>
             </div>
@@ -2392,11 +2407,11 @@ function renderBrandDashboard() {
                 <div class="brand-section-head">
                     <div>
                         <h2>제품별 기여를 더 자세히 보려면</h2>
-                        <p>제품 단위 구조 기여, 구매 활성도 기여, 수요 흐름과 역할 맵은 제품 분석 화면에서 이어서 볼 수 있어요.</p>
+                        <p>제품 단위 구조 기여, 구매 활성도 기여, 수요 흐름과 역할 맵은 제품 관계 분석 화면에서 이어서 볼 수 있어요.</p>
                     </div>
-                    <a class="btn-primary brand-next-cta-link" href="../products/">제품 분석으로 이동</a>
+                    <a class="btn-primary brand-next-cta-link" href="../products/">제품 관계 분석으로 이동</a>
                 </div>
-                <p class="brand-next-cta-note">브랜드 페이지에서는 현재 브랜드 상태와 진단에 집중하고, 제품별 drill-down과 구조 맵은 제품 분석 화면으로 분리했어요.</p>
+                <p class="brand-next-cta-note">브랜드 페이지에서는 현재 브랜드 상태와 진단에 집중하고, 제품별 drill-down과 구조 맵은 제품 관계 분석 화면으로 분리했어요.</p>
             </section>
         </div>
     `;

@@ -9,7 +9,7 @@
 - 프런트엔드 단독 구조(백엔드 없음, 빌드 단계 없음).
 - 주요 파일:
   - `apps/brand/` (브랜드 구조)
-  - `apps/products/` (제품 분석)
+  - `apps/products/` (제품 관계 분석)
   - `app.js` (전체 로직)
   - `style.css` (공통 스타일)
 
