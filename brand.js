@@ -171,7 +171,7 @@ const BRAND_PURCHASE_DRIVER_META = {
     },
     attach: {
         key: 'attach',
-        label: '장바구니 확장도',
+        label: '함께 구매하는 비율',
         engineLabel: 'Attach',
         valueField: 'attach_rate_t',
         contributionField: 'attach_contribution'
@@ -228,13 +228,15 @@ function brandFormatScore(score) {
     return formatNumber(score, 1);
 }
 
-function brandFormatDelta(delta) {
-    if (!Number.isFinite(delta)) return '최근 4주 변화 데이터가 아직 없어요.';
-    if (Math.abs(delta) < 0.05) return '지난 4주와 거의 비슷해요.';
+function brandFormatDelta(delta, windowDays = 30) {
+    const label = `최근 ${formatNumber(windowDays, 0)}일`;
+    const previousLabel = `그 직전 ${formatNumber(windowDays, 0)}일`;
+    if (!Number.isFinite(delta)) return `${label}과 ${previousLabel} 비교 데이터가 아직 없어요.`;
+    if (Math.abs(delta) < 0.05) return `${label}과 ${previousLabel}이 거의 비슷해요.`;
     const changeAmount = `${formatNumber(Math.abs(delta), 1)}포인트`;
     return delta > 0
-        ? `지난 4주보다 ${changeAmount} 높아요.`
-        : `지난 4주보다 ${changeAmount} 낮아요.`;
+        ? `${previousLabel}보다 ${changeAmount} 높아요.`
+        : `${previousLabel}보다 ${changeAmount} 낮아요.`;
 }
 
 function brandAverage(values) {
@@ -275,6 +277,16 @@ function brandFormatSignedPercent(value) {
     return normalized > 0
         ? `▲ +${formatNumber(normalized, 0)}%`
         : `▼ ${formatNumber(normalized, 0)}%`;
+}
+
+function brandFormatSignedPercentAlways(value) {
+    const normalized = brandNormalizeSignedPercent(value);
+    if (!Number.isFinite(normalized)) return '비교 없음';
+    return normalized > 0
+        ? `▲ +${formatNumber(normalized, 1)}%`
+        : normalized < 0
+            ? `▼ ${formatNumber(normalized, 1)}%`
+            : '0.0%';
 }
 
 function brandGetAvailableWindowValues(rows) {
@@ -375,6 +387,13 @@ function brandBuildHeroFlowSentence(stateLabel) {
     return '최근 흐름은 크게 흔들리지 않고 있어요.';
 }
 
+function brandGetWindowGuide(windowDays) {
+    const days = toNumber(windowDays, 30);
+    if (days <= 7) return '단기 변화 감지';
+    if (days <= 30) return '월간 운영 상태';
+    return '분기 흐름 확인';
+}
+
 function brandNormalizeHeroStateLabel(label) {
     const normalized = String(label || '').trim();
     if (normalized === '회복 중') return '반등 중';
@@ -430,7 +449,7 @@ function brandBuildHeroModel(driverRows, currentImpactRow, biiRows, timeseries, 
     const momentum = brandSafeDivide(toNumber(currentImpactRow.bii, 0), Math.max(toNumber(current365Row.bii, 0), 0.0001), 0);
     const ratioPairs = brandBuildRatioPairs(timeseries, selectedWindowDays, 'bii');
     const currentPair = ratioPairs[ratioPairs.length - 1] || null;
-    const previousPair = currentPair ? brandFindPreviousPair(ratioPairs, currentPair.as_of_date, 28) : null;
+    const previousPair = currentPair ? brandFindPreviousPair(ratioPairs, currentPair.as_of_date, selectedWindowDays) : null;
     const deltaPercent = currentPair && previousPair && previousPair.ratio > 0
         ? ((currentPair.ratio - previousPair.ratio) / previousPair.ratio) * 100
         : null;
@@ -455,7 +474,7 @@ function brandFormatMomentumValue(momentum) {
 function brandBuildHeroMetrics(selectedWindowDays, revenueTimeseries) {
     const revenueCurrentRow = brandGetLatestRowForWindow(revenueTimeseries, selectedWindowDays);
     const revenuePreviousRow = revenueCurrentRow
-        ? brandFindPreviousRow(revenueTimeseries, selectedWindowDays, revenueCurrentRow.as_of_date, 28)
+        ? brandFindPreviousRow(revenueTimeseries, selectedWindowDays, revenueCurrentRow.as_of_date, selectedWindowDays)
         : null;
     const revenueDeltaPct = revenueCurrentRow && revenuePreviousRow && Math.abs(toNumber(revenuePreviousRow.revenue_t, 0)) > 0.000001
         ? ((toNumber(revenueCurrentRow.revenue_t, 0) - toNumber(revenuePreviousRow.revenue_t, 0)) / toNumber(revenuePreviousRow.revenue_t, 0)) * 100
@@ -478,8 +497,8 @@ function brandBuildDriverInterpretation(meta, deltaPercent, contribution) {
         if (Number.isFinite(deltaPercent) && deltaPercent > 0) return '최근 반복 구매가 회복되고 있어요.';
     }
     if (meta.key === 'attach') {
-        if (Number.isFinite(deltaPercent) && deltaPercent < 0) return '장바구니 확장이 약해지고 있어요.';
-        if (Number.isFinite(deltaPercent) && deltaPercent > 0) return '장바구니 확장이 다시 넓어지고 있어요.';
+        if (Number.isFinite(deltaPercent) && deltaPercent < 0) return '최근 함께 구매하는 비율이 낮아지고 있어요.';
+        if (Number.isFinite(deltaPercent) && deltaPercent > 0) return '최근 함께 구매하는 비율이 높아지고 있어요.';
     }
     if (meta.key === 'clv') {
         if (Number.isFinite(deltaPercent) && deltaPercent > 0) return '최근 고객 가치가 올라가고 있어요.';
@@ -494,7 +513,7 @@ function brandFormatDriverValue(driverKey, value) {
     if (!Number.isFinite(value)) return '-';
     if (driverKey === 'customers') return brandFormatCompactInteger(value);
     if (driverKey === 'repeat') return formatPercent(value, 0);
-    if (driverKey === 'attach') return formatNumber(value, 2);
+    if (driverKey === 'attach') return brandFormatRatioPercent(value, 0);
     return brandFormatCurrencyValue(value);
 }
 
@@ -509,7 +528,7 @@ function brandBuildDriversModel(driverRows, selectedWindowDays) {
         };
     }
 
-    const previousRow = brandFindPreviousRow(driverRows, selectedWindowDays, latestRow.as_of_date, 28);
+    const previousRow = brandFindPreviousRow(driverRows, selectedWindowDays, latestRow.as_of_date, selectedWindowDays);
     const cards = BRAND_PURCHASE_DRIVER_ORDER.map((driverKey) => {
         const meta = BRAND_PURCHASE_DRIVER_META[driverKey];
         const currentValue = toNumber(latestRow[meta.valueField], NaN);
@@ -523,7 +542,7 @@ function brandBuildDriversModel(driverRows, selectedWindowDays) {
             value: currentValue,
             displayValue: brandFormatDriverValue(driverKey, currentValue),
             deltaPercent,
-            deltaLabel: brandFormatSignedPercent(deltaPercent),
+            deltaLabel: brandFormatSignedPercentAlways(deltaPercent),
             contribution,
             interpretation: brandBuildDriverInterpretation(meta, deltaPercent, contribution)
         };
@@ -531,6 +550,7 @@ function brandBuildDriversModel(driverRows, selectedWindowDays) {
 
     return {
         empty: false,
+        compareNote: `최근 변화는 최근 ${formatNumber(selectedWindowDays, 0)}일과 그 직전 ${formatNumber(selectedWindowDays, 0)}일을 비교한 값이에요.`,
         cards
     };
 }
@@ -831,20 +851,20 @@ function brandBuildBasketStructureCard(structureRow, productRows, totalExpectedD
         const score = brandClamp((snapshotItemsPerOrder - 1) / 1.5, 0, 1) * 100;
         let interpretation = '함께 사는 구조가 비교적 잘 형성되어 있습니다.';
         if (snapshotItemsPerOrder < 1.5) interpretation = '동시 구매 구조가 약합니다.';
-        else if (snapshotItemsPerOrder < 2) interpretation = '장바구니 확장이 일부 제품 중심으로 나타납니다.';
+        else if (snapshotItemsPerOrder < 2) interpretation = '함께 사는 제품 구성이 아직 넓지는 않아요.';
         const metrics = [{
-            label: '평균 구매 제품 수',
+            label: '구매 당 제품 종류 수',
             value: formatNumber(snapshotItemsPerOrder, 2)
         }];
         if (Number.isFinite(snapshotAttachRate)) {
             metrics.push({
-                label: '장바구니 확장도',
-                value: formatNumber(snapshotAttachRate, 2)
+                label: '함께 구매하는 비율',
+                value: brandFormatRatioPercent(snapshotAttachRate, 0)
             });
         }
         return {
             key: 'basket',
-            label: '장바구니 확장',
+            label: '함께 사는 제품',
             basisLabel: `최근 ${formatNumber(selectedWindowDays, 0)}일 기준`,
             score,
             indicatorLevel: brandGetStructureIndicatorLevel(score),
@@ -877,25 +897,25 @@ function brandBuildBasketStructureCard(structureRow, productRows, totalExpectedD
     let interpretation = '동시 구매 구조를 아직 충분히 읽지 못하고 있어요.';
     if (hasItemsPerOrder) {
         if (weightedItemsPerOrder < 1.5) interpretation = '동시 구매 구조가 약합니다.';
-        else if (weightedItemsPerOrder < 2) interpretation = '장바구니 확장이 일부 제품 중심으로 나타납니다.';
+        else if (weightedItemsPerOrder < 2) interpretation = '함께 사는 제품 구성이 아직 넓지는 않아요.';
         else interpretation = '함께 사는 구조가 비교적 잘 형성되어 있습니다.';
     } else if (Number.isFinite(attachRate)) {
         if (attachRate < 0.15) interpretation = '동시 구매 구조가 약합니다.';
-        else if (attachRate < 0.3) interpretation = '장바구니 확장이 일부 제품 중심으로 나타납니다.';
+        else if (attachRate < 0.3) interpretation = '함께 사는 제품 구성이 아직 넓지는 않아요.';
         else interpretation = '함께 사는 구조가 비교적 잘 형성되어 있습니다.';
     }
 
     const metrics = hasItemsPerOrder
-        ? [{ label: '평균 구매 제품 수', value: formatNumber(weightedItemsPerOrder, 2) }]
-        : [{ label: '장바구니 확장도', value: formatNumber(attachRate, 2) }];
+        ? [{ label: '구매 당 제품 종류 수', value: formatNumber(weightedItemsPerOrder, 2) }]
+        : [{ label: '함께 구매하는 비율', value: brandFormatRatioPercent(attachRate, 0) }];
 
     if (!hasItemsPerOrder && Number.isFinite(attachRate)) {
-        metrics.push({ label: 'Attach Rate', value: brandFormatRatioPercent(attachRate, 0) });
+        metrics.push({ label: '함께 구매 주문 비율', value: brandFormatRatioPercent(attachRate, 0) });
     }
 
     return {
         key: 'basket',
-        label: '장바구니 확장',
+        label: '함께 사는 제품',
         basisLabel: Number.isFinite(attachRate) ? `최근 ${formatNumber(selectedWindowDays, 0)}일 기준` : '현재 구조 기준',
         score,
         indicatorLevel: brandGetStructureIndicatorLevel(score),
@@ -1168,7 +1188,7 @@ function brandFindDelta(series, field, windowDays, latestDate) {
     const latestValue = toNumber(latest[field], NaN);
     const latestTs = toDate(latest.as_of_date)?.getTime();
     if (!Number.isFinite(latestValue) || !latestTs) return null;
-    const targetTs = latestTs - (28 * 24 * 60 * 60 * 1000);
+    const targetTs = latestTs - (windowDays * 24 * 60 * 60 * 1000);
     let candidate = null;
     filtered.forEach((row) => {
         const rowTs = toDate(row.as_of_date)?.getTime();
@@ -1374,7 +1394,7 @@ function brandBuildStructureMatrix(healthCurrentScore, currentImpactRow, timeser
         ratio: currentRatio
     };
     const ratioPairs = brandBuildRatioPairs(timeseries, diagnosticWindowDays, 'bii');
-    const previousPair = brandFindPreviousPair(ratioPairs, currentPoint.as_of_date, 28);
+    const previousPair = brandFindPreviousPair(ratioPairs, currentPoint.as_of_date, diagnosticWindowDays);
     const previousPoint = previousPair ? {
         x: toNumber(previousPair.selectedRow?.bhi, healthCurrentScore) * 100,
         y: previousPair.ratio,
@@ -1399,7 +1419,8 @@ function brandBuildStructureMatrix(healthCurrentScore, currentImpactRow, timeser
         xAxisLabel: BRAND_DIAGNOSTIC_META.structure.xAxisLabel,
         yAxisLabel: BRAND_DIAGNOSTIC_META.structure.yAxisLabel,
         stage,
-        note: previousPoint ? `최근 4주 동안 ${stage.label} 쪽으로 이동하고 있어요.` : '최근 이동 데이터가 없어 현재 위치만 보여줘요.'
+        previousLabel: `직전 ${formatNumber(diagnosticWindowDays, 0)}일`,
+        note: previousPoint ? `최근 ${formatNumber(diagnosticWindowDays, 0)}일과 그 직전 ${formatNumber(diagnosticWindowDays, 0)}일을 비교하면 ${stage.label} 쪽으로 이동하고 있어요.` : '최근 이동 데이터가 없어 현재 위치만 보여줘요.'
     };
 }
 
@@ -1441,7 +1462,7 @@ function brandBuildRevenueMatrix(revenueTimeseries, impactTimeseries, diagnostic
     }
 
     const currentPoint = mergedPairs[mergedPairs.length - 1];
-    const previousPoint = brandFindPreviousPair(mergedPairs, currentPoint.as_of_date, 28);
+    const previousPoint = brandFindPreviousPair(mergedPairs, currentPoint.as_of_date, diagnosticWindowDays);
     const xHigh = currentPoint.x >= 1;
     const yHigh = currentPoint.y >= 1;
     const stage = brandGetMatrixStage(BRAND_DIAGNOSTIC_META.revenue.quadrants, xHigh, yHigh);
@@ -1460,7 +1481,8 @@ function brandBuildRevenueMatrix(revenueTimeseries, impactTimeseries, diagnostic
         xAxisLabel: BRAND_DIAGNOSTIC_META.revenue.xAxisLabel,
         yAxisLabel: BRAND_DIAGNOSTIC_META.revenue.yAxisLabel,
         stage,
-        note: previousPoint ? `최근 4주 동안 ${stage.label} 쪽으로 이동하고 있어요.` : '최근 이동 데이터가 없어 현재 위치만 보여줘요.'
+        previousLabel: `직전 ${formatNumber(diagnosticWindowDays, 0)}일`,
+        note: previousPoint ? `최근 ${formatNumber(diagnosticWindowDays, 0)}일과 그 직전 ${formatNumber(diagnosticWindowDays, 0)}일을 비교하면 ${stage.label} 쪽으로 이동하고 있어요.` : '최근 이동 데이터가 없어 현재 위치만 보여줘요.'
     };
 }
 
@@ -1848,7 +1870,7 @@ function renderBrandStateCard(title, summary, score, delta, interpretation, prim
             </div>
             <div class="brand-state-body">
                 <div class="brand-state-content">
-                    <p class="brand-state-delta">${escapeHtml(brandFormatDelta(delta))}</p>
+                    <p class="brand-state-delta">${escapeHtml(brandFormatDelta(delta, windowDays))}</p>
                     <p class="brand-state-copy">${escapeHtml(interpretation)}</p>
                     ${showReason ? `<p class="brand-state-reason">${escapeHtml(primaryReason)}</p>` : ''}
                     ${showPoints ? `
@@ -2120,6 +2142,7 @@ function renderBrandPurchaseDriversSection(drivers) {
                 </div>
             </div>
             ${renderBrandPurchaseEngine(drivers.cards)}
+            <p class="brand-purchase-drivers-compare-note">${escapeHtml(drivers.compareNote || '')}</p>
             <div class="brand-purchase-drivers-grid">
                 ${drivers.cards.map((card) => {
                     return `
@@ -2219,7 +2242,6 @@ function renderBrandDiagnosticMatrixCard(matrix) {
                 <span class="brand-matrix-stage ${stageToneClass}">${escapeHtml(matrix.stage.label)}</span>
             </div>
             <p class="brand-matrix-summary">${escapeHtml(matrix.stage.summary)}</p>
-            <p class="brand-matrix-note">${escapeHtml(matrix.note)}</p>
             <div class="brand-matrix-visual">
                 <div class="brand-matrix-axis-label brand-matrix-axis-label-x">${escapeHtml(matrix.xAxisLabel)}</div>
                 <div class="brand-matrix-grid brand-matrix-grid-${escapeHtml(matrix.kind)}" style="--matrix-threshold-x:${brandScaleMatrixPoint(matrix.thresholdX, matrix.xRange)}%; --matrix-threshold-y:${brandScaleMatrixPoint(matrix.thresholdY, matrix.yRange)}%;">
@@ -2235,8 +2257,8 @@ function renderBrandDiagnosticMatrixCard(matrix) {
                     >
                         ${matrix.previousPoint ? `
                             <div class="brand-matrix-arrow brand-matrix-arrow-animated"></div>
-                            <span class="brand-matrix-point brand-matrix-point-prev" title="4주 전"></span>
-                            <span class="brand-matrix-point-label brand-matrix-point-label-prev">4주 전</span>
+                            <span class="brand-matrix-point brand-matrix-point-prev" title="${escapeHtml(matrix.previousLabel || '직전 기간')}"></span>
+                            <span class="brand-matrix-point-label brand-matrix-point-label-prev">${escapeHtml(matrix.previousLabel || '직전 기간')}</span>
                         ` : ''}
                         <span class="brand-matrix-point brand-matrix-point-current" title="현재"></span>
                         <span class="brand-matrix-point-label brand-matrix-point-label-current">현재</span>
@@ -2337,7 +2359,7 @@ function renderBrandTimelineSupportPanel(timeline) {
             <p class="brand-timeline-context"><strong>${escapeHtml(selectedWindowLabel)} 기준은 이렇게 보면 돼요.</strong> ${escapeHtml(selectedWindowGuide)}</p>
             <div class="brand-mini-chart-head">
                 <h3>최근 ${escapeHtml(selectedWindowLabel)} 기준 구매 활성도</h3>
-                <span>${escapeHtml(brandFormatDelta(timeline.impactDelta))}</span>
+                <span>${escapeHtml(brandFormatDelta(timeline.impactDelta, timeline.selectedWindowDays || 30))}</span>
             </div>
             <div class="brand-mini-chart-wrap">
                 <canvas id="brand-impact-timeline"></canvas>
@@ -2373,21 +2395,22 @@ function renderBrandDashboard() {
     if (topBarActions) {
         topBarActions.innerHTML = `
             <div class="brand-topbar-window">
-                <div class="brand-topbar-window-copy">
-                    <div class="brand-topbar-window-head">
-                        <span class="brand-topbar-window-label">구매 활성도 묶음 기준</span>
-                        <span class="brand-topbar-window-helper">조회 90일 고정</span>
-                    </div>
+                <div class="brand-topbar-window-head">
+                    <span class="brand-topbar-window-label">구매 활성도 해석 기준</span>
+                    <span class="brand-topbar-window-helper">조회 90일 고정</span>
                 </div>
-                <div class="brand-timeline-toggle brand-window-toggle">
-                    ${BRAND_DIAGNOSTIC_WINDOW_ORDER.map((windowDays) => `
-                        <button
-                            class="btn-primary ${model.selectedWindowDays === windowDays ? 'is-active' : ''}"
-                            type="button"
-                            onclick="setBrandWindow(${windowDays})"
-                            ${model.availableWindows?.includes(windowDays) ? '' : 'disabled'}
-                        >${formatNumber(windowDays, 0)}일 묶음</button>
-                    `).join('')}
+                <div class="brand-topbar-window-body">
+                    <div class="brand-timeline-toggle brand-window-toggle">
+                        ${BRAND_DIAGNOSTIC_WINDOW_ORDER.map((windowDays) => `
+                            <button
+                                class="btn-primary ${model.selectedWindowDays === windowDays ? 'is-active' : ''}"
+                                type="button"
+                                onclick="setBrandWindow(${windowDays})"
+                                ${model.availableWindows?.includes(windowDays) ? '' : 'disabled'}
+                            >${formatNumber(windowDays, 0)}일 기준</button>
+                        `).join('')}
+                    </div>
+                    <p class="brand-topbar-window-guide">${escapeHtml(brandGetWindowGuide(model.selectedWindowDays))}</p>
                 </div>
             </div>
         `;
@@ -2683,9 +2706,6 @@ function renderBrandTimelineCharts(model) {
         const heroSparkValues = heroSparkRows.map((row) => toNumber(row.bii, 0) * 100);
         const lastHighlightCount = Math.min(6, heroSparkValues.length);
         const lastHighlightStart = Math.max(0, heroSparkValues.length - lastHighlightCount);
-        const lowIndex = heroSparkValues.reduce((bestIndex, value, index, arr) => (
-            bestIndex === -1 || value < arr[bestIndex] ? index : bestIndex
-        ), -1);
         const heroSparkMin = Math.min(...heroSparkValues);
         const heroSparkMax = Math.max(...heroSparkValues);
         const heroSparkSpan = Math.max(heroSparkMax - heroSparkMin, 1);
@@ -2714,28 +2734,6 @@ function renderBrandTimelineCharts(model) {
                     pointRadius: 0,
                     pointHoverRadius: 0,
                     fill: false
-                }, {
-                    label: '저점',
-                    data: heroSparkValues.map((value, index) => (index === lowIndex ? value : null)),
-                    borderColor: 'rgba(0,0,0,0)',
-                    backgroundColor: 'rgba(0,0,0,0)',
-                    pointRadius: 3.4,
-                    pointHoverRadius: 0,
-                    pointBackgroundColor: '#ffffff',
-                    pointBorderColor: '#818cf8',
-                    pointBorderWidth: 2,
-                    showLine: false
-                }, {
-                    label: '현재',
-                    data: heroSparkValues.map((value, index) => (index === heroSparkValues.length - 1 ? value : null)),
-                    borderColor: 'rgba(0,0,0,0)',
-                    backgroundColor: 'rgba(0,0,0,0)',
-                    pointRadius: 3.6,
-                    pointHoverRadius: 0,
-                    pointBackgroundColor: '#4338ca',
-                    pointBorderColor: '#c7d2fe',
-                    pointBorderWidth: 2,
-                    showLine: false
                 }]
             },
             options: {

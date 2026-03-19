@@ -4124,6 +4124,13 @@ button.pgm-role-chip:focus-visible {
     line-height: 1.4;
 }
 
+.brand-purchase-drivers-compare-note {
+    margin: 0.12rem 0 0;
+    color: var(--text-faint);
+    font-size: 0.76rem;
+    line-height: 1.4;
+}
+
 .brand-purchase-drivers-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -4516,14 +4523,7 @@ button.pgm-role-chip:focus-visible {
 .brand-topbar-window {
     display: flex;
     align-items: center;
-    gap: 0.85rem;
-}
-
-.brand-topbar-window-copy {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    min-width: 0;
+    gap: 0.8rem;
 }
 
 .brand-topbar-window-head {
@@ -4532,6 +4532,13 @@ button.pgm-role-chip:focus-visible {
     gap: 0.5rem;
     flex-wrap: wrap;
     justify-content: flex-end;
+}
+
+.brand-topbar-window-body {
+    display: flex;
+    align-items: center;
+    align-items: flex-end;
+    gap: 0.6rem;
 }
 
 .brand-topbar-window-label {
@@ -4555,6 +4562,15 @@ button.pgm-role-chip:focus-visible {
     white-space: nowrap;
 }
 
+.brand-topbar-window-guide {
+    color: #2563eb;
+    font-size: 0.74rem;
+    font-weight: 700;
+    line-height: 1;
+    text-align: right;
+    white-space: nowrap;
+}
+
 .brand-window-toggle .btn-primary[disabled] {
     opacity: 0.45;
     cursor: not-allowed;
@@ -4571,11 +4587,12 @@ button.pgm-role-chip:focus-visible {
 .brand-matrix-card {
     display: flex;
     flex-direction: column;
+    gap: 0.4rem;
     border: 1px solid rgba(226, 232, 240, 0.95);
     border-radius: 18px;
     padding: 1rem 1rem 1.05rem;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94));
-    min-height: 560px;
+    min-height: 455px;
 }
 
 .brand-matrix-card-empty {
@@ -4638,26 +4655,17 @@ button.pgm-role-chip:focus-visible {
 }
 
 .brand-matrix-summary {
-    margin-top: 0.65rem;
     color: var(--text-main);
-    font-size: 0.94rem;
+    font-size: 0.92rem;
     font-weight: 600;
-    line-height: 1.55;
-}
-
-.brand-matrix-note {
-    margin-top: 0.35rem;
-    color: var(--text-muted);
-    font-size: 0.85rem;
-    line-height: 1.5;
+    line-height: 1.45;
 }
 
 .brand-matrix-visual {
     position: relative;
-    margin-top: 0.7rem;
-    padding-top: 1.7rem;
-    padding-bottom: 1.9rem;
-    margin-top: auto;
+    margin-top: 0.15rem;
+    padding-top: 1.2rem;
+    padding-bottom: 1.05rem;
 }
 
 .brand-matrix-axis-label {
@@ -5437,6 +5445,34 @@ button.pgm-role-chip:focus-visible {
     }
 }
 
+@media (max-width: 1320px) {
+    .top-bar {
+        height: auto;
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.7rem;
+        padding: 1rem 2rem;
+    }
+
+    #top-bar-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .brand-topbar-window {
+        align-items: flex-start;
+    }
+
+    .brand-topbar-window-head,
+    .brand-topbar-window-body {
+        justify-content: flex-start;
+    }
+
+    .brand-topbar-window-guide {
+        text-align: left;
+    }
+}
+
 @media (max-width: 768px) {
     .top-bar {
         height: auto;
@@ -5457,12 +5493,16 @@ button.pgm-role-chip:focus-visible {
         gap: 0.55rem;
     }
 
-    .brand-topbar-window-copy {
+    .brand-topbar-window-body {
         align-items: flex-start;
     }
 
     .brand-topbar-window-head {
         justify-content: flex-start;
+    }
+
+    .brand-topbar-window-guide {
+        text-align: left;
     }
 
     .brand-state-grid,
