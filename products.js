@@ -16,8 +16,37 @@ function getLevelText(value, p33, p66) {
     return '낮음';
 }
 
+function withAlpha(color, alpha) {
+    const normalizedAlpha = Math.max(0, Math.min(1, toNumber(alpha, 1)));
+    const normalizedColor = String(color || '').trim();
+    if (!normalizedColor) return `rgba(148, 163, 184, ${normalizedAlpha})`;
+
+    const hexMatch = normalizedColor.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+    if (hexMatch) {
+        const hex = hexMatch[1];
+        const expanded = hex.length === 3
+            ? hex.split('').map((char) => char + char).join('')
+            : hex;
+        const r = parseInt(expanded.slice(0, 2), 16);
+        const g = parseInt(expanded.slice(2, 4), 16);
+        const b = parseInt(expanded.slice(4, 6), 16);
+        return `rgba(${r}, ${g}, ${b}, ${normalizedAlpha})`;
+    }
+
+    const rgbMatch = normalizedColor.match(/^rgba?\(\s*([^\)]+)\s*\)$/i);
+    if (rgbMatch) {
+        const channels = rgbMatch[1].split(',').map((part) => part.trim()).slice(0, 3);
+        if (channels.length === 3) {
+            return `rgba(${channels[0]}, ${channels[1]}, ${channels[2]}, ${normalizedAlpha})`;
+        }
+    }
+
+    return normalizedColor;
+}
+
 const QUADRANT_CONVERGENCE_EDGE_TOP_N = 8;
 const QUADRANT_RETURN_LOOP_TOP_N = 4;
+const QUADRANT_THUMBNAIL_SRC = '../../assets/thumbnail.png';
 
 const QUADRANT_EDGE_MODE_META = {
     representative: {
@@ -1436,7 +1465,9 @@ function renderQuadrantPanel(model) {
             <div class="pgm-side-hero">
                 <span class="pgm-badge" style="background:${tagStyle.bg}; color:${tagStyle.text}; border-color:${tagStyle.border};">${status.label}</span>
                 <div style="display:flex;gap:20px;align-items:flex-start;">
-                    <div style="width:60px;height:60px;border-radius:8px;background:var(--gray-100);flex-shrink:0;"></div>
+                    <div class="pgm-side-hero-thumb">
+                        <img src="${QUADRANT_THUMBNAIL_SRC}" alt="" class="pgm-side-hero-thumb-image" loading="lazy" decoding="async">
+                    </div>
                     <div style="flex:1;min-width:0;">
                         <div class="pgm-selected-head">
                             <h3 title="${escapeHtml(selected.name)}">${escapeHtml(selected.name)}</h3>
@@ -1843,6 +1874,9 @@ function buildQuadrantSvgModel(model, frame = QUADRANT_SVG_FRAME) {
         const radius = getQuadrantBubbleRadius({ ...point, isSelected }, model?.maxWeekly, visualConfig);
         const outerRadius = getQuadrantBubbleOuterRadius({ ...point, isSelected }, model?.maxWeekly, visualConfig);
         const muted = model?.scope === 'retention-emphasis' && !point.hasTransition;
+        const baseFocusColor = muted
+            ? (mutedBorderPalette[status.key] || 'rgba(148, 163, 184, 0.42)')
+            : status.color;
         return {
             ...point,
             isSelected,
@@ -1855,7 +1889,9 @@ function buildQuadrantSvgModel(model, frame = QUADRANT_SVG_FRAME) {
             fill: muted ? (mutedFillPalette[status.key] || 'rgba(148, 163, 184, 0.24)') : status.color,
             fillOpacity: muted || isSelected ? 1 : 0.86,
             stroke: muted ? (mutedBorderPalette[status.key] || 'rgba(148, 163, 184, 0.42)') : '#ffffff',
-            strokeWidth: isSelected ? 2.6 : (muted ? 1 : 1.6)
+            strokeWidth: isSelected ? 2.6 : (muted ? 1 : 1.6),
+            focusRingColor: withAlpha(baseFocusColor, 0.28),
+            focusPulseColor: withAlpha(baseFocusColor, 0.22)
         };
     }).sort((a, b) => {
         if (a.isSelected && !b.isSelected) return 1;
@@ -1927,20 +1963,32 @@ function buildQuadrantStageMeta(svgModel) {
     };
 }
 
+function renderQuadrantTooltipThumb(point) {
+    return `
+        <div class="pgm-quadrant-tooltip-thumb">
+            <img src="${QUADRANT_THUMBNAIL_SRC}" alt="" class="pgm-quadrant-tooltip-thumb-image" loading="lazy" decoding="async">
+        </div>
+    `;
+}
+
 function renderQuadrantTooltipHtml(point) {
-    const title = `${escapeHtml(point.name)}${point.memberCount > 1 ? ` · 그룹 ${formatNumber(point.memberCount, 0)}개` : ''}`;
+    const title = escapeHtml(point.name || '-');
     const lines = [
-        `상태: ${point.status?.label || '-'}`,
-        `첫구매 유입 점수: ${formatNumber(point.entry, 3)}`,
-        `재구매 점수: ${formatNumber(point.expansion, 3)}`,
-        point.outlierMarker ? `집중뷰 경계 표시: ${point.outlierMarker}` : '',
-        `주간 예상 수요량: ${formatNumber(point.weeklyForecast, 1)}`,
-        `리텐션 상태: ${point.hasTransition ? '발생' : '없음'}`,
-        `SKU 수: ${formatNumber(point.memberCount, 0)}`
+        `상태 : ${point.status?.label || '-'}`,
+        `첫구매 유입 점수 : ${formatNumber(point.entry, 3)}`,
+        `재구매 점수 : ${formatNumber(point.expansion, 3)}`,
+        point.outlierMarker ? `집중뷰 경계 표시 : ${point.outlierMarker}` : '',
+        `주간 예상 수요량 : ${formatNumber(point.weeklyForecast, 1)}`,
+        `리텐션 상태 : ${point.hasTransition ? '발생' : '없음'}`,
+        `SKU 수 : ${formatNumber(point.memberCount, 0)}`
     ].filter(Boolean);
 
     return `
-        <div class="pgm-quadrant-tooltip-title">${title}</div>
+        <div class="pgm-quadrant-tooltip-header">
+            ${renderQuadrantTooltipThumb(point)}
+            <div class="pgm-quadrant-tooltip-title">${title}</div>
+        </div>
+        <div class="pgm-quadrant-tooltip-divider" aria-hidden="true"></div>
         <div class="pgm-quadrant-tooltip-body">
             ${lines.map((line) => `<div class="pgm-quadrant-tooltip-line">${escapeHtml(line)}</div>`).join('')}
         </div>
@@ -1948,7 +1996,7 @@ function renderQuadrantTooltipHtml(point) {
 }
 
 function renderQuadrantSvgMarkup(svgModel) {
-    const { centerPx, frame, corners } = svgModel;
+    const { centerPx, frame } = svgModel;
     const topLeftWidth = Math.max(0, centerPx.x);
     const topRightWidth = Math.max(0, frame.width - centerPx.x);
     const bottomHeight = Math.max(0, frame.height - centerPx.y);
@@ -1977,8 +2025,8 @@ function renderQuadrantSvgMarkup(svgModel) {
                 ${svgModel.points.map((point) => `
                     <g class="pgm-quadrant-svg-point ${point.isSelected ? 'is-selected' : ''}">
                         ${point.isSelected ? `
-                            <circle class="pgm-quadrant-selected-ring" cx="${svgNum(point.x)}" cy="${svgNum(point.y)}" r="${svgNum(point.radius + 6)}"></circle>
-                            <circle class="pgm-quadrant-selected-pulse" cx="${svgNum(point.x)}" cy="${svgNum(point.y)}" r="${svgNum(point.radius + 6)}">
+                            <circle class="pgm-quadrant-selected-ring" cx="${svgNum(point.x)}" cy="${svgNum(point.y)}" r="${svgNum(point.radius + 6)}" stroke="${point.focusRingColor}"></circle>
+                            <circle class="pgm-quadrant-selected-pulse" cx="${svgNum(point.x)}" cy="${svgNum(point.y)}" r="${svgNum(point.radius + 6)}" stroke="${point.focusPulseColor}">
                                 <animate attributeName="r" values="${svgNum(point.radius + 6)};${svgNum(point.radius + 14)};${svgNum(point.radius + 6)}" dur="1.6s" repeatCount="indefinite"></animate>
                                 <animate attributeName="opacity" values="0.28;0.08;0.28" dur="1.6s" repeatCount="indefinite"></animate>
                             </circle>
@@ -1989,25 +2037,37 @@ function renderQuadrantSvgMarkup(svgModel) {
                     </g>
                 `).join('')}
             </g>
-            <g class="pgm-quadrant-svg-corners" aria-hidden="true">
-                <g class="pgm-quadrant-svg-corner is-top-left">
-                    <text x="28" y="34" class="pgm-quadrant-svg-corner-title">${escapeHtml(corners.topLeft.label)}</text>
-                    <text x="28" y="56" class="pgm-quadrant-svg-corner-summary">${escapeHtml(corners.topLeft.summary)}</text>
-                </g>
-                <g class="pgm-quadrant-svg-corner is-top-right">
-                    <text x="${svgNum(frame.width - 28)}" y="34" text-anchor="end" class="pgm-quadrant-svg-corner-title">${escapeHtml(corners.topRight.label)}</text>
-                    <text x="${svgNum(frame.width - 28)}" y="56" text-anchor="end" class="pgm-quadrant-svg-corner-summary">${escapeHtml(corners.topRight.summary)}</text>
-                </g>
-                <g class="pgm-quadrant-svg-corner is-bottom-left">
-                    <text x="28" y="${svgNum(frame.height - 28)}" class="pgm-quadrant-svg-corner-title">${escapeHtml(corners.bottomLeft.label)}</text>
-                    <text x="28" y="${svgNum(frame.height - 6)}" class="pgm-quadrant-svg-corner-summary">${escapeHtml(corners.bottomLeft.summary)}</text>
-                </g>
-                <g class="pgm-quadrant-svg-corner is-bottom-right">
-                    <text x="${svgNum(frame.width - 28)}" y="${svgNum(frame.height - 28)}" text-anchor="end" class="pgm-quadrant-svg-corner-title">${escapeHtml(corners.bottomRight.label)}</text>
-                    <text x="${svgNum(frame.width - 28)}" y="${svgNum(frame.height - 6)}" text-anchor="end" class="pgm-quadrant-svg-corner-summary">${escapeHtml(corners.bottomRight.summary)}</text>
-                </g>
-            </g>
         </svg>
+    `;
+}
+
+function renderQuadrantCornerOverlays(corners) {
+    if (!corners) return '';
+    return `
+        <div class="pgm-quadrant-corner-overlay is-top-left" aria-hidden="true">
+            <div class="pgm-quadrant-corner-copy">
+                <div class="pgm-quadrant-corner-title">${escapeHtml(corners.topLeft.label)}</div>
+                <div class="pgm-quadrant-corner-summary">${escapeHtml(corners.topLeft.summary)}</div>
+            </div>
+        </div>
+        <div class="pgm-quadrant-corner-overlay is-top-right" aria-hidden="true">
+            <div class="pgm-quadrant-corner-copy">
+                <div class="pgm-quadrant-corner-title">${escapeHtml(corners.topRight.label)}</div>
+                <div class="pgm-quadrant-corner-summary">${escapeHtml(corners.topRight.summary)}</div>
+            </div>
+        </div>
+        <div class="pgm-quadrant-corner-overlay is-bottom-left" aria-hidden="true">
+            <div class="pgm-quadrant-corner-copy">
+                <div class="pgm-quadrant-corner-title">${escapeHtml(corners.bottomLeft.label)}</div>
+                <div class="pgm-quadrant-corner-summary">${escapeHtml(corners.bottomLeft.summary)}</div>
+            </div>
+        </div>
+        <div class="pgm-quadrant-corner-overlay is-bottom-right" aria-hidden="true">
+            <div class="pgm-quadrant-corner-copy">
+                <div class="pgm-quadrant-corner-title">${escapeHtml(corners.bottomRight.label)}</div>
+                <div class="pgm-quadrant-corner-summary">${escapeHtml(corners.bottomRight.summary)}</div>
+            </div>
+        </div>
     `;
 }
 
@@ -2029,6 +2089,7 @@ function renderQuadrantStageFrame(model) {
         </div>
         <div class="quadrant-chart-canvas-wrap">
             ${renderQuadrantSvgMarkup(svgModel)}
+            ${renderQuadrantCornerOverlays(svgModel.corners)}
             <div class="pgm-quadrant-tooltip" hidden></div>
         </div>
     `;
