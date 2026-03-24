@@ -6,11 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PGM 대시보드 - 제품 관계 분석</title>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700&display=swap"
-        rel="stylesheet">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="stylesheet" as="style" crossorigin
+        href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css');
+    </style>
 
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -21,32 +22,78 @@
 
 <body id="page-products">
     <div class="app-container">
+        <!-- Sidebar -->
         <nav class="sidebar">
-            <div class="logo-area">
-                <img src="../../assets/logo.png" alt="PGM 로고" class="logo-mark">
-                <div class="logo-copy">
-                    <strong>PGM 대시보드</strong>
-                    <span>Product Gravity Model</span>
+            <!-- Header: Logo + Collapse -->
+            <div class="sidebar-header">
+                <span class="sidebar-logo-text">mercuryX</span>
+                <button class="sidebar-collapse-btn" title="사이드바 접기">
+                    <i class="ph ph-arrow-line-left"></i>
+                </button>
+            </div>
+
+            <!-- Workspace / Company -->
+            <div class="sidebar-workspace">
+                <div class="sidebar-workspace-item">
+                    <span class="sidebar-workspace-icon">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                            <path d="M7 1L13 4V10L7 13L1 10V4L7 1Z" fill="white" fill-opacity="0.9"/>
+                        </svg>
+                    </span>
+                    <span>니앙스 코리아</span>
+                    <i class="ph ph-caret-down sidebar-workspace-chevron"></i>
+                </div>
+                <div class="sidebar-workspace-item">
+                    <span class="nav-icon"><i class="ph ph-tray"></i></span>
+                    <span>수신함</span>
+                    <span class="sidebar-workspace-badge">+99</span>
                 </div>
             </div>
 
+            <div class="sidebar-divider"></div>
+
+            <!-- Nav Links -->
             <ul class="nav-links">
                 <li onclick="window.location.href='../brand/'">
-                    <i class="ph ph-buildings"></i>
+                    <span class="nav-icon"><i class="ph ph-buildings"></i></span>
                     <span>구매 활성도</span>
                 </li>
                 <li class="active" onclick="window.location.href='../products/'">
-                    <i class="ph ph-tag"></i>
+                    <span class="nav-icon"><i class="ph ph-tag"></i></span>
                     <span>제품 관계 분석</span>
                 </li>
             </ul>
 
-            <div class="user-profile"></div>
+            <!-- Bottom Actions -->
+            <div class="sidebar-bottom">
+                <div class="sidebar-bottom-item" id="settings-trigger">
+                    <span class="nav-icon"><i class="ph ph-gear"></i></span>
+                    <span>설정</span>
+                </div>
+            </div>
         </nav>
 
         <main class="main-content">
+            <!-- GNB -->
             <header class="top-bar">
-                <h1 id="page-title">제품 관계 분석</h1>
+                <div class="gnb-left">
+                    <div class="gnb-icon"><i class="ph ph-lightbulb"></i></div>
+                    <h1 id="page-title">제품 관계 분석</h1>
+                </div>
+                <div class="gnb-right">
+                    <div class="gnb-company-badge">
+                        <span class="gnb-company-mark">
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                <path d="M7 1L13 4V10L7 13L1 10V4L7 1Z" fill="white" fill-opacity="0.9"/>
+                            </svg>
+                        </span>
+                        <span class="gnb-company-name">mercuryX</span>
+                        <span class="gnb-company-chevron"><i class="ph ph-caret-down"></i></span>
+                    </div>
+                    <div class="gnb-avatar">
+                        <i class="ph ph-user"></i>
+                    </div>
+                </div>
             </header>
 
             <div id="content-area">
