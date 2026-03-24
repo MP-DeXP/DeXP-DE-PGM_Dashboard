@@ -1436,11 +1436,11 @@ function renderQuadrantPanel(model) {
                 <h4>수요 기여 비중</h4>
                 <div class="pgm-demand-share-grid">
                     <div class="pgm-demand-share-card">
-                        <label>첫구매 기여 비중</label>
+                        <label>첫구매 고객 비중</label>
                         <strong>${formatPercent(selected.entryDemandShare, 1)}</strong>
                     </div>
                     <div class="pgm-demand-share-card">
-                        <label>재구매 기여 비중</label>
+                        <label>재구매 고객 비중</label>
                         <strong>${formatPercent(selected.expansionDemandShare, 1)}</strong>
                     </div>
                 </div>
@@ -1918,15 +1918,17 @@ function renderQuadrantChart(model) {
                     const cx = (startX + endX) / 2 + (-uy * bend);
                     const cy = (startY + endY) / 2 + (ux * bend);
                     const weight = toNumber(edge.transitionCustomers, 0) / maxCustomers;
-                    // 미니멀 모드: 단색 저채도 + 선스타일(실선/점선)로만 방향 구분
-                    const color = [100, 116, 139];
-                    const alpha = (isLoop ? 0.1 : 0.08) + (weight * (isLoop ? 0.2 : 0.16));
+                    // 미니멀 모드: 저채도 색 차이 + 선스타일로 방향 구분
+                    const color = isInbound
+                        ? [78, 99, 132]
+                        : [55, 103, 110];
+                    const alpha = (isLoop ? 0.18 : 0.14) + (weight * (isLoop ? 0.3 : 0.24));
 
                     chartCtx.beginPath();
                     chartCtx.moveTo(startX, startY);
                     chartCtx.quadraticCurveTo(cx, cy, endX, endY);
                     chartCtx.strokeStyle = `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${alpha})`;
-                    chartCtx.lineWidth = 0.8 + (weight * 1.2);
+                    chartCtx.lineWidth = 1.25 + (weight * 1.75);
                     chartCtx.lineCap = 'round';
                     chartCtx.setLineDash(isLoop ? (edge.direction === 'loop-return' ? [4, 4] : []) : (isInbound ? [3, 5] : []));
                     chartCtx.stroke();
@@ -1938,8 +1940,8 @@ function renderQuadrantChart(model) {
                     if (!Number.isFinite(tLen) || tLen <= 0.0001) return;
                     const tux = tx / tLen;
                     const tuy = ty / tLen;
-                    const arrowLen = 5 + (weight * 2);
-                    const arrowWidth = 2.6 + (weight * 1.1);
+                    const arrowLen = 6 + (weight * 2.8);
+                    const arrowWidth = 3.2 + (weight * 1.4);
                     const leftX = endX - tux * arrowLen + (-tuy * arrowWidth);
                     const leftY = endY - tuy * arrowLen + (tux * arrowWidth);
                     const rightX = endX - tux * arrowLen - (-tuy * arrowWidth);
@@ -1949,7 +1951,7 @@ function renderQuadrantChart(model) {
                     chartCtx.lineTo(leftX, leftY);
                     chartCtx.lineTo(rightX, rightY);
                     chartCtx.closePath();
-                    chartCtx.fillStyle = `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${Math.min(0.3, alpha + 0.08)})`;
+                    chartCtx.fillStyle = `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${Math.min(0.5, alpha + 0.12)})`;
                     chartCtx.fill();
                 });
                 chartCtx.restore();
@@ -2048,7 +2050,7 @@ function getScopedProductsData() {
     return [...(AppState.data.anchorScored || [])];
 }
 
-const CORE_GRAVITY_ORDER = ['entry', 'expansion', 'return', 'convergence'];
+const CORE_GRAVITY_ORDER = ['entry', 'expansion'];
 const CORE_GRAVITY_CONFIG = {
     entry: {
         label: '첫구매 유입',
@@ -2257,7 +2259,6 @@ function buildCoreDemandRowsHtml(displayData, focusEntityId, emphasisMode = 'ret
         const groupedChip = meta.memberCount > 1
             ? `<button class="group-chip-trigger" type="button" onclick="event.stopPropagation();openGroupEditorWizard({focusEntityId:'${escapeJs(meta.entityId)}'})">그룹 ${formatNumber(meta.memberCount, 0)}개</button>`
             : '';
-        const currentShare = row.gravityShares[currentSortKey];
         const currentRank = row.gravityRanks[currentSortKey];
         return `
             <tr class="clickable ${isFocused ? 'row-focused' : ''} ${isMuted ? 'row-retention-muted' : ''}" onclick="focusQuadrantFromTable('${escapeHtml(row.product_id)}')">
@@ -2268,7 +2269,6 @@ function buildCoreDemandRowsHtml(displayData, focusEntityId, emphasisMode = 'ret
                     </div>
                 </td>
                 <td>${renderCoreAxisSummary(row.axisMembership, currentSortKey)}</td>
-                <td>${currentShare !== null ? formatPercent(currentShare, 1) : '-'}</td>
                 <td>${Number.isFinite(currentRank) ? `#${formatNumber(currentRank, 0)}` : '-'}</td>
                 <td>${formatPercent(row.firstCustomerShare, 1)}</td>
                 <td>${formatPercent(row.repurchaseCustomerShare, 1)}</td>
@@ -2325,8 +2325,8 @@ function renderProductsTableOnly(model = null) {
                     <p>최근 1년 내 판매 이력이 있고, 최근 90일에도 실제 판매가 이어진 핵심 수요 제품을 보여줘요.</p>
                     <div class="core-demand-summary">
                         <span>${escapeHtml(currentSortLabel)} 기준 80% 핵심 제품 ${formatNumber(currentSet.items.length, 0)}개${formatSummaryRatio(currentSet.items.length)}</span>
-                        <span>4개 축 전체 핵심 제품 ${formatNumber(resolvedModel.totalCoreCount, 0)}개${formatSummaryRatio(resolvedModel.totalCoreCount)}</span>
-                        ${resolvedModel.sharedCoreCount > 0 ? `<span>여러 축 핵심 제품 ${formatNumber(resolvedModel.sharedCoreCount, 0)}개${formatSummaryRatio(resolvedModel.sharedCoreCount)}</span>` : ''}
+                        <span>전체 핵심 제품 ${formatNumber(resolvedModel.totalCoreCount, 0)}개${formatSummaryRatio(resolvedModel.totalCoreCount)}</span>
+                        ${resolvedModel.sharedCoreCount > 0 ? `<span>2축 핵심 제품 ${formatNumber(resolvedModel.sharedCoreCount, 0)}개${formatSummaryRatio(resolvedModel.sharedCoreCount)}</span>` : ''}
                     </div>
                 </div>
                 <span class="demand-driver-scope">${scopeLabel}</span>
@@ -2340,14 +2340,13 @@ function renderProductsTableOnly(model = null) {
                     <thead><tr>
                         <th>제품명</th>
                         <th>핵심 축</th>
-                        <th>${escapeHtml(currentSortLabel)} 비중</th>
                         <th>${escapeHtml(currentSortLabel)} 순위</th>
                         <th>첫구매 고객 비중</th>
                         <th>재구매 고객 비중</th>
                         <th>최근 90일 매출</th>
                         <th>리텐션 상태</th>
                     </tr></thead>
-                    <tbody>${rows || `<tr><td colspan="8" class="core-demand-empty">지금 범위에서는 표시할 핵심 제품이 없어요.</td></tr>`}</tbody>
+                    <tbody>${rows || `<tr><td colspan="7" class="core-demand-empty">지금 범위에서는 표시할 핵심 제품이 없어요.</td></tr>`}</tbody>
                 </table>
             </div>
         </div>
