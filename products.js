@@ -84,6 +84,7 @@ const DEMAND_GRAPH_TRANSITION_LIMIT = 5;
 const DEMAND_GRAPH_BASKET_LIMIT = 6;
 const DEMAND_GRAPH_SUMMARY_LIMIT = 5;
 const QUADRANT_SVG_FRAME = Object.freeze({ width: 708, height: 585 });
+const QUADRANT_MIN_RENDER_WIDTH = 360;
 
 function normalizeDemandGraphTab(tab) {
     return String(tab || '').trim().toLowerCase() === 'basket' ? 'basket' : 'transition';
@@ -111,7 +112,7 @@ function getQuadrantStatus(entry, expansion, centerEntry, centerExpansion) {
         return {
             key: 'hero',
             label: '우선 확대 대상',
-            color: '#3b82f6',
+            color: '#1e85fb',
             summary: '현재 화면에서 신규 유입 강점과 재구매 강점이 모두 상대적으로 높아 우선 확대를 검토할 수 있는 제품이에요.',
             guide: '현재 화면에서 신규 유입 강점과 재구매 강점이 모두 상대적으로 높은 구간이에요. 우선적으로 노출·예산·재고 확대를 검토할 수 있어요.',
             actions: [
@@ -124,7 +125,7 @@ function getQuadrantStatus(entry, expansion, centerEntry, centerExpansion) {
         return {
             key: 'phaseout',
             label: '개선 필요',
-            color: '#ef4444',
+            color: '#f45151',
             summary: '현재 화면에서 신규 유입 강점과 재구매 강점이 모두 상대적으로 낮아 개선 여부를 점검할 필요가 있는 상태예요.',
             guide: '현재 화면에서 신규 유입 강점과 재구매 강점이 모두 상대적으로 낮은 구간이에요. 개선 실험 후 유지 여부를 판단할 수 있어요.',
             actions: [
@@ -137,7 +138,7 @@ function getQuadrantStatus(entry, expansion, centerEntry, centerExpansion) {
         return {
             key: 'entry-only',
             label: '첫구매 강점 제품',
-            color: '#14b8a6',
+            color: '#6bba25',
             summary: '현재 화면에서 첫구매 강점은 상대적으로 높지만 재구매 강점은 상대적으로 낮아 후속 전환 보강이 필요해요.',
             guide: '현재 화면에서 신규 유입 강점은 상대적으로 높지만, 재구매 강점은 상대적으로 낮은 구간이에요. 재구매 전환 장치 보강이 필요해요.',
             actions: [
@@ -149,7 +150,7 @@ function getQuadrantStatus(entry, expansion, centerEntry, centerExpansion) {
     return {
         key: 'expansion-only',
         label: '재구매 강점 제품',
-        color: '#8b5cf6',
+        color: '#a765fb',
         summary: '현재 화면에서 재구매 강점은 상대적으로 높지만 신규 유입 강점은 상대적으로 낮아 유입 확대가 필요해요.',
         guide: '현재 화면에서 재구매 강점은 상대적으로 높지만, 신규 유입 강점은 상대적으로 낮은 구간이에요. 신규 유입 채널 보강이 필요해요.',
         actions: [
@@ -157,6 +158,20 @@ function getQuadrantStatus(entry, expansion, centerEntry, centerExpansion) {
             '첫구매 강점 제품과의 동시 노출로 유입 구간을 보강해요.'
         ]
     };
+}
+
+function getQuadrantStatusCompactCopy(status) {
+    switch (String(status?.key || '').trim()) {
+    case 'hero':
+        return '신규 유입과 재구매 강점이 모두 높아 우선 확대를 검토할 수 있어요.';
+    case 'entry-only':
+        return '신규 유입 강점은 높지만 재구매 강점은 낮아 전환 보강이 필요해요.';
+    case 'phaseout':
+        return '신규 유입과 재구매 강점이 모두 낮아 개선 여부 점검이 필요해요.';
+    case 'expansion-only':
+    default:
+        return '재구매 강점은 높지만 신규 유입 강점은 낮아 유입 확대가 필요해요.';
+    }
 }
 
 function getPointByIdMap(points) {
@@ -652,9 +667,18 @@ function buildDemandGraphModel(selectedId) {
     };
 }
 
-function renderDemandGraphNodeButton(node, style = '') {
+function getDemandGraphNodeToneLabel(tone, tab = 'transition') {
+    if (tone === 'anchor') return '선택 제품';
+    if (tone === 'incoming') return '이전 구매';
+    if (tone === 'outgoing') return '다음 구매';
+    if (tone === 'basket') return '함께 구매';
+    return tab === 'basket' ? '연결 제품' : '관계 제품';
+}
+
+function renderDemandGraphNodeButton(node, style = '', tab = 'transition') {
     if (!node?.id) return '';
     const composedStyle = `${style}${style && !style.trim().endsWith(';') ? ';' : ''} --node-scale:${toNumber(node.sizeScale, 1).toFixed(3)};`;
+    const toneLabel = getDemandGraphNodeToneLabel(node.tone, tab);
     return `
         <button
             class="demand-graph-node ${node.tone ? `is-${node.tone}` : ''} ${node.tone === 'anchor' ? 'is-anchor' : ''}"
@@ -672,8 +696,9 @@ function renderDemandGraphNodeButton(node, style = '') {
                 data-graph-key="${escapeHtml(node.key)}"
                 data-graph-tone="${escapeHtml(node.tone)}"
             >
+                <span class="demand-graph-node-eyebrow">${escapeHtml(toneLabel)}</span>
                 <strong>${escapeHtml(node.name)}</strong>
-                <span>${escapeHtml(node.subtitle || '')}</span>
+                <span class="demand-graph-node-subtitle">${escapeHtml(node.subtitle || '')}</span>
             </span>
         </button>
     `;
@@ -1071,7 +1096,8 @@ function renderDemandGraphNetwork(model) {
     const scene = buildDemandGraphScene(model);
     const nodeButtons = scene.nodes.map((node) => renderDemandGraphNodeButton(
         node,
-        `left:${node.x}%; top:${node.y}%;`
+        `left:${node.x}%; top:${node.y}%;`,
+        model.tab
     )).join('');
 
     return `
@@ -1100,11 +1126,11 @@ function renderDemandGraphInline(quadrantModel) {
     return `
         <div class="demand-graph-wrap is-inline">
             <div class="demand-graph-head">
-                <div>
+                <div class="demand-graph-head-copy">
                     <h3>제품 관계 구조</h3>
                     <p>이 제품이 어떤 제품과 어떤 관계로 이어지는지 보여줘요.</p>
                 </div>
-                <div class="demand-graph-tabs" role="tablist" aria-label="선택 제품 주변 흐름 탭">
+                <div class="demand-graph-tabs pgm-segment-group" role="tablist" aria-label="선택 제품 주변 흐름 탭">
                     ${Object.entries(DEMAND_GRAPH_TAB_META).map(([key, meta]) => `
                         <button
                             class="btn-primary pgm-control-pill pgm-tab-pill ${model.tab === key ? 'is-active' : ''}"
@@ -1116,7 +1142,10 @@ function renderDemandGraphInline(quadrantModel) {
                     `).join('')}
                 </div>
             </div>
-            <p class="demand-graph-helper"><strong>${escapeHtml(model.meta.label)}</strong> · ${escapeHtml(model.meta.guide)}</p>
+            <p class="demand-graph-helper">
+                <span class="demand-graph-helper-label">${escapeHtml(model.meta.label)}</span>
+                <span>${escapeHtml(model.meta.guide)}</span>
+            </p>
             ${!model.hasAnyDataset ? `
                 <div class="demand-graph-empty">빈발 패턴 데이터가 준비되면 선택 제품 주변 흐름을 보여드릴게요.</div>
             ` : !model.hasDataset ? `
@@ -1432,10 +1461,10 @@ function getAdditionalRoleGuide(key, level) {
 
 // Status tag style map (Figma)
 const QUADRANT_STATUS_TAG_STYLE = {
-    hero:             { bg: '#ddedff', border: '#a8c8f5', alertBorder: '#93c5fd', text: '#2563eb' },
+    hero:             { bg: '#ddedff', border: '#a8c8f5', alertBorder: '#93c5fd', text: '#1e85fb' },
     'entry-only':     { bg: '#e9f8e0', border: '#8dcb57', alertBorder: '#bfe4a2', text: '#6bba25' },
-    'expansion-only': { bg: '#efe4ff', border: '#c4a8f5', alertBorder: '#d8b4fe', text: '#7c3aed' },
-    phaseout:         { bg: '#ffeded', border: '#f5a8a8', alertBorder: '#fca5a5', text: '#dc2626' }
+    'expansion-only': { bg: '#efe4ff', border: '#c4a8f5', alertBorder: '#d8b4fe', text: '#a765fb' },
+    phaseout:         { bg: '#ffeded', border: '#f5a8a8', alertBorder: '#fca5a5', text: '#f45151' }
 };
 
 function renderQuadrantPanel(model) {
@@ -1445,16 +1474,12 @@ function renderQuadrantPanel(model) {
     const { selected, status } = model;
     const strategy = buildQuadrantStrategyModel(model);
     const memberMeta = selected.memberCount > 1 ? `그룹 제품 (${selected.memberCount}개 SKU)` : '단일 제품';
-    const returnPatternNames = getReturnPatternSummary(selected.id);
-    const groupedLabel = selected.memberCount > 1
-        ? `<button class="group-chip-trigger" type="button" onclick="event.stopPropagation();openGroupEditorWizard({focusEntityId:'${escapeJs(selected.groupEntityId || selected.id)}'})">그룹 ${formatNumber(selected.memberCount, 0)}개</button>`
-        : '';
     const hasHistory = (AppState.viewState.products.quadrant.history || []).length > 0;
     const tagStyle = QUADRANT_STATUS_TAG_STYLE[status.key] || QUADRANT_STATUS_TAG_STYLE.hero;
     const transitionCta = selected.hasTransition
-        ? `<button class="btn-primary" type="button" style="width:100%;height:36px;border-radius:6px;" onclick="openRetentionFlowModal('${escapeJs(selected.id)}')">90일 추가구매 제품 보기</button>`
+        ? `<button class="btn-primary pgm-side-cta-btn" type="button" onclick="openRetentionFlowModal('${escapeJs(selected.id)}')">90일 추가구매 제품 보기</button>`
         : `
-            <button class="btn-primary" type="button" style="width:100%;height:36px;border-radius:6px;" disabled title="90일 추가구매 데이터가 없어 이동할 수 없음">90일 추가구매 제품 보기</button>
+            <button class="btn-primary pgm-side-cta-btn" type="button" disabled title="90일 추가구매 데이터가 없어 이동할 수 없음">90일 추가구매 제품 보기</button>
             <p class="pgm-link-help">구매 후 90일 내 추가구매 데이터가 없어 이동할 수 없어요.</p>
         `;
 
@@ -1464,16 +1489,15 @@ function renderQuadrantPanel(model) {
             <!-- 1. 제품 헤더: 태그 + 이름 -->
             <div class="pgm-side-hero">
                 <span class="pgm-badge" style="background:${tagStyle.bg}; color:${tagStyle.text}; border-color:${tagStyle.border};">${status.label}</span>
-                <div style="display:flex;gap:20px;align-items:flex-start;">
+                <div class="pgm-side-hero-body">
                     <div class="pgm-side-hero-thumb">
                         <img src="${QUADRANT_THUMBNAIL_SRC}" alt="" class="pgm-side-hero-thumb-image" loading="lazy" decoding="async">
                     </div>
-                    <div style="flex:1;min-width:0;">
+                    <div class="pgm-side-hero-copy">
                         <div class="pgm-selected-head">
                             <h3 title="${escapeHtml(selected.name)}">${escapeHtml(selected.name)}</h3>
-                            ${groupedLabel}
                         </div>
-                        <p class="pgm-panel-helper">최근 1년 내 판매 이력이 있고, 최근 90일에도 실제 판매가 이어진 핵심 수요 제품 기준이에요.</p>
+                        <p class="pgm-panel-helper">${escapeHtml(getQuadrantStatusCompactCopy(status))}</p>
                     </div>
                 </div>
             </div>
@@ -1513,24 +1537,7 @@ function renderQuadrantPanel(model) {
                 </div>
             </section>
 
-            <!-- 4. 추가 수요 역할 -->
-            <section class="pgm-side-section-card">
-                <h4>추가 수요 역할</h4>
-                <div class="pgm-demand-share-grid">
-                    <div class="pgm-demand-share-card">
-                        <label>다시 찾는 구매</label>
-                        <strong>${getRoleLevelLabel(strategy?.reasonTags?.returnRole)}</strong>
-                        <span style="font-size:0.6875rem;line-height:1.5;">${escapeHtml(getAdditionalRoleGuide('returnRole', strategy?.reasonTags?.returnRole))}</span>
-                    </div>
-                    <div class="pgm-demand-share-card">
-                        <label>도착 흐름</label>
-                        <strong>${getRoleLevelLabel(strategy?.reasonTags?.convergenceRole)}</strong>
-                        <span style="font-size:0.6875rem;line-height:1.5;">${escapeHtml(getAdditionalRoleGuide('convergenceRole', strategy?.reasonTags?.convergenceRole))}</span>
-                    </div>
-                </div>
-            </section>
-
-            <!-- 5. 운영 전략 -->
+            <!-- 4. 운영 전략 -->
             <section class="pgm-side-section-card">
                 <h4>운영 전략</h4>
                 <div class="pgm-action-list">
@@ -1549,31 +1556,18 @@ function renderQuadrantPanel(model) {
                 </div>
             </section>
 
-            <!-- 6. 장바구니 확장 힌트 -->
+            <!-- 5. 장바구니 확장 힌트 -->
             <section class="pgm-side-section-card">
-                <div>
+                <div class="pgm-side-section-head">
                     <h4>장바구니 확장 힌트</h4>
                     <p class="pgm-basket-helper">이 제품이 포함될 때 함께 담기는 제품 구조를 보여줘요.</p>
                 </div>
-                <button class="btn-primary" type="button" style="width:100%;height:36px;border-radius:6px;" onclick="openCartFlowModal('${escapeJs(selected.id)}')">함께 구매되는 제품 보기</button>
+                <button class="btn-primary pgm-side-cta-btn" type="button" onclick="openCartFlowModal('${escapeJs(selected.id)}')">함께 구매되는 제품 보기</button>
             </section>
-
-            <!-- 7. 상태 정의 -->
-            <section class="pgm-side-section-card pgm-side-section-card--status">
-                <div>
-                    <h4>상태 정의</h4>
-                    <p class="pgm-basket-helper">이 상태는 현재 화면의 제품들끼리 비교한 상대 위치 기준이에요.</p>
-                </div>
-                <div class="pgm-status-alert" style="background:${tagStyle.bg}; border-color:${tagStyle.alertBorder || tagStyle.border};">
-                    <strong style="color:${tagStyle.text};">${status.label}</strong>
-                    <span style="color:#353535;">${escapeHtml(status.guide || status.summary)}</span>
-                </div>
-                <button class="btn-primary pgm-prev-btn" type="button"
-                    onclick="selectPreviousQuadrantItem()"
-                    ${hasHistory ? '' : 'disabled'}
-                    style="${hasHistory ? '' : 'background:#dcdee2;color:#c0c2c7;cursor:not-allowed;'}"
-                >이전 제품으로</button>
-            </section>
+            <button class="btn-primary pgm-prev-btn" type="button"
+                onclick="selectPreviousQuadrantItem()"
+                ${hasHistory ? '' : 'disabled'}
+            >이전 제품으로</button>
 
         </div>
     `;
@@ -1709,7 +1703,9 @@ function svgNum(value) {
 }
 
 function getQuadrantVisualConfig(frame = QUADRANT_SVG_FRAME) {
-    const bubbleScale = Math.min(1.55, Math.max(1, frame.height / 560));
+    const widthScale = Math.max(0.72, toNumber(frame?.width, QUADRANT_SVG_FRAME.width) / QUADRANT_SVG_FRAME.width);
+    const heightScale = Math.max(0.72, toNumber(frame?.height, QUADRANT_SVG_FRAME.height) / QUADRANT_SVG_FRAME.height);
+    const bubbleScale = Math.min(1.72, Math.max(0.94, Math.sqrt(widthScale * heightScale)));
     return {
         baseRadius: 7 * bubbleScale,
         radiusSpread: 24 * bubbleScale,
@@ -1997,18 +1993,9 @@ function renderQuadrantTooltipHtml(point) {
 
 function renderQuadrantSvgMarkup(svgModel) {
     const { centerPx, frame } = svgModel;
-    const topLeftWidth = Math.max(0, centerPx.x);
-    const topRightWidth = Math.max(0, frame.width - centerPx.x);
-    const bottomHeight = Math.max(0, frame.height - centerPx.y);
 
     return `
         <svg class="pgm-quadrant-svg" viewBox="0 0 ${frame.width} ${frame.height}" preserveAspectRatio="none" aria-label="제품 수요 포지션 사분면">
-            <g class="pgm-quadrant-svg-bg">
-                <rect x="0" y="0" width="${svgNum(topLeftWidth)}" height="${svgNum(centerPx.y)}" fill="rgba(239, 228, 255, 0.72)"></rect>
-                <rect x="${svgNum(centerPx.x)}" y="0" width="${svgNum(topRightWidth)}" height="${svgNum(centerPx.y)}" fill="rgba(221, 237, 255, 0.72)"></rect>
-                <rect x="0" y="${svgNum(centerPx.y)}" width="${svgNum(topLeftWidth)}" height="${svgNum(bottomHeight)}" fill="rgba(255, 237, 237, 0.72)"></rect>
-                <rect x="${svgNum(centerPx.x)}" y="${svgNum(centerPx.y)}" width="${svgNum(topRightWidth)}" height="${svgNum(bottomHeight)}" fill="rgba(233, 248, 224, 0.72)"></rect>
-            </g>
             <g class="pgm-quadrant-svg-lines">
                 <line class="pgm-quadrant-svg-center-line" x1="${svgNum(centerPx.x)}" y1="0" x2="${svgNum(centerPx.x)}" y2="${svgNum(frame.height)}"></line>
                 <line class="pgm-quadrant-svg-center-line" x1="0" y1="${svgNum(centerPx.y)}" x2="${svgNum(frame.width)}" y2="${svgNum(centerPx.y)}"></line>
@@ -2074,6 +2061,7 @@ function renderQuadrantCornerOverlays(corners) {
 function renderQuadrantStageFrame(model) {
     const svgModel = buildQuadrantSvgModel(model);
     const meta = buildQuadrantStageMeta(svgModel);
+    AppState.helpers.productsQuadrantModel = model;
     AppState.helpers.productsQuadrantSvgModel = svgModel;
     return `
         <div class="pgm-quadrant-stage-meta">
@@ -2095,6 +2083,30 @@ function renderQuadrantStageFrame(model) {
     `;
 }
 
+function getResponsiveQuadrantFrame(wrap) {
+    const fallback = QUADRANT_SVG_FRAME;
+    if (!wrap) return fallback;
+    const measuredWidth = Math.round(toNumber(wrap.clientWidth, fallback.width));
+    const measuredHeight = Math.round(toNumber(wrap.clientHeight, fallback.height));
+    return {
+        width: Math.max(QUADRANT_MIN_RENDER_WIDTH, measuredWidth || fallback.width),
+        height: Math.max(260, measuredHeight || fallback.height)
+    };
+}
+
+function renderQuadrantSvgIntoWrap(wrap, model) {
+    if (!wrap || !model) return null;
+    const frame = getResponsiveQuadrantFrame(wrap);
+    const svgModel = buildQuadrantSvgModel(model, frame);
+    AppState.helpers.productsQuadrantSvgModel = svgModel;
+    wrap.innerHTML = `
+        ${renderQuadrantSvgMarkup(svgModel)}
+        ${renderQuadrantCornerOverlays(svgModel.corners)}
+        <div class="pgm-quadrant-tooltip" hidden></div>
+    `;
+    return svgModel;
+}
+
 function isCompactProductsSidePanelViewport() {
     return typeof window !== 'undefined' && window.innerWidth < 1280;
 }
@@ -2103,11 +2115,6 @@ function syncQuadrantCanvasWrapHeight() {
     const wrap = document.querySelector('.quadrant-chart-canvas-wrap');
     const stage = wrap?.closest('.pgm-chart-stage.is-quadrant-view');
     if (!wrap || !stage) return 0;
-    if (typeof window !== 'undefined' && window.innerWidth >= 1280) {
-        wrap.style.height = '585px';
-        wrap.style.flex = '0 0 auto';
-        return 585;
-    }
     const meta = stage.querySelector('.pgm-quadrant-stage-meta');
     const metaHeight = meta ? meta.getBoundingClientRect().height : 0;
     const available = Math.max(260, stage.clientHeight - metaHeight - 12);
@@ -2140,6 +2147,9 @@ function ensureQuadrantResizeHandler() {
         syncQuadrantPanelHeights();
         if (AppState.viewState?.products?.chartView === 'quadrant') {
             syncQuadrantCanvasWrapHeight();
+            if (AppState.helpers.productsQuadrantModel) {
+                bindQuadrantSvg(AppState.helpers.productsQuadrantModel);
+            }
         }
         scheduleDemandGraphEdgeLayout();
     });
@@ -2164,12 +2174,13 @@ function positionQuadrantTooltip(wrap, tooltip, clientX, clientY) {
 
 function bindQuadrantSvg(model) {
     const wrap = document.querySelector('.quadrant-chart-canvas-wrap');
-    const tooltip = wrap?.querySelector('.pgm-quadrant-tooltip');
-    const svgModel = AppState.helpers.productsQuadrantSvgModel;
-    if (!wrap || !tooltip || !model || !svgModel) return;
+    if (!wrap || !model) return;
     ensureQuadrantResizeHandler();
     syncQuadrantPanelHeights();
     syncQuadrantCanvasWrapHeight();
+    const svgModel = renderQuadrantSvgIntoWrap(wrap, model);
+    const tooltip = wrap.querySelector('.pgm-quadrant-tooltip');
+    if (!tooltip || !svgModel) return;
     const hideTooltip = () => {
         tooltip.hidden = true;
         tooltip.innerHTML = '';
@@ -2412,28 +2423,56 @@ function buildCoreDemandTableModel() {
 function buildCoreDemandRowsHtml(displayData, focusEntityId, emphasisMode = 'retention-emphasis', currentSortKey = 'entry') {
     return displayData.map((row) => {
         const isFocused = focusEntityId && String(row.product_id) === focusEntityId;
-        const isMuted = emphasisMode === 'retention-emphasis' && !row.hasTransition;
-        const meta = getEntityMeta(row.product_id);
-        const groupedChip = meta.memberCount > 1
-            ? `<button class="group-chip-trigger" type="button" onclick="event.stopPropagation();openGroupEditorWizard({focusEntityId:'${escapeJs(meta.entityId)}'})">그룹 ${formatNumber(meta.memberCount, 0)}개</button>`
-            : '';
         const currentRank = row.gravityRanks[currentSortKey];
         return `
-            <tr class="clickable ${isFocused ? 'row-focused' : ''} ${isMuted ? 'row-retention-muted' : ''}" onclick="focusQuadrantFromTable('${escapeHtml(row.product_id)}')">
+            <tr class="clickable ${isFocused ? 'row-focused' : ''}" onclick="focusQuadrantFromTable('${escapeHtml(row.product_id)}')">
                 <td>
-                    <div class="core-product-cell">
-                        ${renderProductCell(row.product_name_latest || '-', row.product_id, 36, { nameClickMode: 'focus-quadrant' })}
-                        ${groupedChip}
-                    </div>
+                    ${renderProductsTableNameCell(row)}
                 </td>
-                <td>${Number.isFinite(currentRank) ? formatNumber(currentRank, 0) : '-'}</td>
-                <td>${formatPercent(row.firstCustomerShare, 1)}</td>
-                <td>${formatPercent(row.repurchaseCustomerShare, 1)}</td>
-                <td>${formatNumber(row.revenue_90d)}</td>
-                <td><span class="retention-status-chip ${row.hasTransition ? 'is-retained' : 'is-muted'}">${row.hasTransition ? '리텐션 발생' : '리텐션 없음'}</span></td>
+                <td class="core-demand-table-cell is-centered">${Number.isFinite(currentRank) ? formatNumber(currentRank, 0) : '-'}</td>
+                <td class="core-demand-table-cell is-centered">${formatPercent(row.firstCustomerShare, 1)}</td>
+                <td class="core-demand-table-cell is-centered">${formatPercent(row.repurchaseCustomerShare, 1)}</td>
+                <td class="core-demand-table-cell is-centered">${formatNumber(row.revenue_90d)}</td>
+                <td class="core-demand-table-cell is-centered">${row.hasTransition ? '발생' : '없음'}</td>
             </tr>
         `;
     }).join('');
+}
+
+function renderProductsTableNameCell(row) {
+    const productName = escapeHtml(row?.product_name_latest || '-');
+    const productId = escapeHtml(row?.product_id || '-');
+    return `
+        <div class="pgm-product-table-name-cell">
+            <div class="pgm-product-table-name" title="${productName}">${productName}</div>
+            <div class="pgm-product-table-id">${productId}</div>
+        </div>
+    `;
+}
+
+function renderProductsTableSearch() {
+    const query = String(AppState.viewState.products?.searchQuery || '');
+    return `
+        <div class="pgm-product-table-search animate-fade-in">
+            <div class="pgm-product-table-search-wrap">
+                <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+                <input
+                    id="search-input-products"
+                    type="text"
+                    class="pgm-product-table-search-input"
+                    placeholder="제품명을 검색해 주세요."
+                    value="${escapeHtml(query)}"
+                    oncompositionstart="handleSearchCompositionStart('products')"
+                    oncompositionend="handleSearchCompositionEnd('products', this)"
+                    oninput="handleGlobalSearch('products', this.value, this.selectionStart, this.selectionEnd)"
+                >
+            </div>
+        </div>
+    `;
+}
+
+function getProductsCoreRankColumnLabel(sortKey) {
+    return sortKey === 'expansion' ? '재구매 확장 순위' : '첫구매 유입 순위';
 }
 
 function renderCoreDemandSortTabs(currentSortKey) {
@@ -2450,7 +2489,6 @@ function renderCoreDemandSortTabs(currentSortKey) {
                     >${CORE_GRAVITY_CONFIG[key].label}</button>
                 `).join('')}
             </div>
-            <p class="core-demand-tab-helper">${escapeHtml(CORE_GRAVITY_CONFIG[currentSortKey].helper)}</p>
         </div>
     `;
 }
@@ -2465,30 +2503,38 @@ function renderProductsTableOnly(model = null) {
     const focusEntityId = String(AppState.helpers.focusEntityId || qSelectedId).trim();
     const emphasisMode = getProductsScopeMode();
     const currentSortKey = resolvedModel.currentSortKey;
-    const currentSortLabel = resolvedModel.currentSortLabel;
     const rows = buildCoreDemandRowsHtml(resolvedModel.rows, focusEntityId, emphasisMode, currentSortKey);
+    const rankColumnLabel = getProductsCoreRankColumnLabel(currentSortKey);
 
     summaryCard.innerHTML = `
         <div class="pgm-product-table-card">
             <div class="pgm-product-table-top">
                 <div class="pgm-core-demand-head">
                     <h3>최근 90일 핵심 수요 제품</h3>
-                    <p class="pgm-core-desc">최근 1년 내 판매 이력이 있고, 최근 90일에도 실제 판매가 이어진 핵심 수요 제품이에요.</p>
+                    <p class="pgm-core-desc">최근 1년 내 판매 이력이 있고, 최근 90일에도 실제 판매가 이어진 핵심 수요 제품 기준이에요.</p>
                 </div>
                 <div class="pgm-product-table-filter-row">
                     ${renderCoreDemandSortTabs(currentSortKey)}
-                    ${renderSearchUI('products', '핵심 제품 검색')}
+                    ${renderProductsTableSearch()}
                 </div>
             </div>
             <div class="table-container">
                 <table class="data-table core-demand-table">
+                    <colgroup>
+                        <col class="core-demand-col-name">
+                        <col class="core-demand-col-rank">
+                        <col class="core-demand-col-share">
+                        <col class="core-demand-col-share">
+                        <col class="core-demand-col-revenue">
+                        <col class="core-demand-col-retention">
+                    </colgroup>
                     <thead><tr>
                         <th>제품명</th>
-                        <th>${escapeHtml(currentSortLabel)} 순위</th>
+                        <th>${escapeHtml(rankColumnLabel)}</th>
                         <th>첫구매 고객 비중</th>
                         <th>재구매 고객 비중</th>
                         <th>최근 90일 매출</th>
-                        <th>리텐션</th>
+                        <th>리텐션 상태</th>
                     </tr></thead>
                     <tbody>${rows || `<tr><td colspan="6" class="core-demand-empty">지금 범위에서는 표시할 핵심 제품이 없어요.</td></tr>`}</tbody>
                 </table>
