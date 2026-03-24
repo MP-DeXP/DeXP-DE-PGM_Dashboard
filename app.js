@@ -3550,6 +3550,37 @@ function showSettingsModal() {
     window.renderSettingsModal();
 }
 
+function applySidebarCollapsedState(isCollapsed) {
+    const appContainer = document.querySelector('.app-container');
+    const collapseBtn = document.querySelector('.sidebar-collapse-btn');
+    if (!appContainer) return;
+    appContainer.classList.toggle('is-sidebar-collapsed', Boolean(isCollapsed));
+    if (collapseBtn) {
+        collapseBtn.title = isCollapsed ? '사이드바 펼치기' : '사이드바 접기';
+        collapseBtn.innerHTML = `<i class="ph ${isCollapsed ? 'ph-arrow-line-right' : 'ph-arrow-line-left'}"></i>`;
+    }
+}
+
+function initSidebarCollapse() {
+    const collapseBtn = document.querySelector('.sidebar-collapse-btn');
+    if (!collapseBtn) return;
+
+    const storageKey = 'pgm_sidebar_collapsed';
+    const saved = window.localStorage?.getItem(storageKey) === 'true';
+    applySidebarCollapsedState(saved);
+
+    collapseBtn.onclick = () => {
+        const appContainer = document.querySelector('.app-container');
+        const nextState = !appContainer?.classList.contains('is-sidebar-collapsed');
+        applySidebarCollapsedState(nextState);
+        try {
+            window.localStorage?.setItem(storageKey, String(nextState));
+        } catch (_) {
+            // noop
+        }
+    };
+}
+
 window.renderSettingsModal = () => {
     const body = document.getElementById('settings-modal-body');
     if (!body) return;
@@ -3582,12 +3613,17 @@ window.clearIndexedDbFromSettings = async () => {
 function showUploadModal() {
     if (document.getElementById('uploadModal')) document.getElementById('uploadModal').remove();
     document.body.insertAdjacentHTML('beforeend', `
-        <div id="uploadModal" style="position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; display:flex; align-items:center; justify-content:center;">
-            <div class="card" style="width:560px; max-width:92%;">
-                <div style="display:flex; justify-content:space-between; margin-bottom:1.5rem;"><h3>CSV 업로드</h3><button onclick="document.getElementById('uploadModal').remove()" style="background:none; border:none; color:white; cursor:pointer;"><i class="ph ph-x" style="font-size:1.5rem"></i></button></div>
-                <div id="upload-status" style="margin-bottom:1rem; color:var(--text-muted)">여러 CSV를 동시에 선택할 수 있습니다.</div>
-                <input type="file" id="file-input" multiple accept=".csv" onchange="handleFiles(this.files)">
-                <div id="file-list" style="margin-top:1rem; font-size:0.9rem;"></div>
+        <div id="uploadModal" class="modal-overlay active">
+            <div class="modal-card settings-modal-card upload-modal-card">
+                <div class="modal-header">
+                    <h3>CSV 업로드</h3>
+                    <button class="modal-close" type="button" onclick="document.getElementById('uploadModal').remove()">&times;</button>
+                </div>
+                <div class="modal-body upload-modal-body">
+                    <div id="upload-status" class="upload-modal-helper">여러 CSV를 동시에 선택할 수 있습니다.</div>
+                    <input type="file" id="file-input" class="upload-modal-input" multiple accept=".csv" onchange="handleFiles(this.files)">
+                    <div id="file-list" class="upload-modal-list"></div>
+                </div>
             </div>
         </div>
     `);
@@ -3694,6 +3730,11 @@ async function init() {
     if (sidebar) {
         sidebar.innerHTML = '<button class="btn-primary settings-launch-btn" style="width:100%" onclick="showSettingsModal()"><i class="ph ph-sliders-horizontal"></i> 설정</button>';
     }
+    const settingsTrigger = document.getElementById('settings-trigger');
+    if (settingsTrigger) {
+        settingsTrigger.onclick = () => showSettingsModal();
+    }
+    initSidebarCollapse();
 
     try {
         const keys = await DB.getAllKeys();
