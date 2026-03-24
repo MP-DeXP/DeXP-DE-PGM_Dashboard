@@ -1023,7 +1023,7 @@ body {
 
 .pgm-quadrant-head {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: space-between;
     gap: 12px;
 }
@@ -6835,6 +6835,64 @@ body {
     justify-content: flex-end;
     gap: 10px;
     flex-shrink: 0;
+}
+.pgm-quadrant-controls-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 24px;
+}
+.pgm-quadrant-controls-summary-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px;
+    flex-shrink: 0;
+}
+.pgm-quadrant-controls-summary {
+    font-size: 16px;
+    line-height: 1.25;
+    font-weight: 700;
+    color: #454545;
+}
+.pgm-quadrant-controls-actions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.pgm-quadrant-scope-toggle,
+.pgm-quadrant-scale-toggle {
+    display: inline-flex;
+    align-items: center;
+    background: #eef2f6;
+    border-radius: 999px;
+    padding: 4px;
+}
+.pgm-quadrant-scope-toggle .pgm-seg-btn,
+.pgm-quadrant-scale-toggle .pgm-seg-btn,
+.pgm-quadrant-edge-toggle .pgm-seg-btn {
+    height: 20px;
+    padding: 0 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    line-height: 1.5;
+    font-weight: 400;
+    color: #6b7280;
+}
+.pgm-quadrant-scope-toggle .pgm-seg-btn.is-active,
+.pgm-quadrant-scale-toggle .pgm-seg-btn.is-active,
+.pgm-quadrant-edge-toggle .pgm-seg-btn.is-active {
+    background: #ffffff;
+    color: #1f2937;
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+.pgm-quadrant-edge-toggle {
+    border-radius: 999px;
+    padding: 4px;
 }
 .pgm-panel-toggle-btn {
     display: inline-flex;

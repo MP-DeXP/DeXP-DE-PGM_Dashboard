@@ -71,7 +71,7 @@ function getQuadrantEdgeModeAvailability() {
     const hasAnchorTransition = Array.isArray(AppState.data.anchorTransition) && AppState.data.anchorTransition.length > 0;
     return {
         representative: hasTransitionEdge || hasAnchorTransition,
-        convergence: hasTransitionEdge
+        convergence: hasTransitionEdge || hasAnchorTransition
     };
 }
 
@@ -421,12 +421,16 @@ function buildRepresentativeQuadrantEdges(pointIdSet, selectedId) {
 }
 
 function buildConvergenceQuadrantEdges(pointIdSet, selectedId) {
-    return (AppState.data.productTransitionEdge || [])
+    const sourceRows = Array.isArray(AppState.data.productTransitionEdge) && AppState.data.productTransitionEdge.length
+        ? AppState.data.productTransitionEdge
+        : (AppState.data.anchorTransition || []);
+
+    return sourceRows
         .map((row) => ({
-            from: String(firstDefinedValue(row.source_product_id, '')).trim(),
-            to: String(firstDefinedValue(row.target_product_id, '')).trim(),
+            from: String(firstDefinedValue(row.source_product_id, row.aa_product_id, row.entry_product_id, '')).trim(),
+            to: String(firstDefinedValue(row.target_product_id, row.pca_product_id, row.expansion_product_id, '')).trim(),
             direction: 'convergence',
-            transitionCustomers: Math.max(0, toNumber(row.transition_customer_cnt, 0)),
+            transitionCustomers: Math.max(0, toNumber(firstDefinedValue(row.transition_customer_cnt, row.transition_customers, 0), 0)),
             peakRate: Math.max(0, toNumber(firstDefinedValue(row.transition_rate, row.edge_rate, 0), 0))
         }))
         .filter((edge) => edge.from && edge.to && edge.from !== edge.to)
@@ -1552,8 +1556,61 @@ function renderProductQuadrant(model, coreDemandModel = null) {
         ? savedSidePanelOpen
         : !isCompactSidePanel;
     const emptyChartMessage = '표시할 제품이 없습니다.';
+    const coreCount = Math.max(0, toNumber(coreDemandModel?.rows?.length, 0));
+    const quadrantControlsSummary = coreCount
+        ? `${formatNumber(coreCount, 0)}개 제품이 핵심 수요를 만들고 있어요.`
+        : '핵심 수요를 만드는 제품을 보여줘요.';
+    const representativeAvailable = Boolean(model?.edgeAvailability?.representative);
+    const convergenceAvailable = Boolean(model?.edgeAvailability?.convergence);
     return `
         <div class="pgm-quadrant-wrap animate-fade-in">
+            ${model && chartView === 'quadrant' ? `
+                <div class="pgm-quadrant-head">
+                    <div class="pgm-quadrant-controls-summary-wrap">
+                        <div class="pgm-quadrant-controls-summary">${escapeHtml(quadrantControlsSummary)}</div>
+                    </div>
+                    <div class="pgm-quadrant-controls-actions">
+                        <div class="pgm-seg-group pgm-quadrant-scale-toggle" role="tablist" aria-label="사분면 보기 범위">
+                            <button
+                                class="pgm-seg-btn ${model.scaleMode === 'raw' ? 'is-active' : ''}"
+                                type="button"
+                                role="tab"
+                                aria-selected="${model.scaleMode === 'raw' ? 'true' : 'false'}"
+                                title="전체 제품 범위를 기준으로 보여줘요."
+                                onclick="setQuadrantScaleMode('raw')"
+                            >전체뷰</button>
+                            <button
+                                class="pgm-seg-btn ${model.scaleMode !== 'raw' ? 'is-active' : ''}"
+                                type="button"
+                                role="tab"
+                                aria-selected="${model.scaleMode !== 'raw' ? 'true' : 'false'}"
+                                title="선택 제품과 주요 연결 범위를 중심으로 확대해 보여줘요."
+                                onclick="setQuadrantScaleMode('focus')"
+                            >집중뷰</button>
+                        </div>
+                        <div class="pgm-seg-group pgm-quadrant-edge-toggle" role="tablist" aria-label="사분면 연결 모드">
+                            <button
+                                class="pgm-seg-btn ${model.edgeMode === 'representative' ? 'is-active' : ''}"
+                                type="button"
+                                role="tab"
+                                aria-selected="${model.edgeMode === 'representative' ? 'true' : 'false'}"
+                                title="${escapeHtml(representativeAvailable ? QUADRANT_EDGE_MODE_META.representative.guide : QUADRANT_EDGE_MODE_META.representative.unavailableGuide)}"
+                                ${representativeAvailable ? '' : 'disabled'}
+                                onclick="setQuadrantEdgeMode('representative')"
+                            >${escapeHtml(QUADRANT_EDGE_MODE_META.representative.label)}</button>
+                            <button
+                                class="pgm-seg-btn ${model.edgeMode === 'convergence' ? 'is-active' : ''}"
+                                type="button"
+                                role="tab"
+                                aria-selected="${model.edgeMode === 'convergence' ? 'true' : 'false'}"
+                                title="${escapeHtml(convergenceAvailable ? QUADRANT_EDGE_MODE_META.convergence.guide : QUADRANT_EDGE_MODE_META.convergence.unavailableGuide)}"
+                                ${convergenceAvailable ? '' : 'disabled'}
+                                onclick="setQuadrantEdgeMode('convergence')"
+                            >${escapeHtml(QUADRANT_EDGE_MODE_META.convergence.label)}</button>
+                        </div>
+                    </div>
+                </div>
+            ` : ''}
             <div class="pgm-quadrant-body ${isSidePanelOpen ? '' : 'is-side-panel-closed'}">
                 <div class="pgm-chart chart-card ${chartView === 'demand-graph' ? 'is-demand-graph-view' : 'is-quadrant-view'}">
                     <div class="pgm-chart-frame ${chartView === 'demand-graph' ? 'is-demand-graph-view' : 'is-quadrant-view'}">
@@ -2386,17 +2443,7 @@ function renderProducts() {
     const qState = AppState.viewState.products.quadrant;
     qState.scope = 'retention-emphasis';
     if (!['focus', 'raw'].includes(qState.scaleMode)) qState.scaleMode = 'focus';
-    const edgeAvailability = getQuadrantEdgeModeAvailability();
-    const preferredEdgeMode = edgeAvailability[normalizeQuadrantEdgeMode(qState.edgeMode)]
-        ? normalizeQuadrantEdgeMode(qState.edgeMode)
-        : edgeAvailability.representative
-            ? 'representative'
-            : edgeAvailability.convergence
-                ? 'convergence'
-                : edgeAvailability.return
-                    ? 'return'
-                    : 'representative';
-    qState.edgeMode = preferredEdgeMode;
+    qState.edgeMode = normalizeQuadrantEdgeMode(qState.edgeMode);
 
     const quadrantModel = buildQuadrantModel(
         getScopedProductsData(),
@@ -2538,8 +2585,9 @@ function renderProducts() {
 
     window.setQuadrantScaleMode = (mode) => {
         const next = String(mode || '').toLowerCase() === 'raw' ? 'raw' : 'focus';
+        if (AppState.viewState.products.quadrant.scaleMode === next) return;
         AppState.viewState.products.quadrant.scaleMode = next;
-        renderProducts();
+        rerenderProductsSelection(true);
     };
 
     window.setQuadrantScopeMode = (mode) => {
@@ -2551,8 +2599,9 @@ function renderProducts() {
         const next = normalizeQuadrantEdgeMode(mode);
         const availability = getQuadrantEdgeModeAvailability();
         if (!availability[next]) return;
+        if (AppState.viewState.products.quadrant.edgeMode === next) return;
         AppState.viewState.products.quadrant.edgeMode = next;
-        renderProducts();
+        rerenderProductsSelection(true);
     };
 
 }
