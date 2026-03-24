@@ -2046,7 +2046,7 @@ function renderBrandStructureAxisCards(cards) {
                     </div>
                     <p class="brand-structure-axis-copy">${escapeHtml(card.interpretation)}</p>
                     <div class="brand-structure-axis-cta-wrap">
-                        <a class="brand-structure-axis-cta" href="${escapeHtml(getCtaHref(card.key))}">제품 관계 분석에서 보기</a>
+                        <a class="brand-structure-axis-cta" href="${escapeHtml(getCtaHref(card.key))}">제품 관계 인사이트에서 보기</a>
                     </div>
                 </article>
             `).join('')}
@@ -2430,11 +2430,11 @@ function renderBrandDashboard() {
                 <div class="brand-section-head">
                     <div>
                         <h2>제품별 기여를 더 자세히 보려면</h2>
-                        <p>제품 단위 구조 기여, 구매 활성도 기여, 수요 흐름과 역할 맵은 제품 관계 분석 화면에서 이어서 볼 수 있어요.</p>
+                        <p>제품 단위 구조 기여, 구매 활성도 기여, 수요 흐름과 역할 맵은 제품 관계 인사이트 화면에서 이어서 볼 수 있어요.</p>
                     </div>
-                    <a class="btn-primary brand-next-cta-link" href="../products/">제품 관계 분석으로 이동</a>
+                    <a class="btn-primary brand-next-cta-link" href="../products/">제품 관계 인사이트로 이동</a>
                 </div>
-                <p class="brand-next-cta-note">브랜드 페이지에서는 현재 브랜드 상태와 진단에 집중하고, 제품별 drill-down과 구조 맵은 제품 관계 분석 화면으로 분리했어요.</p>
+                <p class="brand-next-cta-note">브랜드 페이지에서는 현재 브랜드 상태와 진단에 집중하고, 제품별 drill-down과 구조 맵은 제품 관계 인사이트 화면으로 분리했어요.</p>
             </section>
         </div>
     `;

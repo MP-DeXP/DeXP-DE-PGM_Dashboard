@@ -177,6 +177,7 @@ const AppState = {
             searchQuery: '',
             chartView: 'quadrant',
             demandGraphTab: 'transition',
+            sidePanelOpen: null,
             quadrant: {
                 selectedId: '',
                 history: [],

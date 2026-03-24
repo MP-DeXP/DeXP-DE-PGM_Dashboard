@@ -54,6 +54,7 @@ const DEMAND_GRAPH_TAB_META = {
 const DEMAND_GRAPH_TRANSITION_LIMIT = 5;
 const DEMAND_GRAPH_BASKET_LIMIT = 6;
 const DEMAND_GRAPH_SUMMARY_LIMIT = 5;
+const QUADRANT_SVG_FRAME = Object.freeze({ width: 708, height: 585 });
 
 function normalizeDemandGraphTab(tab) {
     return String(tab || '').trim().toLowerCase() === 'basket' ? 'basket' : 'transition';
@@ -336,6 +337,16 @@ function buildQuadrantScaleModel(points, selected, scaleMode, visibleEdges = [])
         focusRange,
         activeRange,
         mode: scaleMode
+    };
+}
+
+function getQuadrantRenderRange(range) {
+    const baseRange = range || { xMin: 0, xMax: 1, yMin: 0, yMax: 1 };
+    return {
+        xMin: toNumber(baseRange.xMin, 0),
+        xMax: toNumber(baseRange.xMax, 1),
+        yMin: toNumber(baseRange.yMin, 0),
+        yMax: toNumber(baseRange.yMax, 1)
     };
 }
 
@@ -1475,16 +1486,6 @@ function renderQuadrantPanel(model) {
                         <label>다시 찾는 구매</label>
                         <strong>${getRoleLevelLabel(strategy?.reasonTags?.returnRole)}</strong>
                         <span style="font-size:0.6875rem;line-height:1.5;">${escapeHtml(getAdditionalRoleGuide('returnRole', strategy?.reasonTags?.returnRole))}</span>
-                        ${returnPatternNames.length ? `
-                            <div class="pgm-role-chip-list" style="margin-top:8px;">
-                                ${returnPatternNames.map((item) => `
-                                    <button class="pgm-role-chip" type="button"
-                                        onclick="event.stopPropagation();focusQuadrantFromDemandDriver('${escapeJs(item.id)}')"
-                                        title="${escapeHtml(item.name)}"
-                                    >${escapeHtml(item.name)}</button>
-                                `).join('')}
-                            </div>
-                        ` : ''}
                     </div>
                     <div class="pgm-demand-share-card">
                         <label>도착 흐름</label>
@@ -1544,100 +1545,454 @@ function renderQuadrantPanel(model) {
 }
 
 function renderProductQuadrant(model, coreDemandModel = null) {
-    const qState = AppState.viewState.products.quadrant || {};
     const chartView = AppState.viewState.products.chartView === 'demand-graph' ? 'demand-graph' : 'quadrant';
-    const scaleMode = qState.scaleMode || 'focus';
-    const scopeMode = qState.scope === 'all' ? 'all' : 'retention-emphasis';
-    const edgeMode = normalizeQuadrantEdgeMode(qState.edgeMode || model?.edgeMode || 'representative');
-    const edgeAvailability = model?.edgeAvailability || getQuadrantEdgeModeAvailability();
+    const isCompactSidePanel = typeof window !== 'undefined' && window.innerWidth < 1280;
+    const savedSidePanelOpen = AppState.viewState.products?.sidePanelOpen;
+    const isSidePanelOpen = typeof savedSidePanelOpen === 'boolean'
+        ? savedSidePanelOpen
+        : !isCompactSidePanel;
     const emptyChartMessage = '표시할 제품이 없습니다.';
-    const demandHeadline = coreDemandModel && coreDemandModel.totalCoreCount > 0
-        ? `${formatNumber(coreDemandModel.totalCoreCount, 0)}개 제품이 핵심 수요를 만들고 있어요.`
-        : '';
     return `
         <div class="pgm-quadrant-wrap animate-fade-in">
-            <div class="pgm-quadrant-head">
-                <div class="pgm-demand-headline">${demandHeadline ? escapeHtml(demandHeadline) : ''}</div>
-                <div class="pgm-quadrant-controls-row">
-                    <div class="pgm-seg-group">
-                        <button
-                            class="pgm-seg-btn ${scopeMode === 'retention-emphasis' ? 'is-active' : ''}"
-                            type="button"
-                            title="전체 제품을 보여주되 리텐션 발생 제품을 더 선명하게 강조해요."
-                            onclick="setQuadrantScopeMode('retention-emphasis')"
-                        >리텐션 발생 제품 강조</button>
-                        <button
-                            class="pgm-seg-btn ${scopeMode === 'all' ? 'is-active' : ''}"
-                            type="button"
-                            title="전체 제품을 동일한 강조 수준으로 보여줘요."
-                            onclick="setQuadrantScopeMode('all')"
-                        >전체 제품 보기</button>
-                    </div>
-                    <div class="pgm-seg-group">
-                        <button class="pgm-seg-btn ${scaleMode === 'focus' ? 'is-active' : ''}" type="button" onclick="setQuadrantScaleMode('focus')">
-                            집중뷰<i class="ph ph-lock-simple" style="font-size:10px;margin-left:3px;"></i>
-                        </button>
-                        <button class="pgm-seg-btn ${scaleMode === 'raw' ? 'is-active' : ''}" type="button" onclick="setQuadrantScaleMode('raw')">원본보기</button>
-                    </div>
-                    <div class="pgm-seg-group">
-                        ${Object.entries(QUADRANT_EDGE_MODE_META).map(([key, meta]) => `
-                            <button
-                                class="pgm-seg-btn ${edgeMode === key ? 'is-active' : ''}"
-                                type="button"
-                                onclick="setQuadrantEdgeMode('${key}')"
-                                ${edgeAvailability[key] ? '' : 'disabled'}
-                                title="${escapeHtml(edgeAvailability[key] ? meta.guide : meta.unavailableGuide)}"
-                            >${meta.label}${key === 'representative' ? '<i class="ph ph-lock-simple" style="font-size:10px;margin-left:3px;"></i>' : ''}</button>
-                        `).join('')}
-                    </div>
-                </div>
-            </div>
-            <div class="pgm-quadrant-body">
+            <div class="pgm-quadrant-body ${isSidePanelOpen ? '' : 'is-side-panel-closed'}">
                 <div class="pgm-chart chart-card ${chartView === 'demand-graph' ? 'is-demand-graph-view' : 'is-quadrant-view'}">
-                    <div class="pgm-chart-header-row">
-                        <div class="pgm-chart-tab-group" role="tablist" aria-label="차트 보기">
-                            <button
-                                class="pgm-chart-tab ${chartView === 'quadrant' ? 'is-active' : ''}"
-                                type="button"
-                                role="tab"
-                                aria-selected="${chartView === 'quadrant' ? 'true' : 'false'}"
-                                onclick="setProductsChartView('quadrant')"
-                            >제품 수요 포지션</button>
-                            <button
-                                class="pgm-chart-tab ${chartView === 'demand-graph' ? 'is-active' : ''}"
-                                type="button"
-                                role="tab"
-                                aria-selected="${chartView === 'demand-graph' ? 'true' : 'false'}"
-                                onclick="setProductsChartView('demand-graph')"
-                            >제품 관계 구조</button>
+                    <div class="pgm-chart-frame ${chartView === 'demand-graph' ? 'is-demand-graph-view' : 'is-quadrant-view'}">
+                        <div class="pgm-chart-header-row">
+                            <div class="pgm-chart-tab-group" role="tablist" aria-label="차트 보기">
+                                <button
+                                    class="pgm-chart-tab ${chartView === 'quadrant' ? 'is-active' : ''}"
+                                    type="button"
+                                    role="tab"
+                                    aria-selected="${chartView === 'quadrant' ? 'true' : 'false'}"
+                                    onclick="setProductsChartView('quadrant')"
+                                >제품 수요 포지션</button>
+                                <button
+                                    class="pgm-chart-tab ${chartView === 'demand-graph' ? 'is-active' : ''}"
+                                    type="button"
+                                    role="tab"
+                                    aria-selected="${chartView === 'demand-graph' ? 'true' : 'false'}"
+                                    onclick="setProductsChartView('demand-graph')"
+                                >제품 관계 구조</button>
+                            </div>
+                            <div class="pgm-chart-header-actions">
+                                ${model ? `
+                                    <button
+                                        class="pgm-panel-toggle-btn ${isSidePanelOpen ? 'is-active' : ''}"
+                                        type="button"
+                                        aria-label="${isSidePanelOpen ? '인사이트 패널 닫기' : '인사이트 패널 열기'}"
+                                        title="${isSidePanelOpen ? '인사이트 패널 닫기' : '인사이트 패널 열기'}"
+                                        onclick="toggleProductsSidePanel()"
+                                    >
+                                        <img src="../../assets/BiDockRight.svg" alt="" class="pgm-panel-toggle-icon" aria-hidden="true">
+                                    </button>
+                                ` : ''}
+                            </div>
                         </div>
-                        ${chartView === 'quadrant' && model ? `<span class="pgm-chart-bubble-hint">버블 크기 기준: 주간 예상 수요량 (최근 1년 주문수 ÷ 52)</span>` : ''}
+                        <div class="pgm-chart-stage ${chartView === 'demand-graph' ? 'is-demand-graph-view' : 'is-quadrant-view'}">
+                            ${chartView === 'quadrant'
+            ? (model
+                ? renderQuadrantStageFrame(model)
+                : `<div class="quadrant-chart-empty"><p>${emptyChartMessage}</p></div>`)
+            : renderDemandGraphInline(model)}
+                        </div>
                     </div>
-                    <div class="pgm-chart-stage ${chartView === 'demand-graph' ? 'is-demand-graph-view' : 'is-quadrant-view'}">
-                        ${chartView === 'quadrant'
-        ? (model
-            ? `<div class="quadrant-chart-canvas-wrap"><canvas id="pgmQuadrantChart"></canvas></div>`
-            : `<div class="quadrant-chart-empty"><p>${emptyChartMessage}</p></div>`)
-        : renderDemandGraphInline(model)}
-                    </div>
-                    ${chartView === 'quadrant' && model ? `
-                        <p class="pgm-edge-guide" style="font-size:0.75rem;color:var(--dark-100);margin-top:12px;">
-                            <strong style="color:var(--dark-800);">${escapeHtml(model.edgeModeLabel || QUADRANT_EDGE_MODE_META[edgeMode].label)}</strong>
-                            · ${escapeHtml(model.edgeGuide || QUADRANT_EDGE_MODE_META[edgeMode].guide)}
-                        </p>
-                    ` : ''}
                 </div>
-                ${model ? `<div class="pgm-side card">${renderQuadrantPanel(model)}</div>` : ''}
+                ${model ? `
+                    ${isCompactSidePanel && isSidePanelOpen ? '<button class="pgm-side-backdrop" type="button" aria-label="인사이트 패널 닫기" onclick="closeProductsSidePanel()"></button>' : ''}
+                    <div class="pgm-side card ${isCompactSidePanel ? 'is-compact-drawer' : ''} ${isSidePanelOpen ? 'is-open' : ''}">
+                        <button
+                            class="pgm-side-close-btn"
+                            type="button"
+                            aria-label="인사이트 패널 닫기"
+                            title="인사이트 패널 닫기"
+                            onclick="closeProductsSidePanel()"
+                        ><i class="ph ph-x"></i></button>
+                        ${renderQuadrantPanel(model)}
+                    </div>
+                ` : ''}
+                <div id="products-summary-card" class="animate-fade-in"></div>
             </div>
         </div>
     `;
+}
+
+function svgNum(value) {
+    return Number.isFinite(value) ? value.toFixed(2) : '0';
+}
+
+function getQuadrantVisualConfig(frame = QUADRANT_SVG_FRAME) {
+    const bubbleScale = Math.min(1.55, Math.max(1, frame.height / 560));
+    return {
+        baseRadius: 7 * bubbleScale,
+        radiusSpread: 24 * bubbleScale,
+        maxRadius: 42,
+        selectedScale: 1.08,
+        selectedRingGap: 5,
+        selectedRingWidth: 3,
+        pulseExtra: 8,
+        pulseWidth: 2,
+        edgeStartPad: 3,
+        edgeEndPad: 5,
+        edgeArrowPad: 12,
+        edgeArrowLenBase: 6,
+        edgeArrowLenSpread: 2.8,
+        edgeArrowWidthBase: 3.2,
+        edgeArrowWidthSpread: 1.4
+    };
+}
+
+function getQuadrantBubbleRadius(point, maxWeekly, visualConfig) {
+    const weekly = Math.max(0, toNumber(point?.weeklyForecast, 0));
+    const maxValue = Math.max(1, toNumber(maxWeekly, 1));
+    const baseRadius = visualConfig.baseRadius + visualConfig.radiusSpread * Math.sqrt(weekly / maxValue);
+    const scaledRadius = point?.isSelected ? baseRadius * visualConfig.selectedScale : baseRadius;
+    return Math.min(visualConfig.maxRadius, Math.max(visualConfig.baseRadius, scaledRadius));
+}
+
+function getQuadrantBubbleOuterRadius(point, maxWeekly, visualConfig) {
+    const radius = getQuadrantBubbleRadius(point, maxWeekly, visualConfig);
+    if (!point?.isSelected) return radius + 2;
+    return radius + visualConfig.selectedRingGap + visualConfig.selectedRingWidth + visualConfig.pulseExtra + visualConfig.pulseWidth;
+}
+
+function buildQuadrantPixelInsets(model, frame = QUADRANT_SVG_FRAME, visualConfig = getQuadrantVisualConfig(frame)) {
+    const range = getQuadrantRenderRange(model?.scaleRange || {});
+    const points = Array.isArray(model?.points) ? model.points : [];
+    const selectedId = String(model?.selected?.id || '').trim();
+    const spanX = Math.max(0.02, range.xMax - range.xMin);
+    const spanY = Math.max(0.02, range.yMax - range.yMin);
+
+    let left = 0;
+    let right = 0;
+    let top = 0;
+    let bottom = 0;
+
+    for (let i = 0; i < 4; i += 1) {
+        const usableWidth = Math.max(80, frame.width - left - right);
+        const usableHeight = Math.max(80, frame.height - top - bottom);
+        const mapX = (value) => left + (((value - range.xMin) / spanX) * usableWidth);
+        const mapY = (value) => top + ((1 - ((value - range.yMin) / spanY)) * usableHeight);
+
+        let nextLeft = 0;
+        let nextRight = 0;
+        let nextTop = 0;
+        let nextBottom = 0;
+
+        points.forEach((point) => {
+            const isSelected = String(point.id || '').trim() === selectedId;
+            const projected = model?.scaleMode === 'focus'
+                ? projectOutlierPoint(point, range)
+                : { x: point.entry, y: point.expansion, marker: '' };
+            const x = mapX(projected.x);
+            const y = mapY(projected.y);
+            const outerRadius = getQuadrantBubbleOuterRadius({ ...point, isSelected }, model?.maxWeekly, visualConfig);
+            const topExtra = projected.marker && projected.marker.includes('↑') ? 14 : 0;
+            const bottomExtra = projected.marker && projected.marker.includes('↓') ? 10 : 0;
+            nextLeft = Math.max(nextLeft, outerRadius + 4 - x);
+            nextRight = Math.max(nextRight, outerRadius + 4 - (frame.width - x));
+            nextTop = Math.max(nextTop, outerRadius + 4 + topExtra - y);
+            nextBottom = Math.max(nextBottom, outerRadius + 4 + bottomExtra - (frame.height - y));
+        });
+
+        left = Math.max(0, nextLeft);
+        right = Math.max(0, nextRight);
+        top = Math.max(0, nextTop);
+        bottom = Math.max(0, nextBottom);
+    }
+
+    return { left, right, top, bottom, range };
+}
+
+function buildQuadrantSummaryBuckets(model) {
+    const labels = {
+        'expansion-only': '재구매 강점 제품',
+        hero: '우선 확대 대상',
+        phaseout: '개선 필요',
+        'entry-only': '첫구매 강점 제품'
+    };
+    const totals = (model?.points || []).reduce((acc, point) => {
+        const status = getQuadrantStatus(point.entry, point.expansion, model.centerEntry, model.centerExpansion);
+        const key = String(status?.key || '');
+        const revenue = Math.max(0, toNumber(point.revenue90d, 0));
+        if (!acc[key]) acc[key] = { count: 0, revenue: 0 };
+        acc[key].count += 1;
+        acc[key].revenue += revenue;
+        acc.totalRevenue += revenue;
+        return acc;
+    }, { totalRevenue: 0 });
+
+    const formatSummary = (key) => {
+        const bucket = totals[key] || { count: 0, revenue: 0 };
+        const share = totals.totalRevenue > 0 ? (bucket.revenue / totals.totalRevenue) * 100 : 0;
+        return {
+            label: labels[key],
+            summary: `총 ${formatNumber(bucket.count, 0)}개 제품 / 매출 비중 ${formatNumber(share, 1)}%`
+        };
+    };
+
+    return {
+        axisDescription: 'X축: 구매전환율  |  Y축: 매출기여도',
+        legend: [
+            { key: 'expansion-only', label: labels['expansion-only'] },
+            { key: 'hero', label: labels.hero },
+            { key: 'phaseout', label: labels.phaseout },
+            { key: 'entry-only', label: labels['entry-only'] }
+        ],
+        corners: {
+            topLeft: formatSummary('expansion-only'),
+            topRight: formatSummary('hero'),
+            bottomLeft: formatSummary('phaseout'),
+            bottomRight: formatSummary('entry-only')
+        }
+    };
+}
+
+function buildQuadrantSvgModel(model, frame = QUADRANT_SVG_FRAME) {
+    const visualConfig = getQuadrantVisualConfig(frame);
+    const pixelInsets = buildQuadrantPixelInsets(model, frame, visualConfig);
+    const summary = buildQuadrantSummaryBuckets(model);
+    const baseRange = pixelInsets.range;
+    const spanX = Math.max(0.02, baseRange.xMax - baseRange.xMin);
+    const spanY = Math.max(0.02, baseRange.yMax - baseRange.yMin);
+    const selectedId = String(model?.selected?.id || '').trim();
+    const mutedFillPalette = {
+        hero: 'rgba(147, 197, 253, 0.34)',
+        'entry-only': 'rgba(153, 246, 228, 0.30)',
+        'expansion-only': 'rgba(216, 180, 254, 0.32)',
+        phaseout: 'rgba(253, 186, 186, 0.30)'
+    };
+    const mutedBorderPalette = {
+        hero: 'rgba(96, 165, 250, 0.54)',
+        'entry-only': 'rgba(45, 212, 191, 0.50)',
+        'expansion-only': 'rgba(196, 181, 253, 0.56)',
+        phaseout: 'rgba(252, 165, 165, 0.50)'
+    };
+
+    const usableWidth = Math.max(80, frame.width - pixelInsets.left - pixelInsets.right);
+    const usableHeight = Math.max(80, frame.height - pixelInsets.top - pixelInsets.bottom);
+    const mapX = (value) => pixelInsets.left + (((value - baseRange.xMin) / spanX) * usableWidth);
+    const mapY = (value) => pixelInsets.top + ((1 - ((value - baseRange.yMin) / spanY)) * usableHeight);
+    const centerPx = {
+        x: mapX(toNumber(model?.centerEntry, 0)),
+        y: mapY(toNumber(model?.centerExpansion, 0))
+    };
+
+    const points = (model?.points || []).map((point) => {
+        const isSelected = String(point.id || '').trim() === selectedId;
+        const status = getQuadrantStatus(point.entry, point.expansion, model.centerEntry, model.centerExpansion);
+        const projected = model?.scaleMode === 'focus'
+            ? projectOutlierPoint(point, baseRange)
+            : { x: point.entry, y: point.expansion, marker: '' };
+        const radius = getQuadrantBubbleRadius({ ...point, isSelected }, model?.maxWeekly, visualConfig);
+        const outerRadius = getQuadrantBubbleOuterRadius({ ...point, isSelected }, model?.maxWeekly, visualConfig);
+        const muted = model?.scope === 'retention-emphasis' && !point.hasTransition;
+        return {
+            ...point,
+            isSelected,
+            status,
+            outlierMarker: projected.marker,
+            x: mapX(projected.x),
+            y: mapY(projected.y),
+            radius,
+            outerRadius,
+            fill: muted ? (mutedFillPalette[status.key] || 'rgba(148, 163, 184, 0.24)') : status.color,
+            fillOpacity: muted || isSelected ? 1 : 0.86,
+            stroke: muted ? (mutedBorderPalette[status.key] || 'rgba(148, 163, 184, 0.42)') : '#ffffff',
+            strokeWidth: isSelected ? 2.6 : (muted ? 1 : 1.6)
+        };
+    }).sort((a, b) => {
+        if (a.isSelected && !b.isSelected) return 1;
+        if (!a.isSelected && b.isSelected) return -1;
+        return a.radius - b.radius;
+    });
+
+    const pointById = new Map(points.map((point) => [String(point.id || '').trim(), point]));
+    const maxCustomers = Math.max(...(model?.visibleEdges || []).map((edge) => toNumber(edge.transitionCustomers, 0)), 1);
+    const edges = (model?.visibleEdges || []).map((edge) => {
+        const from = pointById.get(String(edge.from || '').trim());
+        const to = pointById.get(String(edge.to || '').trim());
+        if (!from || !to) return null;
+        const dx = to.x - from.x;
+        const dy = to.y - from.y;
+        const dist = Math.hypot(dx, dy);
+        if (!Number.isFinite(dist) || dist < 6) return null;
+
+        const ux = dx / dist;
+        const uy = dy / dist;
+        const startX = from.x + ux * (from.radius + visualConfig.edgeStartPad);
+        const startY = from.y + uy * (from.radius + visualConfig.edgeStartPad);
+        const endX = to.x - ux * (to.radius + visualConfig.edgeEndPad);
+        const endY = to.y - uy * (to.radius + visualConfig.edgeEndPad);
+        const isInbound = edge.direction === 'inbound' || edge.direction === 'convergence' || edge.direction === 'loop-return';
+        const bend = Math.min(38, Math.max(12, dist * 0.18)) * (isInbound ? -1 : 1);
+        const controlX = (startX + endX) / 2 + (-uy * bend);
+        const controlY = (startY + endY) / 2 + (ux * bend);
+        const weight = toNumber(edge.transitionCustomers, 0) / maxCustomers;
+        const color = isInbound ? [78, 99, 132] : [55, 103, 110];
+        const alpha = 0.14 + (weight * 0.24);
+        const arrowLen = visualConfig.edgeArrowLenBase + (weight * visualConfig.edgeArrowLenSpread);
+        const arrowWidth = visualConfig.edgeArrowWidthBase + (weight * visualConfig.edgeArrowWidthSpread);
+        const tangentX = endX - controlX;
+        const tangentY = endY - controlY;
+        const tangentLen = Math.max(Math.hypot(tangentX, tangentY), 0.0001);
+        const tux = tangentX / tangentLen;
+        const tuy = tangentY / tangentLen;
+        const leftX = endX - (tux * arrowLen) + (-tuy * arrowWidth);
+        const leftY = endY - (tuy * arrowLen) + (tux * arrowWidth);
+        const rightX = endX - (tux * arrowLen) - (-tuy * arrowWidth);
+        const rightY = endY - (tuy * arrowLen) - (tux * arrowWidth);
+        return {
+            path: `M ${svgNum(startX)} ${svgNum(startY)} Q ${svgNum(controlX)} ${svgNum(controlY)} ${svgNum(endX)} ${svgNum(endY)}`,
+            arrowPoints: `${svgNum(endX)},${svgNum(endY)} ${svgNum(leftX)},${svgNum(leftY)} ${svgNum(rightX)},${svgNum(rightY)}`,
+            color: `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${alpha})`,
+            arrowColor: `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${Math.min(0.5, alpha + 0.12)})`,
+            strokeWidth: 1.25 + (weight * 1.75),
+            dashArray: isInbound ? '3 5' : ''
+        };
+    }).filter(Boolean);
+
+    return {
+        axisDescription: summary.axisDescription,
+        legend: summary.legend,
+        corners: summary.corners,
+        frame,
+        pixelInsets,
+        centerPx,
+        points,
+        edges
+    };
+}
+
+function buildQuadrantStageMeta(svgModel) {
+    return {
+        axisDescription: svgModel.axisDescription,
+        legend: svgModel.legend
+    };
+}
+
+function renderQuadrantTooltipHtml(point) {
+    const title = `${escapeHtml(point.name)}${point.memberCount > 1 ? ` · 그룹 ${formatNumber(point.memberCount, 0)}개` : ''}`;
+    const lines = [
+        `상태: ${point.status?.label || '-'}`,
+        `첫구매 유입 점수: ${formatNumber(point.entry, 3)}`,
+        `재구매 점수: ${formatNumber(point.expansion, 3)}`,
+        point.outlierMarker ? `집중뷰 경계 표시: ${point.outlierMarker}` : '',
+        `주간 예상 수요량: ${formatNumber(point.weeklyForecast, 1)}`,
+        `리텐션 상태: ${point.hasTransition ? '발생' : '없음'}`,
+        `SKU 수: ${formatNumber(point.memberCount, 0)}`
+    ].filter(Boolean);
+
+    return `
+        <div class="pgm-quadrant-tooltip-title">${title}</div>
+        <div class="pgm-quadrant-tooltip-body">
+            ${lines.map((line) => `<div class="pgm-quadrant-tooltip-line">${escapeHtml(line)}</div>`).join('')}
+        </div>
+    `;
+}
+
+function renderQuadrantSvgMarkup(svgModel) {
+    const { centerPx, frame, corners } = svgModel;
+    const topLeftWidth = Math.max(0, centerPx.x);
+    const topRightWidth = Math.max(0, frame.width - centerPx.x);
+    const bottomHeight = Math.max(0, frame.height - centerPx.y);
+
+    return `
+        <svg class="pgm-quadrant-svg" viewBox="0 0 ${frame.width} ${frame.height}" preserveAspectRatio="none" aria-label="제품 수요 포지션 사분면">
+            <g class="pgm-quadrant-svg-bg">
+                <rect x="0" y="0" width="${svgNum(topLeftWidth)}" height="${svgNum(centerPx.y)}" fill="rgba(239, 228, 255, 0.72)"></rect>
+                <rect x="${svgNum(centerPx.x)}" y="0" width="${svgNum(topRightWidth)}" height="${svgNum(centerPx.y)}" fill="rgba(221, 237, 255, 0.72)"></rect>
+                <rect x="0" y="${svgNum(centerPx.y)}" width="${svgNum(topLeftWidth)}" height="${svgNum(bottomHeight)}" fill="rgba(255, 237, 237, 0.72)"></rect>
+                <rect x="${svgNum(centerPx.x)}" y="${svgNum(centerPx.y)}" width="${svgNum(topRightWidth)}" height="${svgNum(bottomHeight)}" fill="rgba(233, 248, 224, 0.72)"></rect>
+            </g>
+            <g class="pgm-quadrant-svg-lines">
+                <line class="pgm-quadrant-svg-center-line" x1="${svgNum(centerPx.x)}" y1="0" x2="${svgNum(centerPx.x)}" y2="${svgNum(frame.height)}"></line>
+                <line class="pgm-quadrant-svg-center-line" x1="0" y1="${svgNum(centerPx.y)}" x2="${svgNum(frame.width)}" y2="${svgNum(centerPx.y)}"></line>
+            </g>
+            <g class="pgm-quadrant-svg-edges">
+                ${svgModel.edges.map((edge) => `
+                    <g class="pgm-quadrant-svg-edge">
+                        <path d="${edge.path}" fill="none" stroke="${edge.color}" stroke-width="${svgNum(edge.strokeWidth)}" stroke-linecap="round" ${edge.dashArray ? `stroke-dasharray="${edge.dashArray}"` : ''}></path>
+                        <polygon points="${edge.arrowPoints}" fill="${edge.arrowColor}"></polygon>
+                    </g>
+                `).join('')}
+            </g>
+            <g class="pgm-quadrant-svg-points">
+                ${svgModel.points.map((point) => `
+                    <g class="pgm-quadrant-svg-point ${point.isSelected ? 'is-selected' : ''}">
+                        ${point.isSelected ? `
+                            <circle class="pgm-quadrant-selected-ring" cx="${svgNum(point.x)}" cy="${svgNum(point.y)}" r="${svgNum(point.radius + 6)}"></circle>
+                            <circle class="pgm-quadrant-selected-pulse" cx="${svgNum(point.x)}" cy="${svgNum(point.y)}" r="${svgNum(point.radius + 6)}">
+                                <animate attributeName="r" values="${svgNum(point.radius + 6)};${svgNum(point.radius + 14)};${svgNum(point.radius + 6)}" dur="1.6s" repeatCount="indefinite"></animate>
+                                <animate attributeName="opacity" values="0.28;0.08;0.28" dur="1.6s" repeatCount="indefinite"></animate>
+                            </circle>
+                        ` : ''}
+                        <circle class="pgm-quadrant-bubble-circle" cx="${svgNum(point.x)}" cy="${svgNum(point.y)}" r="${svgNum(point.radius)}" fill="${point.fill}" fill-opacity="${svgNum(point.fillOpacity)}" stroke="${point.stroke}" stroke-width="${svgNum(point.strokeWidth)}"></circle>
+                        ${point.outlierMarker ? `<text class="pgm-quadrant-outlier-marker" x="${svgNum(point.x)}" y="${svgNum(point.y - point.radius - 10)}" text-anchor="middle">${escapeHtml(point.outlierMarker)}</text>` : ''}
+                        <circle class="pgm-quadrant-bubble-hitbox" cx="${svgNum(point.x)}" cy="${svgNum(point.y)}" r="${svgNum(Math.max(14, point.outerRadius))}" fill="transparent" tabindex="0" role="button" aria-label="${escapeHtml(`${point.name} ${point.status?.label || ''}`)}" data-product-id="${escapeHtml(point.id)}"></circle>
+                    </g>
+                `).join('')}
+            </g>
+            <g class="pgm-quadrant-svg-corners" aria-hidden="true">
+                <g class="pgm-quadrant-svg-corner is-top-left">
+                    <text x="28" y="34" class="pgm-quadrant-svg-corner-title">${escapeHtml(corners.topLeft.label)}</text>
+                    <text x="28" y="56" class="pgm-quadrant-svg-corner-summary">${escapeHtml(corners.topLeft.summary)}</text>
+                </g>
+                <g class="pgm-quadrant-svg-corner is-top-right">
+                    <text x="${svgNum(frame.width - 28)}" y="34" text-anchor="end" class="pgm-quadrant-svg-corner-title">${escapeHtml(corners.topRight.label)}</text>
+                    <text x="${svgNum(frame.width - 28)}" y="56" text-anchor="end" class="pgm-quadrant-svg-corner-summary">${escapeHtml(corners.topRight.summary)}</text>
+                </g>
+                <g class="pgm-quadrant-svg-corner is-bottom-left">
+                    <text x="28" y="${svgNum(frame.height - 28)}" class="pgm-quadrant-svg-corner-title">${escapeHtml(corners.bottomLeft.label)}</text>
+                    <text x="28" y="${svgNum(frame.height - 6)}" class="pgm-quadrant-svg-corner-summary">${escapeHtml(corners.bottomLeft.summary)}</text>
+                </g>
+                <g class="pgm-quadrant-svg-corner is-bottom-right">
+                    <text x="${svgNum(frame.width - 28)}" y="${svgNum(frame.height - 28)}" text-anchor="end" class="pgm-quadrant-svg-corner-title">${escapeHtml(corners.bottomRight.label)}</text>
+                    <text x="${svgNum(frame.width - 28)}" y="${svgNum(frame.height - 6)}" text-anchor="end" class="pgm-quadrant-svg-corner-summary">${escapeHtml(corners.bottomRight.summary)}</text>
+                </g>
+            </g>
+        </svg>
+    `;
+}
+
+function renderQuadrantStageFrame(model) {
+    const svgModel = buildQuadrantSvgModel(model);
+    const meta = buildQuadrantStageMeta(svgModel);
+    AppState.helpers.productsQuadrantSvgModel = svgModel;
+    return `
+        <div class="pgm-quadrant-stage-meta">
+            <p class="pgm-quadrant-axis-desc">${escapeHtml(meta.axisDescription)}</p>
+            <div class="pgm-quadrant-legend">
+                ${meta.legend.map((item) => `
+                    <span class="pgm-quadrant-legend-item is-${item.key}">
+                        <span class="pgm-quadrant-legend-dot" aria-hidden="true"></span>
+                        <span>${escapeHtml(item.label)}</span>
+                    </span>
+                `).join('')}
+            </div>
+        </div>
+        <div class="quadrant-chart-canvas-wrap">
+            ${renderQuadrantSvgMarkup(svgModel)}
+            <div class="pgm-quadrant-tooltip" hidden></div>
+        </div>
+    `;
+}
+
+function isCompactProductsSidePanelViewport() {
+    return typeof window !== 'undefined' && window.innerWidth < 1280;
 }
 
 function syncQuadrantCanvasWrapHeight() {
     const wrap = document.querySelector('.quadrant-chart-canvas-wrap');
     const stage = wrap?.closest('.pgm-chart-stage.is-quadrant-view');
     if (!wrap || !stage) return 0;
-    const available = Math.max(260, stage.clientHeight);
+    if (typeof window !== 'undefined' && window.innerWidth >= 1280) {
+        wrap.style.height = '585px';
+        wrap.style.flex = '0 0 auto';
+        return 585;
+    }
+    const meta = stage.querySelector('.pgm-quadrant-stage-meta');
+    const metaHeight = meta ? meta.getBoundingClientRect().height : 0;
+    const available = Math.max(260, stage.clientHeight - metaHeight - 12);
     wrap.style.height = `${available}px`;
     wrap.style.flex = '0 0 auto';
     return available;
@@ -1651,435 +2006,100 @@ function syncQuadrantPanelHeights() {
 
     chartCard.style.height = '';
     chartCard.style.minHeight = '';
-    if (window.innerWidth <= 1080) {
-        chartCard.style.height = '';
-        chartCard.style.minHeight = '';
-        return sideCard.getBoundingClientRect().height || 0;
-    }
-
-    const sideHeight = Math.ceil(sideCard.getBoundingClientRect().height || 0);
-    const baseHeight = 600;
-    const nextHeight = Math.max(baseHeight, sideHeight);
-    chartCard.style.height = `${nextHeight}px`;
-    chartCard.style.minHeight = `${nextHeight}px`;
-    return nextHeight;
+    return sideCard.getBoundingClientRect().height || 0;
 }
 
 function ensureQuadrantResizeHandler() {
     if (AppState.helpers.productsQuadrantResizeBound) return;
     window.addEventListener('resize', () => {
+        const isCompact = isCompactProductsSidePanelViewport();
+        if (AppState.helpers.productsSidePanelCompact !== isCompact) {
+            AppState.helpers.productsSidePanelCompact = isCompact;
+            AppState.viewState.products.sidePanelOpen = isCompact ? false : true;
+            renderProducts();
+            return;
+        }
         syncQuadrantPanelHeights();
         if (AppState.viewState?.products?.chartView === 'quadrant') {
-            const available = syncQuadrantCanvasWrapHeight();
-            if (available > 0 && AppState.charts.pgmQuadrant) {
-                AppState.charts.pgmQuadrant.resize();
-            }
+            syncQuadrantCanvasWrapHeight();
         }
         scheduleDemandGraphEdgeLayout();
     });
     AppState.helpers.productsQuadrantResizeBound = true;
 }
 
-function renderQuadrantChart(model) {
-    const canvas = document.getElementById('pgmQuadrantChart');
-    if (!canvas || !model) return;
+function positionQuadrantTooltip(wrap, tooltip, clientX, clientY) {
+    if (!wrap || !tooltip) return;
+    const wrapRect = wrap.getBoundingClientRect();
+    const tooltipWidth = tooltip.offsetWidth;
+    const tooltipHeight = tooltip.offsetHeight;
+    const offset = 14;
+    let left = clientX - wrapRect.left + offset;
+    let top = clientY - wrapRect.top + offset;
+    if (left + tooltipWidth > wrapRect.width - 8) left = wrapRect.width - tooltipWidth - 8;
+    if (top + tooltipHeight > wrapRect.height - 8) top = wrapRect.height - tooltipHeight - 8;
+    if (left < 8) left = 8;
+    if (top < 8) top = 8;
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+}
+
+function bindQuadrantSvg(model) {
+    const wrap = document.querySelector('.quadrant-chart-canvas-wrap');
+    const tooltip = wrap?.querySelector('.pgm-quadrant-tooltip');
+    const svgModel = AppState.helpers.productsQuadrantSvgModel;
+    if (!wrap || !tooltip || !model || !svgModel) return;
     ensureQuadrantResizeHandler();
     syncQuadrantPanelHeights();
     syncQuadrantCanvasWrapHeight();
-    const ctx = canvas.getContext('2d');
-    const centerX = model.centerEntry;
-    const centerY = model.centerExpansion;
-    const selectedId = String(model.selected?.id || '').trim();
-    const canvasHeight = Math.max(220, toNumber(canvas.clientHeight, 0));
-    const bubbleScale = Math.min(1.55, Math.max(1, canvasHeight / 560));
-    const baseRadius = 7 * bubbleScale;
-    const radiusSpread = 24 * bubbleScale;
-    const maxRadius = 42;
-    const mutedFillPalette = {
-        hero: 'rgba(147, 197, 253, 0.34)',
-        'entry-only': 'rgba(153, 246, 228, 0.3)',
-        'expansion-only': 'rgba(216, 180, 254, 0.32)',
-        phaseout: 'rgba(253, 186, 186, 0.3)'
-    };
-    const mutedBorderPalette = {
-        hero: 'rgba(96, 165, 250, 0.54)',
-        'entry-only': 'rgba(45, 212, 191, 0.5)',
-        'expansion-only': 'rgba(196, 181, 253, 0.56)',
-        phaseout: 'rgba(252, 165, 165, 0.5)'
+    const hideTooltip = () => {
+        tooltip.hidden = true;
+        tooltip.innerHTML = '';
     };
 
-    const range = model.scaleRange;
-    const chartPoints = model.points.map((p) => {
-        const status = getQuadrantStatus(p.entry, p.expansion, centerX, centerY);
-        const radius = baseRadius + radiusSpread * Math.sqrt((p.weeklyForecast || 0) / (model.maxWeekly || 1));
-        const isSelected = selectedId && selectedId === p.id;
-        const projected = model.scaleMode === 'focus' ? projectOutlierPoint(p, range) : { x: p.entry, y: p.expansion, marker: '' };
-        return {
-            x: projected.x,
-            y: projected.y,
-            r: Math.min(maxRadius, Math.max(baseRadius, isSelected ? radius * 1.15 : radius)),
-            productId: p.id,
-            productName: p.name,
-            weeklyForecast: p.weeklyForecast,
-            rawEntry: p.entry,
-            rawExpansion: p.expansion,
-            outlierMarker: projected.marker,
-            status,
-            memberCount: p.memberCount,
-            hasTransition: p.hasTransition,
-            isSelected
+    wrap.querySelectorAll('.pgm-quadrant-bubble-hitbox').forEach((node) => {
+        const targetId = String(node.getAttribute('data-product-id') || '').trim();
+        const point = svgModel.points.find((item) => String(item.id || '').trim() === targetId);
+        if (!point) return;
+
+        const showTooltip = (clientX, clientY) => {
+            tooltip.innerHTML = renderQuadrantTooltipHtml(point);
+            tooltip.hidden = false;
+            positionQuadrantTooltip(wrap, tooltip, clientX, clientY);
         };
-    }).sort((a, b) => Number(a.isSelected) - Number(b.isSelected));
 
-    AppState.helpers.productsQuadrantModel = model;
-    AppState.charts.pgmQuadrant = new Chart(ctx, {
-        type: 'bubble',
-        data: {
-            datasets: [
-                {
-                    label: '제품',
-                    data: chartPoints,
-                    backgroundColor: (ctx2) => {
-                        const raw = ctx2.raw || {};
-                        const base = raw.status?.color || '#64748b';
-                        if (model.scope === 'retention-emphasis' && !raw.hasTransition) {
-                            return raw.isSelected ? base : (mutedFillPalette[raw.status?.key] || 'rgba(148, 163, 184, 0.22)');
-                        }
-                        return raw.isSelected ? base : `${base}d9`;
-                    },
-                    borderColor: (ctx2) => {
-                        const raw = ctx2.raw || {};
-                        if (model.scope === 'retention-emphasis' && !raw.hasTransition) {
-                            return raw.isSelected ? '#ffffff' : (mutedBorderPalette[raw.status?.key] || 'rgba(148, 163, 184, 0.42)');
-                        }
-                        return model.scope === 'retention-emphasis' ? 'rgba(255, 255, 255, 0.96)' : '#ffffff';
-                    },
-                    borderWidth: (ctx2) => {
-                        const raw = ctx2.raw || {};
-                        if (raw.isSelected) return 2.6;
-                        if (model.scope === 'retention-emphasis' && !raw.hasTransition) return 0.9;
-                        return 1.4;
-                    },
-                    hoverBorderWidth: 1.8
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            layout: {
-                padding: {
-                    top: 14,
-                    right: 18,
-                    bottom: 16,
-                    left: 14
-                }
-            },
-            animation: {
-                duration: model.scaleMode === 'focus' ? 460 : 320,
-                easing: 'easeOutQuart'
-            },
-            animations: {
-                x: { duration: model.scaleMode === 'focus' ? 460 : 320, easing: 'easeOutQuart' },
-                y: { duration: model.scaleMode === 'focus' ? 460 : 320, easing: 'easeOutQuart' },
-                radius: { duration: model.scaleMode === 'focus' ? 420 : 260, easing: 'easeOutCubic' }
-            },
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    displayColors: false,
-                    backgroundColor: 'rgba(255, 255, 255, 0.96)',
-                    titleColor: '#252525',
-                    bodyColor: '#9a9ca2',
-                    borderColor: '#e8ebee',
-                    borderWidth: 1,
-                    padding: { x: 14, y: 12 },
-                    cornerRadius: 12,
-                    bodySpacing: 5,
-                    titleMarginBottom: 8,
-                    titleFont: {
-                        family: 'Pretendard Variable, Pretendard, sans-serif',
-                        size: 13,
-                        weight: '700'
-                    },
-                    bodyFont: {
-                        family: 'Pretendard Variable, Pretendard, sans-serif',
-                        size: 12,
-                        weight: '500'
-                    },
-                    callbacks: {
-                        title: (items) => {
-                            const item = items[0]?.raw || {};
-                            const groupLabel = item.memberCount > 1 ? ` · 그룹 ${formatNumber(item.memberCount, 0)}개` : '';
-                            return `${item.productName}${groupLabel}`;
-                        },
-                        label: (ctx2) => {
-                            const raw = ctx2.raw || {};
-                            return [
-                                `상태: ${raw.status?.label || '-'}`,
-                                `첫구매 유입 점수: ${formatNumber(raw.rawEntry, 3)}`,
-                                `재구매 점수: ${formatNumber(raw.rawExpansion, 3)}`,
-                                raw.outlierMarker ? `집중뷰 경계 표시: ${raw.outlierMarker}` : '',
-                                `주간 예상 수요량: ${formatNumber(raw.weeklyForecast, 1)}`,
-                                `리텐션 상태: ${raw.hasTransition ? '발생' : '없음'}`,
-                                `SKU 수: ${formatNumber(raw.memberCount, 0)}`
-                            ].filter(Boolean);
-                        }
-                    }
-                }
-            },
-            onClick: (_, elements) => {
-                if (!elements.length) return;
-                const idx = elements[0].index;
-                const targetPoint = chartPoints[idx];
-                const target = model.points.find((p) => p.id === targetPoint?.productId);
-                if (!target) return;
-                window.selectQuadrantItem(target.id);
-            },
-            scales: {
-                x: {
-                    min: range.xMin,
-                    max: range.xMax,
-                    title: {
-                        display: true,
-                        text: '첫구매 강점',
-                        padding: { top: 8 },
-                        color: '#252525',
-                        font: { family: 'Pretendard Variable, Pretendard, sans-serif', size: 12, weight: '600' }
-                    },
-                    ticks: { display: false },
-                    grid: { display: false, drawBorder: false }
-                },
-                y: {
-                    min: range.yMin,
-                    max: range.yMax,
-                    title: {
-                        display: true,
-                        text: '재구매 강점',
-                        padding: { bottom: 6 },
-                        color: '#252525',
-                        font: { family: 'Pretendard Variable, Pretendard, sans-serif', size: 12, weight: '600' }
-                    },
-                    ticks: { display: false },
-                    grid: { display: false, drawBorder: false }
-                }
+        node.addEventListener('mouseenter', (event) => {
+            showTooltip(event.clientX, event.clientY);
+        });
+        node.addEventListener('mousemove', (event) => {
+            if (tooltip.hidden) return;
+            positionQuadrantTooltip(wrap, tooltip, event.clientX, event.clientY);
+        });
+        node.addEventListener('mouseleave', hideTooltip);
+        node.addEventListener('focus', () => {
+            const wrapRect = wrap.getBoundingClientRect();
+            showTooltip(wrapRect.left + point.x, wrapRect.top + point.y);
+        });
+        node.addEventListener('blur', hideTooltip);
+        node.addEventListener('click', () => {
+            if (typeof window.selectQuadrantItem === 'function') {
+                window.selectQuadrantItem(point.id);
             }
-        },
-        plugins: [{
-            id: 'quadrant-background',
-            beforeDraw: (chart) => {
-                const { ctx: chartCtx, chartArea, scales } = chart;
-                if (!chartArea) return;
-                const rawXCenter = scales.x.getPixelForValue(centerX);
-                const rawYCenter = scales.y.getPixelForValue(centerY);
-                const xCenter = Math.min(chartArea.right, Math.max(chartArea.left, rawXCenter));
-                const yCenter = Math.min(chartArea.bottom, Math.max(chartArea.top, rawYCenter));
-                const labels = [
-                    { text: '재구매 강점 제품', helper: '상대적으로 재구매 강점 높음', x: chartArea.left + 12, y: chartArea.top + 10, align: 'left', helperOffset: 12 },
-                    { text: '우선 확대 대상', helper: '상대적으로 두 강점 모두 높음', x: chartArea.right - 12, y: chartArea.top + 10, align: 'right', helperOffset: 12 },
-                    { text: '개선 필요', helper: '상대적으로 두 강점 모두 낮음', x: chartArea.left + 12, y: chartArea.bottom - 22, align: 'left', helperOffset: 12 },
-                    { text: '첫구매 강점 제품', helper: '상대적으로 첫구매 강점 높음', x: chartArea.right - 12, y: chartArea.bottom - 22, align: 'right', helperOffset: 12 }
-                ];
-                chartCtx.save();
-                // top-left: 재구매 강점 (purple)
-                chartCtx.fillStyle = 'rgba(239, 228, 255, 0.72)';
-                chartCtx.fillRect(chartArea.left, chartArea.top, Math.max(0, xCenter - chartArea.left), Math.max(0, yCenter - chartArea.top));
-                // top-right: 우선 확대 대상 (blue/hero)
-                chartCtx.fillStyle = 'rgba(221, 237, 255, 0.72)';
-                chartCtx.fillRect(xCenter, chartArea.top, Math.max(0, chartArea.right - xCenter), Math.max(0, yCenter - chartArea.top));
-                // bottom-left: 개선 필요 (red)
-                chartCtx.fillStyle = 'rgba(255, 237, 237, 0.72)';
-                chartCtx.fillRect(chartArea.left, yCenter, Math.max(0, xCenter - chartArea.left), Math.max(0, chartArea.bottom - yCenter));
-                // bottom-right: 첫구매 강점 (green)
-                chartCtx.fillStyle = 'rgba(233, 248, 224, 0.72)';
-                chartCtx.fillRect(xCenter, yCenter, Math.max(0, chartArea.right - xCenter), Math.max(0, chartArea.bottom - yCenter));
-                chartCtx.textBaseline = 'middle';
-                labels.forEach((label) => {
-                    chartCtx.textAlign = label.align;
-                    chartCtx.font = '700 10px "Pretendard Variable", Pretendard, sans-serif';
-                    chartCtx.fillStyle = '#252525';
-                    chartCtx.fillText(label.text, label.x, label.y);
-                    chartCtx.font = '500 9px "Pretendard Variable", Pretendard, sans-serif';
-                    chartCtx.fillStyle = 'rgba(37, 37, 37, 0.48)';
-                    chartCtx.fillText(label.helper, label.x, label.y + label.helperOffset);
-                });
-                chartCtx.restore();
+        });
+        node.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+            if (typeof window.selectQuadrantItem === 'function') {
+                window.selectQuadrantItem(point.id);
             }
-        }, {
-            id: 'selected-edges',
-            beforeDatasetsDraw: (chart) => {
-                const edges = model.visibleEdges || [];
-                if (!edges.length) return;
-                const dataset = chart.data?.datasets?.[0];
-                const meta = chart.getDatasetMeta(0);
-                if (!dataset || !meta) return;
-
-                const pointById = new Map();
-                (dataset.data || []).forEach((point, idx) => {
-                    if (!point) return;
-                    const element = meta.data[idx];
-                    if (!element) return;
-                    const props = element.getProps(['x', 'y', 'options'], true);
-                    pointById.set(point.productId, {
-                        x: props.x,
-                        y: props.y,
-                        r: toNumber(props.options?.radius, 8)
-                    });
-                });
-
-                const maxCustomers = Math.max(...edges.map((edge) => toNumber(edge.transitionCustomers, 0)), 1);
-                const { ctx: chartCtx } = chart;
-                chartCtx.save();
-                edges.forEach((edge) => {
-                    const from = pointById.get(edge.from);
-                    const to = pointById.get(edge.to);
-                    if (!from || !to) return;
-                    const dx = to.x - from.x;
-                    const dy = to.y - from.y;
-                    const dist = Math.hypot(dx, dy);
-                    if (!Number.isFinite(dist) || dist < 6) return;
-                    const ux = dx / dist;
-                    const uy = dy / dist;
-                    const startX = from.x + ux * (from.r + 3);
-                    const startY = from.y + uy * (from.r + 3);
-                    const endX = to.x - ux * (to.r + 5);
-                    const endY = to.y - uy * (to.r + 5);
-                    const isInbound = edge.direction === 'inbound' || edge.direction === 'convergence' || edge.direction === 'loop-return';
-                    const isLoop = edge.direction === 'loop-outbound' || edge.direction === 'loop-return';
-                    const bendSign = isInbound ? -1 : 1;
-                    const bendRatio = isLoop ? 0.26 : 0.18;
-                    const bendMax = isLoop ? 52 : 38;
-                    const bendMin = isLoop ? 18 : 12;
-                    const bend = Math.min(bendMax, Math.max(bendMin, dist * bendRatio)) * bendSign;
-                    const cx = (startX + endX) / 2 + (-uy * bend);
-                    const cy = (startY + endY) / 2 + (ux * bend);
-                    const weight = toNumber(edge.transitionCustomers, 0) / maxCustomers;
-                    // 미니멀 모드: 저채도 색 차이 + 선스타일로 방향 구분
-                    const color = isInbound
-                        ? [78, 99, 132]
-                        : [55, 103, 110];
-                    const alpha = (isLoop ? 0.18 : 0.14) + (weight * (isLoop ? 0.3 : 0.24));
-
-                    chartCtx.beginPath();
-                    chartCtx.moveTo(startX, startY);
-                    chartCtx.quadraticCurveTo(cx, cy, endX, endY);
-                    chartCtx.strokeStyle = `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${alpha})`;
-                    chartCtx.lineWidth = 1.25 + (weight * 1.75);
-                    chartCtx.lineCap = 'round';
-                    chartCtx.setLineDash(isLoop ? (edge.direction === 'loop-return' ? [4, 4] : []) : (isInbound ? [3, 5] : []));
-                    chartCtx.stroke();
-                    chartCtx.setLineDash([]);
-
-                    const tx = endX - cx;
-                    const ty = endY - cy;
-                    const tLen = Math.hypot(tx, ty);
-                    if (!Number.isFinite(tLen) || tLen <= 0.0001) return;
-                    const tux = tx / tLen;
-                    const tuy = ty / tLen;
-                    const arrowLen = 6 + (weight * 2.8);
-                    const arrowWidth = 3.2 + (weight * 1.4);
-                    const leftX = endX - tux * arrowLen + (-tuy * arrowWidth);
-                    const leftY = endY - tuy * arrowLen + (tux * arrowWidth);
-                    const rightX = endX - tux * arrowLen - (-tuy * arrowWidth);
-                    const rightY = endY - tuy * arrowLen - (tux * arrowWidth);
-                    chartCtx.beginPath();
-                    chartCtx.moveTo(endX, endY);
-                    chartCtx.lineTo(leftX, leftY);
-                    chartCtx.lineTo(rightX, rightY);
-                    chartCtx.closePath();
-                    chartCtx.fillStyle = `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${Math.min(0.5, alpha + 0.12)})`;
-                    chartCtx.fill();
-                });
-                chartCtx.restore();
-            }
-        }, {
-            id: 'selected-pulse',
-            afterInit: (chart) => {
-                if (typeof requestAnimationFrame !== 'function') return;
-                const animatePulse = () => {
-                    if (!chart || chart._destroyed || !chart.canvas) return;
-                    chart.$selectedPulsePhase = ((chart.$selectedPulsePhase || 0) + 0.02) % 1;
-                    chart.draw();
-                    chart.$selectedPulseRaf = requestAnimationFrame(animatePulse);
-                };
-                chart.$selectedPulsePhase = 0;
-                chart.$selectedPulseRaf = requestAnimationFrame(animatePulse);
-            },
-            afterDatasetsDraw: (chart) => {
-                const dataset = chart.data?.datasets?.[0];
-                const meta = chart.getDatasetMeta(0);
-                if (!dataset || !meta) return;
-                const selectedIndex = (dataset.data || []).findIndex((point) => point && point.isSelected);
-                if (selectedIndex < 0) return;
-                const element = meta.data[selectedIndex];
-                if (!element) return;
-                const point = dataset.data[selectedIndex] || {};
-                const props = element.getProps(['x', 'y', 'options'], true);
-                const baseRadius = toNumber(props.options?.radius, 8);
-                const phase = chart.$selectedPulsePhase || 0;
-                const pulseRadius = baseRadius + 4 + (phase * 12);
-                const alpha = Math.max(0.08, 0.45 * (1 - phase));
-                const color = point.status?.color || '#3b82f6';
-                const { ctx: chartCtx } = chart;
-                chartCtx.save();
-                chartCtx.beginPath();
-                chartCtx.arc(props.x, props.y, pulseRadius, 0, Math.PI * 2);
-                chartCtx.strokeStyle = color;
-                chartCtx.globalAlpha = alpha;
-                chartCtx.lineWidth = 2;
-                chartCtx.stroke();
-                chartCtx.restore();
-            },
-            afterDestroy: (chart) => {
-                if (chart.$selectedPulseRaf && typeof cancelAnimationFrame === 'function') {
-                    cancelAnimationFrame(chart.$selectedPulseRaf);
-                    chart.$selectedPulseRaf = null;
-                }
-            }
-        }, {
-            id: 'center-lines',
-            afterDraw: (chart) => {
-                const { ctx: chartCtx, chartArea, scales } = chart;
-                if (!chartArea) return;
-                const xCenter = scales.x.getPixelForValue(centerX);
-                const yCenter = scales.y.getPixelForValue(centerY);
-                chartCtx.save();
-                chartCtx.setLineDash([4, 4]);
-                chartCtx.strokeStyle = '#93a7c4';
-                chartCtx.lineWidth = 1;
-                chartCtx.globalAlpha = 0.6;
-                chartCtx.beginPath();
-                chartCtx.moveTo(xCenter, chartArea.top);
-                chartCtx.lineTo(xCenter, chartArea.bottom);
-                chartCtx.stroke();
-                chartCtx.beginPath();
-                chartCtx.moveTo(chartArea.left, yCenter);
-                chartCtx.lineTo(chartArea.right, yCenter);
-                chartCtx.stroke();
-                if (model.scaleMode === 'focus') {
-                    const dataset = chart.data.datasets[0];
-                    const meta = chart.getDatasetMeta(0);
-                    chartCtx.font = '11px Inter, sans-serif';
-                    chartCtx.fillStyle = '#334155';
-                    chartCtx.textAlign = 'center';
-                    chartCtx.textBaseline = 'middle';
-                    dataset.data.forEach((point, idx) => {
-                        if (!point.outlierMarker) return;
-                        const element = meta.data[idx];
-                        if (!element) return;
-                        const props = element.getProps(['x', 'y', 'options'], true);
-                        const r = toNumber(props.options?.radius, 8);
-                        chartCtx.fillText(point.outlierMarker, props.x + r + 7, props.y - r - 3);
-                    });
-                }
-                chartCtx.restore();
-            }
-        }]
+        });
     });
+
+    wrap.addEventListener('mouseleave', hideTooltip);
 }
 
 function getProductsScopeMode() {
-    return String(AppState.viewState.products?.quadrant?.scope || 'retention-emphasis').toLowerCase() === 'all' ? 'all' : 'retention-emphasis';
+    return 'retention-emphasis';
 }
 
 function getScopedProductsData() {
@@ -2271,22 +2291,6 @@ function buildCoreDemandTableModel() {
     };
 }
 
-function renderCoreAxisSummary(axisMembership, currentSortKey) {
-    const chips = axisMembership.map((key) => {
-        const isActive = key === currentSortKey;
-        return `<span class="core-axis-chip ${isActive ? 'is-active' : ''}">${escapeHtml(CORE_GRAVITY_CONFIG[key].label)}</span>`;
-    }).join('');
-    const summary = axisMembership.length > 1
-        ? `<span class="core-axis-summary">${formatNumber(axisMembership.length, 0)}축 핵심</span>`
-        : '';
-    return `
-        <div class="core-axis-cell">
-            <div class="core-axis-group">${chips}</div>
-            ${summary}
-        </div>
-    `;
-}
-
 function buildCoreDemandRowsHtml(displayData, focusEntityId, emphasisMode = 'retention-emphasis', currentSortKey = 'entry') {
     return displayData.map((row) => {
         const isFocused = focusEntityId && String(row.product_id) === focusEntityId;
@@ -2304,8 +2308,7 @@ function buildCoreDemandRowsHtml(displayData, focusEntityId, emphasisMode = 'ret
                         ${groupedChip}
                     </div>
                 </td>
-                <td>${renderCoreAxisSummary(row.axisMembership, currentSortKey)}</td>
-                <td>${Number.isFinite(currentRank) ? `#${formatNumber(currentRank, 0)}` : '-'}</td>
+                <td>${Number.isFinite(currentRank) ? formatNumber(currentRank, 0) : '-'}</td>
                 <td>${formatPercent(row.firstCustomerShare, 1)}</td>
                 <td>${formatPercent(row.repurchaseCustomerShare, 1)}</td>
                 <td>${formatNumber(row.revenue_90d)}</td>
@@ -2363,14 +2366,13 @@ function renderProductsTableOnly(model = null) {
                 <table class="data-table core-demand-table">
                     <thead><tr>
                         <th>제품명</th>
-                        <th>핵심 축</th>
                         <th>${escapeHtml(currentSortLabel)} 순위</th>
                         <th>첫구매 고객 비중</th>
                         <th>재구매 고객 비중</th>
                         <th>최근 90일 매출</th>
-                        <th>리텐션 상태</th>
+                        <th>리텐션</th>
                     </tr></thead>
-                    <tbody>${rows || `<tr><td colspan="7" class="core-demand-empty">지금 범위에서는 표시할 핵심 제품이 없어요.</td></tr>`}</tbody>
+                    <tbody>${rows || `<tr><td colspan="6" class="core-demand-empty">지금 범위에서는 표시할 핵심 제품이 없어요.</td></tr>`}</tbody>
                 </table>
             </div>
         </div>
@@ -2382,7 +2384,7 @@ function renderProducts() {
     destroyCarts();
     const container = document.getElementById('content-area');
     const qState = AppState.viewState.products.quadrant;
-    if (!['retention-emphasis', 'all'].includes(qState.scope)) qState.scope = 'retention-emphasis';
+    qState.scope = 'retention-emphasis';
     if (!['focus', 'raw'].includes(qState.scaleMode)) qState.scaleMode = 'focus';
     const edgeAvailability = getQuadrantEdgeModeAvailability();
     const preferredEdgeMode = edgeAvailability[normalizeQuadrantEdgeMode(qState.edgeMode)]
@@ -2408,14 +2410,11 @@ function renderProducts() {
         qState.selectedId = quadrantModel.selected.id;
     }
 
-    container.innerHTML = `
-        ${renderProductQuadrant(quadrantModel, coreDemandModel)}
-        <div id="products-summary-card" class="animate-fade-in"></div>
-    `;
+    container.innerHTML = renderProductQuadrant(quadrantModel, coreDemandModel);
     applyFriendlyUi(container);
 
     if (AppState.viewState.products.chartView !== 'demand-graph') {
-        renderQuadrantChart(quadrantModel);
+        bindQuadrantSvg(quadrantModel);
     } else {
         ensureQuadrantResizeHandler();
         syncQuadrantPanelHeights();
@@ -2454,12 +2453,8 @@ function renderProducts() {
             quadrantWrap.outerHTML = renderProductQuadrant(nextQuadrantModel, nextCoreDemandModel);
             applyFriendlyUi(container.querySelector('.pgm-quadrant-wrap') || container);
         }
-        if (AppState.charts.pgmQuadrant) {
-            AppState.charts.pgmQuadrant.destroy();
-            delete AppState.charts.pgmQuadrant;
-        }
         if (AppState.viewState.products.chartView !== 'demand-graph') {
-            renderQuadrantChart(nextQuadrantModel);
+            bindQuadrantSvg(nextQuadrantModel);
         } else {
             ensureQuadrantResizeHandler();
             syncQuadrantPanelHeights();
@@ -2520,6 +2515,17 @@ function renderProducts() {
         rerenderProductsSelection(true);
     };
 
+    window.toggleProductsSidePanel = () => {
+        AppState.viewState.products.sidePanelOpen = !AppState.viewState.products.sidePanelOpen;
+        rerenderProductsSelection(true);
+    };
+
+    window.closeProductsSidePanel = () => {
+        if (!AppState.viewState.products.sidePanelOpen) return;
+        AppState.viewState.products.sidePanelOpen = false;
+        rerenderProductsSelection(true);
+    };
+
     window.selectPreviousQuadrantItem = () => {
         const qState = AppState.viewState.products.quadrant;
         if (!qState.history.length) return;
@@ -2537,8 +2543,7 @@ function renderProducts() {
     };
 
     window.setQuadrantScopeMode = (mode) => {
-        const next = String(mode || '').toLowerCase() === 'all' ? 'all' : 'retention-emphasis';
-        AppState.viewState.products.quadrant.scope = next;
+        AppState.viewState.products.quadrant.scope = 'retention-emphasis';
         renderProducts();
     };
 
