@@ -675,31 +675,71 @@ function getDemandGraphNodeToneLabel(tone, tab = 'transition') {
     return tab === 'basket' ? '연결 제품' : '관계 제품';
 }
 
+function renderDemandGraphNodeSubtitleMarkup(text = '') {
+    const subtitle = String(text || '').trim();
+    if (!subtitle) return '';
+    const pairedMatch = subtitle.match(/^(이전 전이 고객|다음 전이 고객|함께 담긴 주문)\s+(.+)$/);
+    if (!pairedMatch) return `<span class="demand-graph-node-subtitle">${escapeHtml(subtitle)}</span>`;
+    return `
+        <span class="demand-graph-node-subtitle">
+            <span class="demand-graph-node-subtitle-label">${escapeHtml(pairedMatch[1])}</span>
+            <span class="demand-graph-node-subtitle-value">${escapeHtml(pairedMatch[2])}</span>
+        </span>
+    `;
+}
+
+function renderDemandGraphChevron(role = 'incoming') {
+    const normalizedRole = role === 'outgoing' ? 'outgoing' : 'incoming';
+    return `
+        <span class="demand-graph-anchor-chevron is-${normalizedRole}" data-role="${normalizedRole}-chevron" aria-hidden="true">
+            <svg viewBox="0 0 7 14" width="7" height="14" focusable="false" aria-hidden="true">
+                <path d="M 1 1 L 6 7 L 1 13" />
+            </svg>
+        </span>
+    `;
+}
+
 function renderDemandGraphNodeButton(node, style = '', tab = 'transition') {
     if (!node?.id) return '';
-    const composedStyle = `${style}${style && !style.trim().endsWith(';') ? ';' : ''} --node-scale:${toNumber(node.sizeScale, 1).toFixed(3)};`;
+    const composedStyle = `${style}${style && !style.trim().endsWith(';') ? ';' : ''} --node-scale:${toNumber(node.sizeScale, 1).toFixed(3)};${Number.isFinite(node.maxWidth) ? ` --node-max-width:${svgNum(node.maxWidth)}px;` : ''}${Number.isFinite(node.fixedWidth) ? ` --anchor-card-width:${svgNum(node.fixedWidth)}px;` : ''}`;
     const toneLabel = getDemandGraphNodeToneLabel(node.tone, tab);
+    const dragAttrs = node.allowDrag === false
+        ? 'data-drag-disabled="true"'
+        : 'onpointerdown="startDemandGraphNodeDrag(event)"';
+    const isAnchorCluster = node.tone === 'anchor' && node.positionMode === 'fixed' && tab === 'transition';
+    const cardMarkup = `
+        <span
+            class="demand-graph-node-card"
+            data-graph-key="${escapeHtml(node.key)}"
+            data-graph-tone="${escapeHtml(node.tone)}"
+        >
+            <span class="demand-graph-node-eyebrow">${escapeHtml(toneLabel)}</span>
+            <strong>${escapeHtml(node.name)}</strong>
+            ${renderDemandGraphNodeSubtitleMarkup(node.subtitle)}
+        </span>
+    `;
     return `
         <button
-            class="demand-graph-node ${node.tone ? `is-${node.tone}` : ''} ${node.tone === 'anchor' ? 'is-anchor' : ''}"
+            class="demand-graph-node ${node.tone ? `is-${node.tone}` : ''} ${node.tone === 'anchor' ? 'is-anchor' : ''} ${node.positionMode === 'fixed' ? 'is-fixed-layout' : ''} ${isAnchorCluster ? 'is-anchor-cluster is-center-cluster' : ''}"
             type="button"
             data-graph-key="${escapeHtml(node.key)}"
             data-graph-tone="${escapeHtml(node.tone)}"
+            data-product-id="${escapeHtml(node.id)}"
             data-strength-level="${escapeHtml(node.strengthLevel || 'mid')}"
             style="${composedStyle}"
-            onpointerdown="startDemandGraphNodeDrag(event)"
+            ${dragAttrs}
             onclick="handleDemandGraphNodeClick(event, '${escapeJs(node.id)}')"
             title="${escapeHtml(node.name)}"
         >
-            <span
-                class="demand-graph-node-card"
-                data-graph-key="${escapeHtml(node.key)}"
-                data-graph-tone="${escapeHtml(node.tone)}"
-            >
-                <span class="demand-graph-node-eyebrow">${escapeHtml(toneLabel)}</span>
-                <strong>${escapeHtml(node.name)}</strong>
-                <span class="demand-graph-node-subtitle">${escapeHtml(node.subtitle || '')}</span>
-            </span>
+            ${isAnchorCluster ? `
+                <span class="demand-graph-center-cluster">
+                    ${node.hasIncoming ? renderDemandGraphChevron('incoming') : ''}
+                    <span class="demand-graph-anchor-cluster">
+                        ${cardMarkup}
+                    </span>
+                    ${node.hasOutgoing ? renderDemandGraphChevron('outgoing') : ''}
+                </span>
+            ` : cardMarkup}
         </button>
     `;
 }
@@ -761,12 +801,12 @@ function getDemandGraphStrengthLevel(index, total, tone = 'default') {
 function getBasketGraphPosition(index, total) {
     const count = Math.max(1, Number(total) || 1);
     const positions = {
-        1: [{ x: 50, y: 18 }],
-        2: [{ x: 28, y: 30 }, { x: 72, y: 30 }],
-        3: [{ x: 50, y: 18 }, { x: 26, y: 64 }, { x: 74, y: 64 }],
-        4: [{ x: 50, y: 18 }, { x: 22, y: 44 }, { x: 78, y: 44 }, { x: 50, y: 78 }],
-        5: [{ x: 50, y: 16 }, { x: 24, y: 34 }, { x: 78, y: 34 }, { x: 28, y: 74 }, { x: 72, y: 74 }],
-        6: [{ x: 50, y: 14 }, { x: 24, y: 28 }, { x: 80, y: 28 }, { x: 20, y: 56 }, { x: 80, y: 56 }, { x: 50, y: 82 }]
+        1: [{ x: 50, y: 26 }],
+        2: [{ x: 50, y: 24 }, { x: 50, y: 76 }],
+        3: [{ x: 26, y: 34 }, { x: 74, y: 34 }, { x: 50, y: 74 }],
+        4: [{ x: 26, y: 33 }, { x: 74, y: 33 }, { x: 26, y: 67 }, { x: 74, y: 67 }],
+        5: [{ x: 50, y: 22 }, { x: 24, y: 38 }, { x: 76, y: 38 }, { x: 28, y: 72 }, { x: 72, y: 72 }],
+        6: [{ x: 50, y: 20 }, { x: 26, y: 34 }, { x: 74, y: 34 }, { x: 22, y: 66 }, { x: 78, y: 66 }, { x: 50, y: 80 }]
     };
     const preset = positions[count];
     if (preset) return preset[Math.min(Math.max(index, 0), preset.length - 1)];
@@ -775,7 +815,304 @@ function getBasketGraphPosition(index, total) {
     const radians = (angle * Math.PI) / 180;
     return {
         x: 50 + Math.cos(radians) * 28,
-        y: 50 + Math.sin(radians) * 30
+        y: 50 + Math.sin(radians) * 28
+    };
+}
+
+const DEMAND_GRAPH_TRANSITION_FIGMA_LAYOUT = {
+    viewportWidth: 708,
+    baseHeight: 611,
+    scenePaddingX: 20,
+    scenePaddingRight: 20,
+    centerGap: 94,
+    chevronWidth: 7,
+    chevronGap: 7,
+    mergeOffset: 8,
+    incomingRows: [89, 188, 287, 386, 485],
+    outgoingRows: [89, 188, 287, 386, 485],
+    anchor: { y: 283, width: 156, height: 45 }
+};
+
+const DEMAND_GRAPH_BASKET_LAYOUT = {
+    viewportWidth: 708,
+    baseHeight: 611,
+    safeInsetX: 132,
+    safeInsetTop: 96,
+    safeInsetBottom: 96,
+    anchor: { width: 156, height: 45 }
+};
+
+const DEMAND_GRAPH_TRANSITION_COMPACT_BREAKPOINT = 960;
+const DEMAND_GRAPH_TRANSITION_INCOMING_MAX_WIDTHS = [348, 260, 272, 268, 240];
+const DEMAND_GRAPH_TRANSITION_OUTGOING_MAX_WIDTHS = [240, 252, 244, 240, 228];
+
+function normalizeDemandGraphBasketViewportWidth(viewportWidth) {
+    const width = Math.round(toNumber(viewportWidth, DEMAND_GRAPH_BASKET_LAYOUT.viewportWidth));
+    return width > 0 ? width : DEMAND_GRAPH_BASKET_LAYOUT.viewportWidth;
+}
+
+function buildBasketLayout(viewportWidth = DEMAND_GRAPH_BASKET_LAYOUT.viewportWidth) {
+    const baseLayout = DEMAND_GRAPH_BASKET_LAYOUT;
+    const sceneWidth = normalizeDemandGraphBasketViewportWidth(viewportWidth);
+    const safeInsetX = Math.min(
+        toNumber(baseLayout.safeInsetX, 132),
+        Math.max(56, Math.floor(((sceneWidth - toNumber(baseLayout.anchor?.width, 156)) / 2) - 40))
+    );
+    return {
+        ...baseLayout,
+        viewportWidth: sceneWidth,
+        sceneWidth,
+        sceneHeight: toNumber(baseLayout.baseHeight, 611),
+        safeInsetX
+    };
+}
+
+function getBasketGraphSafeArea(layout = DEMAND_GRAPH_BASKET_LAYOUT) {
+    const sceneWidth = Math.max(1, toNumber(layout?.sceneWidth, layout?.viewportWidth || 708));
+    const sceneHeight = Math.max(1, toNumber(layout?.sceneHeight, layout?.baseHeight || 611));
+    const width = Math.max(0, sceneWidth - (toNumber(layout?.safeInsetX, 0) * 2));
+    const height = Math.max(0, sceneHeight - toNumber(layout?.safeInsetTop, 0) - toNumber(layout?.safeInsetBottom, 0));
+    const left = Math.max(0, toNumber(layout?.safeInsetX, 0));
+    const top = Math.max(0, toNumber(layout?.safeInsetTop, 0));
+    return {
+        left,
+        top,
+        width,
+        height,
+        centerX: left + (width / 2),
+        centerY: top + (height / 2)
+    };
+}
+
+function mapBasketGraphPercentToScene(position, layout = DEMAND_GRAPH_BASKET_LAYOUT) {
+    const safeArea = getBasketGraphSafeArea(layout);
+    const sceneWidth = Math.max(1, toNumber(layout?.sceneWidth, layout?.viewportWidth || 708));
+    const sceneHeight = Math.max(1, toNumber(layout?.sceneHeight, layout?.baseHeight || 611));
+    const x = safeArea.left + (safeArea.width * (toNumber(position?.x, 50) / 100));
+    const y = safeArea.top + (safeArea.height * (toNumber(position?.y, 50) / 100));
+    return {
+        x: (x / sceneWidth) * 100,
+        y: (y / sceneHeight) * 100
+    };
+}
+
+function getBasketGraphAnchorPosition(layout = DEMAND_GRAPH_BASKET_LAYOUT) {
+    const safeArea = getBasketGraphSafeArea(layout);
+    const sceneWidth = Math.max(1, toNumber(layout?.sceneWidth, layout?.viewportWidth || 708));
+    const sceneHeight = Math.max(1, toNumber(layout?.sceneHeight, layout?.baseHeight || 611));
+    return {
+        x: (safeArea.centerX / sceneWidth) * 100,
+        y: (safeArea.centerY / sceneHeight) * 100
+    };
+}
+
+function getTransitionFixedRowY(index, side = 'incoming') {
+    const rows = side === 'outgoing'
+        ? DEMAND_GRAPH_TRANSITION_FIGMA_LAYOUT.outgoingRows
+        : DEMAND_GRAPH_TRANSITION_FIGMA_LAYOUT.incomingRows;
+    return rows[Math.min(Math.max(index, 0), rows.length - 1)] ?? rows[rows.length - 1];
+}
+
+function getTransitionFixedCardMaxWidth(index, side = 'incoming') {
+    const widths = side === 'outgoing'
+        ? DEMAND_GRAPH_TRANSITION_OUTGOING_MAX_WIDTHS
+        : DEMAND_GRAPH_TRANSITION_INCOMING_MAX_WIDTHS;
+    return widths[Math.min(Math.max(index, 0), widths.length - 1)] ?? widths[widths.length - 1];
+}
+
+function estimateDemandGraphAnchorWidth(name = '', viewportWidth = DEMAND_GRAPH_TRANSITION_FIGMA_LAYOUT.viewportWidth, layoutMode = 'transition-compact') {
+    const text = String(name || '').trim();
+    const responsiveBoost = Math.max(0, toNumber(viewportWidth, DEMAND_GRAPH_TRANSITION_FIGMA_LAYOUT.viewportWidth) - DEMAND_GRAPH_TRANSITION_COMPACT_BREAKPOINT);
+    const minWidth = layoutMode === 'transition-fluid'
+        ? Math.min(188, 156 + Math.round(responsiveBoost * 0.05))
+        : 156;
+    const maxWidth = layoutMode === 'transition-fluid'
+        ? Math.min(360, 260 + Math.round(responsiveBoost * 0.16))
+        : 260;
+    if (!text) return minWidth;
+    const estimated = Math.round((text.length * 9.2) + 42);
+    return Math.max(minWidth, Math.min(maxWidth, estimated));
+}
+
+function estimateDemandGraphSideCardWidth(item, side = 'incoming', index = 0) {
+    const maxWidth = getTransitionFixedCardMaxWidth(index, side);
+    const title = String(item?.name || '').trim();
+    const subtitle = String(item?.subtitle || '').trim();
+    const titleWidth = title.length * 8.4;
+    const subtitleWidth = subtitle.length * 6.8;
+    const estimated = Math.round(Math.max(titleWidth, subtitleWidth) + 30);
+    return Math.max(132, Math.min(maxWidth, estimated));
+}
+
+function getDemandGraphMeasuredLayoutKey(model) {
+    const selectedId = String(model?.selected?.id || '').trim();
+    const tab = normalizeDemandGraphTab(model?.tab);
+    return selectedId ? `${tab}:${selectedId}` : '';
+}
+
+function getDemandGraphMeasuredLayoutCache() {
+    if (!AppState.helpers.demandGraphMeasuredLayouts) {
+        AppState.helpers.demandGraphMeasuredLayouts = {};
+    }
+    return AppState.helpers.demandGraphMeasuredLayouts;
+}
+
+function getDemandGraphMeasuredMetrics(model) {
+    const key = getDemandGraphMeasuredLayoutKey(model);
+    if (!key) return null;
+    return getDemandGraphMeasuredLayoutCache()[key] || null;
+}
+
+function setDemandGraphMeasuredMetrics(model, metrics) {
+    const key = getDemandGraphMeasuredLayoutKey(model);
+    if (!key || !metrics) return;
+    getDemandGraphMeasuredLayoutCache()[key] = {
+        maxIncomingCardWidth: Math.max(0, toNumber(metrics.maxIncomingCardWidth, 0)),
+        anchorCardWidth: Math.max(0, toNumber(metrics.anchorCardWidth, 0)),
+        maxOutgoingCardWidth: Math.max(0, toNumber(metrics.maxOutgoingCardWidth, 0))
+    };
+}
+
+function areDemandGraphMeasuredMetricsEqual(a, b, tolerance = 1) {
+    if (!a || !b) return false;
+    return ['maxIncomingCardWidth', 'anchorCardWidth', 'maxOutgoingCardWidth']
+        .every((key) => Math.abs(toNumber(a[key], 0) - toNumber(b[key], 0)) <= tolerance);
+}
+
+function getDemandGraphViewportWidth(sceneElement = null) {
+    const directViewport = sceneElement?.closest?.('.demand-graph-scene-viewport');
+    const parentViewport = sceneElement?.parentElement?.classList?.contains('demand-graph-scene-viewport')
+        ? sceneElement.parentElement
+        : null;
+    const viewport = directViewport || parentViewport || document.querySelector('.demand-graph-scene-viewport');
+    const width = Math.round(toNumber(viewport?.clientWidth, 0));
+    return width > 0 ? width : DEMAND_GRAPH_TRANSITION_FIGMA_LAYOUT.viewportWidth;
+}
+
+function getDemandGraphTransitionLayoutMode(viewportWidth) {
+    return toNumber(viewportWidth, DEMAND_GRAPH_TRANSITION_FIGMA_LAYOUT.viewportWidth) <= DEMAND_GRAPH_TRANSITION_COMPACT_BREAKPOINT
+        ? 'transition-compact'
+        : 'transition-fluid';
+}
+
+function normalizeDemandGraphTransitionViewportWidth(viewportWidth) {
+    const rawWidth = Math.max(
+        DEMAND_GRAPH_TRANSITION_FIGMA_LAYOUT.viewportWidth,
+        Math.round(toNumber(viewportWidth, DEMAND_GRAPH_TRANSITION_FIGMA_LAYOUT.viewportWidth))
+    );
+    if (getDemandGraphTransitionLayoutMode(rawWidth) !== 'transition-fluid') {
+        return rawWidth;
+    }
+    return Math.max(
+        DEMAND_GRAPH_TRANSITION_COMPACT_BREAKPOINT + 24,
+        Math.round(rawWidth / 24) * 24
+    );
+}
+
+function buildTransitionFixedLayout(model, viewportWidth = DEMAND_GRAPH_TRANSITION_FIGMA_LAYOUT.viewportWidth, measuredMetrics = null) {
+    const baseLayout = DEMAND_GRAPH_TRANSITION_FIGMA_LAYOUT;
+    const normalizedViewportWidth = normalizeDemandGraphTransitionViewportWidth(viewportWidth);
+    const layoutMode = getDemandGraphTransitionLayoutMode(normalizedViewportWidth);
+    const estimatedAnchorWidth = estimateDemandGraphAnchorWidth(model?.selected?.name, normalizedViewportWidth, layoutMode);
+    const incomingWidths = (model?.incoming || []).map((item, index) => estimateDemandGraphSideCardWidth(item, 'incoming', index));
+    const outgoingWidths = (model?.outgoing || []).map((item, index) => estimateDemandGraphSideCardWidth(item, 'outgoing', index));
+    const estimatedLeftColumnWidth = incomingWidths.length ? Math.max(...incomingWidths) : 0;
+    const estimatedRightColumnWidth = outgoingWidths.length ? Math.max(...outgoingWidths) : 0;
+    const measuredAnchorWidth = toNumber(measuredMetrics?.anchorCardWidth, NaN);
+    const measuredLeftColumnWidth = toNumber(measuredMetrics?.maxIncomingCardWidth, NaN);
+    const measuredRightColumnWidth = toNumber(measuredMetrics?.maxOutgoingCardWidth, NaN);
+    const anchorWidth = Number.isFinite(measuredAnchorWidth) && measuredAnchorWidth > 0
+        ? measuredAnchorWidth
+        : estimatedAnchorWidth;
+    const leftColumnWidth = Number.isFinite(measuredLeftColumnWidth) && measuredLeftColumnWidth > 0
+        ? measuredLeftColumnWidth
+        : estimatedLeftColumnWidth;
+    const rightColumnWidth = Number.isFinite(measuredRightColumnWidth) && measuredRightColumnWidth > 0
+        ? measuredRightColumnWidth
+        : estimatedRightColumnWidth;
+    const hasIncoming = incomingWidths.length > 0;
+    const hasOutgoing = outgoingWidths.length > 0;
+    const incomingLeadWidth = hasIncoming ? baseLayout.chevronWidth + baseLayout.chevronGap : 0;
+    const outgoingTrailWidth = hasOutgoing ? baseLayout.chevronGap + baseLayout.chevronWidth : 0;
+    let boxGap = baseLayout.centerGap;
+    let viewportCenterX = Math.round(normalizedViewportWidth / 2);
+    let anchorCardX;
+    let leftColumnX;
+    let rightColumnX;
+    let rightColumnRight;
+    let sceneWidth;
+    let initialScrollLeft;
+
+    if (layoutMode === 'transition-fluid') {
+        anchorCardX = viewportCenterX - Math.round(anchorWidth / 2);
+        const availableLeftGap = Math.max(baseLayout.centerGap, anchorCardX - baseLayout.scenePaddingX - leftColumnWidth);
+        const availableRightGap = Math.max(
+            baseLayout.centerGap,
+            normalizedViewportWidth - baseLayout.scenePaddingRight - (anchorCardX + anchorWidth) - rightColumnWidth
+        );
+        const maxFluidGap = Math.max(baseLayout.centerGap, Math.min(availableLeftGap, availableRightGap));
+        boxGap = Math.round(baseLayout.centerGap + ((maxFluidGap - baseLayout.centerGap) * 0.7));
+        leftColumnX = anchorCardX - boxGap - leftColumnWidth;
+        rightColumnX = anchorCardX + anchorWidth + boxGap;
+        rightColumnRight = rightColumnX + rightColumnWidth;
+        sceneWidth = Math.max(
+            normalizedViewportWidth,
+            rightColumnRight + baseLayout.scenePaddingRight
+        );
+        initialScrollLeft = 0;
+    } else {
+        leftColumnX = baseLayout.scenePaddingX;
+        anchorCardX = leftColumnX + leftColumnWidth + boxGap;
+        rightColumnX = anchorCardX + anchorWidth + boxGap;
+        rightColumnRight = rightColumnX + rightColumnWidth;
+        sceneWidth = Math.max(
+            normalizedViewportWidth,
+            baseLayout.viewportWidth,
+            rightColumnRight + baseLayout.scenePaddingRight
+        );
+        const rightPreviewWidth = Math.min(rightColumnWidth, 96);
+        const preferredVisibleWidth = rightColumnX + rightPreviewWidth + baseLayout.scenePaddingRight;
+        initialScrollLeft = Math.max(
+            0,
+            Math.min(
+                sceneWidth - normalizedViewportWidth,
+                preferredVisibleWidth - normalizedViewportWidth
+            )
+        );
+    }
+
+    const anchorCardRight = anchorCardX + anchorWidth;
+    const leftColumnInnerEdge = leftColumnX + leftColumnWidth;
+    const rightColumnInnerEdge = rightColumnX;
+    const centerClusterX = anchorCardX - incomingLeadWidth;
+    const centerClusterWidth = incomingLeadWidth + anchorWidth + outgoingTrailWidth;
+    return {
+        ...baseLayout,
+        layoutMode,
+        measured: Boolean(measuredMetrics),
+        viewportWidth: normalizedViewportWidth,
+        viewportCenterX,
+        boxGap,
+        anchorCardX,
+        anchorCardWidth: anchorWidth,
+        anchorCardRight,
+        leftColumnInnerEdge,
+        leftColumnX,
+        leftColumnWidth,
+        rightColumnInnerEdge,
+        rightColumnWidth,
+        centerClusterWidth,
+        centerClusterX,
+        rightColumnX,
+        rightColumnRight,
+        sceneWidth,
+        initialScrollLeft,
+        anchor: {
+            ...baseLayout.anchor,
+            width: anchorWidth
+        },
+        hasIncoming,
+        hasOutgoing
     };
 }
 
@@ -783,21 +1120,33 @@ function buildDemandGraphScene(model) {
     const nodes = [];
     const edges = [];
     const maxCount = Math.max(1, ...(model.highlights || []).map((item) => toNumber(item.count, 0)));
-    nodes.push({
-        ...createDemandGraphSceneNode(model.selected, 'anchor', 50, 50, 'anchor'),
-        sizeScale: 1,
-        strengthLevel: 'anchor'
-    });
 
     if (model.tab === 'basket') {
+        const layout = buildBasketLayout(getDemandGraphViewportWidth());
+        const anchorPosition = getBasketGraphAnchorPosition(layout);
+        const anchorWidth = estimateDemandGraphAnchorWidth(
+            model?.selected?.name,
+            layout.sceneWidth,
+            getDemandGraphTransitionLayoutMode(layout.sceneWidth)
+        );
+        nodes.push({
+            ...createDemandGraphSceneNode(model.selected, 'anchor', anchorPosition.x, anchorPosition.y, 'anchor'),
+            sizeScale: 1,
+            strengthLevel: 'anchor',
+            positionMode: 'center',
+            allowDrag: true,
+            fixedWidth: anchorWidth
+        });
         const companions = model.highlights || [];
         companions.forEach((item, index, arr) => {
             const key = `basket-${index}`;
-            const position = getBasketGraphPosition(index, arr.length);
+            const position = mapBasketGraphPercentToScene(getBasketGraphPosition(index, arr.length), layout);
             nodes.push({
                 ...createDemandGraphSceneNode(item, key, position.x, position.y, 'basket'),
-                sizeScale: getDemandGraphNodeScale(item.count, maxCount, 'basket'),
-                strengthLevel: getDemandGraphStrengthLevel(index, arr.length, 'basket')
+                sizeScale: 1,
+                strengthLevel: getDemandGraphStrengthLevel(index, arr.length, 'basket'),
+                positionMode: 'center',
+                allowDrag: true
             });
             edges.push({
                 fromKey: 'anchor',
@@ -807,18 +1156,40 @@ function buildDemandGraphScene(model) {
                 toSide: position.x >= 50 ? 'left' : 'right',
                 offsetIndex: index,
                 offsetCount: arr.length,
-                strokeWidth: 1.1 + (toNumber(item.count, 0) / maxCount) * 1.8
+                strokeWidth: 1.6
             });
         });
-        return { nodes, edges };
+        return {
+            layout: 'basket',
+            canvasWidth: layout.sceneWidth,
+            canvasHeight: layout.sceneHeight,
+            layoutData: layout,
+            nodes,
+            edges
+        };
     }
+
+    const layout = buildTransitionFixedLayout(model, getDemandGraphViewportWidth(), getDemandGraphMeasuredMetrics(model));
+    nodes.push({
+        ...createDemandGraphSceneNode(model.selected, 'anchor', layout.centerClusterX, layout.anchor.y, 'anchor'),
+        sizeScale: 1,
+        strengthLevel: 'anchor',
+        positionMode: 'fixed',
+        allowDrag: false,
+        fixedWidth: layout.anchor.width,
+        hasIncoming: layout.hasIncoming,
+        hasOutgoing: layout.hasOutgoing
+    });
 
     (model.incoming || []).forEach((item, index, arr) => {
         const key = `incoming-${index}`;
         nodes.push({
-            ...createDemandGraphSceneNode(item, key, index % 2 === 0 ? 14 : 20, getGraphLaneY(index, arr.length, 'left'), 'incoming'),
-            sizeScale: getDemandGraphNodeScale(item.count, maxCount, 'incoming'),
-            strengthLevel: getDemandGraphStrengthLevel(index, arr.length, 'incoming')
+            ...createDemandGraphSceneNode(item, key, layout.leftColumnX, getTransitionFixedRowY(index, 'incoming'), 'incoming'),
+            sizeScale: 1,
+            strengthLevel: getDemandGraphStrengthLevel(index, arr.length, 'incoming'),
+            positionMode: 'fixed',
+            allowDrag: false,
+            maxWidth: getTransitionFixedCardMaxWidth(index, 'incoming')
         });
         edges.push({
             fromKey: key,
@@ -828,16 +1199,20 @@ function buildDemandGraphScene(model) {
             toSide: 'left',
             offsetIndex: index,
             offsetCount: arr.length,
-            strokeWidth: 1.1 + (toNumber(item.count, 0) / maxCount) * 1.8
+            strokeWidth: 1.6
         });
     });
 
     (model.outgoing || []).forEach((item, index, arr) => {
         const key = `outgoing-${index}`;
         nodes.push({
-            ...createDemandGraphSceneNode(item, key, index % 2 === 0 ? 86 : 80, getGraphLaneY(index, arr.length, 'right'), 'outgoing'),
-            sizeScale: getDemandGraphNodeScale(item.count, maxCount, 'outgoing'),
-            strengthLevel: getDemandGraphStrengthLevel(index, arr.length, 'outgoing')
+            ...createDemandGraphSceneNode(item, key, layout.rightColumnRight, getTransitionFixedRowY(index, 'outgoing'), 'outgoing'),
+            sizeScale: 1,
+            strengthLevel: getDemandGraphStrengthLevel(index, arr.length, 'outgoing'),
+            positionMode: 'fixed',
+            positionEdge: 'right',
+            allowDrag: false,
+            maxWidth: getTransitionFixedCardMaxWidth(index, 'outgoing')
         });
         edges.push({
             fromKey: 'anchor',
@@ -847,11 +1222,18 @@ function buildDemandGraphScene(model) {
             toSide: 'left',
             offsetIndex: index,
             offsetCount: arr.length,
-            strokeWidth: 1.1 + (toNumber(item.count, 0) / maxCount) * 1.8
+            strokeWidth: 1.6
         });
     });
 
-    return { nodes, edges };
+    return {
+        layout: 'transition-fixed',
+        canvasWidth: layout.sceneWidth,
+        canvasHeight: layout.baseHeight,
+        layoutData: layout,
+        nodes,
+        edges
+    };
 }
 
 function getDemandGraphNodePort(rect, sceneRect, side = 'right', offsetPx = 0) {
@@ -895,32 +1277,6 @@ function buildMeasuredDemandGraphPath(edge, rectMap, sceneRect) {
     const toRect = rectMap.get(edge.toKey);
     if (!fromRect || !toRect) return null;
 
-    if (edge.kind === 'basket') {
-        const fromCenter = {
-            x: ((fromRect.left - sceneRect.left) + (fromRect.right - sceneRect.left)) / 2,
-            y: ((fromRect.top - sceneRect.top) + (fromRect.bottom - sceneRect.top)) / 2
-        };
-        const toCenter = {
-            x: ((toRect.left - sceneRect.left) + (toRect.right - sceneRect.left)) / 2,
-            y: ((toRect.top - sceneRect.top) + (toRect.bottom - sceneRect.top)) / 2
-        };
-        const from = getDemandGraphRadialPort(fromRect, sceneRect, toCenter.x, toCenter.y);
-        const to = getDemandGraphRadialPort(toRect, sceneRect, fromCenter.x, fromCenter.y);
-        const mx = (from.x + to.x) / 2;
-        const my = (from.y + to.y) / 2;
-        const dx = to.x - from.x;
-        const dy = to.y - from.y;
-        const distance = Math.hypot(dx, dy) || 1;
-        const normalX = -dy / distance;
-        const normalY = dx / distance;
-        const bend = Math.min(24, Math.max(10, distance * 0.08));
-        return {
-            from,
-            to,
-            path: `M ${from.x} ${from.y} Q ${mx + (normalX * bend)} ${my + (normalY * bend)}, ${to.x} ${to.y}`
-        };
-    }
-
     const offsetPx = getDemandGraphOffsetPx(edge.offsetIndex, edge.offsetCount);
     const from = getDemandGraphNodePort(
         fromRect,
@@ -945,17 +1301,151 @@ function buildMeasuredDemandGraphPath(edge, rectMap, sceneRect) {
     };
 }
 
+function getDemandGraphArrowTip(from, to, inset = 8) {
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const distance = Math.hypot(dx, dy) || 1;
+    if (distance <= inset) return { ...to };
+    const ratio = (distance - inset) / distance;
+    return {
+        x: from.x + (dx * ratio),
+        y: from.y + (dy * ratio)
+    };
+}
+
+function buildDemandGraphArrowMarkup(kind, control, tip) {
+    if (!tip || !control) return '';
+    const dx = tip.x - control.x;
+    const dy = tip.y - control.y;
+    const distance = Math.hypot(dx, dy) || 1;
+    const unitX = dx / distance;
+    const unitY = dy / distance;
+    const normalX = -unitY;
+    const normalY = unitX;
+    const arrowLength = 7.5;
+    const arrowHalfWidth = 4.5;
+    const baseX = tip.x - (unitX * arrowLength);
+    const baseY = tip.y - (unitY * arrowLength);
+    const leftX = baseX + (normalX * arrowHalfWidth);
+    const leftY = baseY + (normalY * arrowHalfWidth);
+    const rightX = baseX - (normalX * arrowHalfWidth);
+    const rightY = baseY - (normalY * arrowHalfWidth);
+    return `
+        <path
+            class="demand-graph-arrow is-${kind}"
+            d="M ${svgNum(leftX)} ${svgNum(leftY)} L ${svgNum(tip.x)} ${svgNum(tip.y)} L ${svgNum(rightX)} ${svgNum(rightY)}"
+        />
+    `;
+}
+
+function buildTransitionFixedCurve(from, to, direction = 'incoming') {
+    const deltaX = Math.abs(to.x - from.x);
+    const c1Offset = Math.min(132, Math.max(72, deltaX * 0.42));
+    const c2Offset = Math.min(120, Math.max(56, deltaX * 0.2));
+    if (direction === 'incoming') {
+        return `M ${from.x} ${from.y} C ${from.x + c1Offset} ${from.y}, ${to.x - c2Offset} ${to.y}, ${to.x} ${to.y}`;
+    }
+    return `M ${from.x} ${from.y} C ${from.x + c2Offset} ${from.y}, ${to.x - c1Offset} ${to.y}, ${to.x} ${to.y}`;
+}
+
+function getDemandGraphScenePointFromRect(rect, sceneRect, xFactor = 0, yFactor = 0.5) {
+    return {
+        x: (rect.left - sceneRect.left) + (rect.width * xFactor),
+        y: (rect.top - sceneRect.top) + (rect.height * yFactor)
+    };
+}
+
+function getDemandGraphChevronGeometry(sceneElement, sceneRect, layout, role = 'incoming') {
+    const normalizedRole = role === 'outgoing' ? 'outgoing' : 'incoming';
+    const chevronElement = sceneElement.querySelector(`.demand-graph-anchor-chevron[data-role="${normalizedRole}-chevron"]`);
+    const anchorCenterY = layout.anchor.y + (layout.anchor.height / 2);
+    const fallbackX = normalizedRole === 'incoming'
+        ? layout.centerClusterX
+        : layout.centerClusterX + layout.centerClusterWidth;
+    if (!chevronElement) {
+        return {
+            chevronPoint: { x: fallbackX, y: anchorCenterY },
+            mergePoint: {
+                x: fallbackX + (normalizedRole === 'incoming' ? -layout.mergeOffset : layout.mergeOffset),
+                y: anchorCenterY
+            }
+        };
+    }
+    const chevronRect = chevronElement.getBoundingClientRect();
+    const chevronPoint = getDemandGraphScenePointFromRect(
+        chevronRect,
+        sceneRect,
+        normalizedRole === 'incoming' ? 0 : 1,
+        0.5
+    );
+    return {
+        chevronPoint,
+        mergePoint: {
+            x: chevronPoint.x + (normalizedRole === 'incoming' ? -layout.mergeOffset : layout.mergeOffset),
+            y: chevronPoint.y
+        }
+    };
+}
+
+function buildDemandGraphTransitionFixedEdgeMarkup(sceneElement, scene, rectMap, sceneRect) {
+    const layout = scene.layoutData || DEMAND_GRAPH_TRANSITION_FIGMA_LAYOUT;
+    const incomingGeometry = getDemandGraphChevronGeometry(sceneElement, sceneRect, layout, 'incoming');
+    const outgoingGeometry = getDemandGraphChevronGeometry(sceneElement, sceneRect, layout, 'outgoing');
+    const markup = [];
+
+    scene.edges.filter((edge) => edge.kind === 'incoming').forEach((edge) => {
+        const fromRect = rectMap.get(edge.fromKey);
+        if (!fromRect) return;
+        const from = getDemandGraphNodePort(fromRect, sceneRect, 'right');
+        const path = buildTransitionFixedCurve(from, incomingGeometry.mergePoint, 'incoming');
+        markup.push(`
+            <path class="demand-graph-line-glow is-incoming" d="${path}" stroke-width="4.8" />
+            <path class="demand-graph-line is-incoming" d="${path}" stroke-width="1.6" />
+        `);
+    });
+
+    if (scene.edges.some((edge) => edge.kind === 'incoming')) {
+        markup.push(`
+            <path class="demand-graph-line-glow is-incoming" d="M ${svgNum(incomingGeometry.mergePoint.x)} ${svgNum(incomingGeometry.mergePoint.y)} L ${svgNum(incomingGeometry.chevronPoint.x)} ${svgNum(incomingGeometry.chevronPoint.y)}" stroke-width="4.8" />
+            <path class="demand-graph-line is-incoming" d="M ${svgNum(incomingGeometry.mergePoint.x)} ${svgNum(incomingGeometry.mergePoint.y)} L ${svgNum(incomingGeometry.chevronPoint.x)} ${svgNum(incomingGeometry.chevronPoint.y)}" stroke-width="1.6" />
+        `);
+    }
+
+    if (scene.edges.some((edge) => edge.kind === 'outgoing')) {
+        markup.push(`
+            <path class="demand-graph-line-glow is-outgoing" d="M ${svgNum(outgoingGeometry.chevronPoint.x)} ${svgNum(outgoingGeometry.chevronPoint.y)} L ${svgNum(outgoingGeometry.mergePoint.x)} ${svgNum(outgoingGeometry.mergePoint.y)}" stroke-width="4.8" />
+            <path class="demand-graph-line is-outgoing" d="M ${svgNum(outgoingGeometry.chevronPoint.x)} ${svgNum(outgoingGeometry.chevronPoint.y)} L ${svgNum(outgoingGeometry.mergePoint.x)} ${svgNum(outgoingGeometry.mergePoint.y)}" stroke-width="1.6" />
+        `);
+    }
+
+    scene.edges.filter((edge) => edge.kind === 'outgoing').forEach((edge) => {
+        const toRect = rectMap.get(edge.toKey);
+        if (!toRect) return;
+        const to = getDemandGraphNodePort(toRect, sceneRect, 'left');
+        const path = buildTransitionFixedCurve(outgoingGeometry.mergePoint, to, 'outgoing');
+        markup.push(`
+            <path class="demand-graph-line-glow is-outgoing" d="${path}" stroke-width="4.8" />
+            <path class="demand-graph-line is-outgoing" d="${path}" stroke-width="1.6" />
+        `);
+    });
+
+    return markup.join('');
+}
+
 function buildDemandGraphEdgeMarkup(scene) {
     const sceneElement = document.querySelector('.demand-graph-scene');
     if (!sceneElement) return '';
     const sceneRect = sceneElement.getBoundingClientRect();
     if (!sceneRect.width || !sceneRect.height) return '';
     const rectMap = new Map();
-    sceneElement.querySelectorAll('.demand-graph-node[data-graph-key]').forEach((element) => {
+    sceneElement.querySelectorAll('.demand-graph-node-card[data-graph-key]').forEach((element) => {
         rectMap.set(String(element.dataset.graphKey || '').trim(), element.getBoundingClientRect());
     });
     const anchorRect = rectMap.get('anchor');
     if (!anchorRect) return '';
+    if (scene.layout === 'transition-fixed') {
+        return buildDemandGraphTransitionFixedEdgeMarkup(sceneElement, scene, rectMap, sceneRect);
+    }
     const anchorCenterY = ((anchorRect.top - sceneRect.top) + (anchorRect.bottom - sceneRect.top)) / 2;
     const leftHub = { x: anchorRect.left - sceneRect.left - 3, y: anchorCenterY };
     const rightHub = { x: anchorRect.right - sceneRect.left + 3, y: anchorCenterY };
@@ -968,16 +1458,17 @@ function buildDemandGraphEdgeMarkup(scene) {
         } else if (edge.kind !== 'basket' && edge.fromKey === 'anchor') {
             from = rightHub;
         }
+        const renderTo = edge.kind === 'basket' ? to : getDemandGraphArrowTip(from, to, 8);
         const horizontalGap = Math.abs(to.x - from.x);
         const curve = Math.max(24, horizontalGap * 0.28);
         const fromCurveX = edge.fromSide === 'right' ? from.x + curve : from.x - curve;
-        const toCurveX = edge.toSide === 'left' ? to.x - curve : to.x + curve;
-        const path = `M ${from.x} ${from.y} C ${fromCurveX} ${from.y}, ${toCurveX} ${to.y}, ${to.x} ${to.y}`;
+        const toCurveX = edge.toSide === 'left' ? renderTo.x - curve : renderTo.x + curve;
+        const path = `M ${from.x} ${from.y} C ${fromCurveX} ${from.y}, ${toCurveX} ${renderTo.y}, ${renderTo.x} ${renderTo.y}`;
         return `
             <path
                 class="demand-graph-line-glow is-${edge.kind}"
                 d="${path}"
-                stroke-width="${edge.strokeWidth * (edge.kind === 'basket' ? 2.2 : 4.8)}"
+                stroke-width="4.8"
             />
             <path
                 class="demand-graph-line is-${edge.kind}"
@@ -988,18 +1479,106 @@ function buildDemandGraphEdgeMarkup(scene) {
     }).join('');
     const connectorPaths = [];
     if (scene.edges.some((edge) => edge.kind !== 'basket' && edge.toKey === 'anchor')) {
+        const incomingTip = getDemandGraphArrowTip(leftHub, { x: anchorRect.left - sceneRect.left, y: anchorCenterY }, 8);
         connectorPaths.push(`
-            <path class="demand-graph-line-glow is-incoming" d="M ${leftHub.x} ${leftHub.y} L ${anchorRect.left - sceneRect.left} ${anchorCenterY}" stroke-width="5.2" />
-            <path class="demand-graph-line is-incoming" d="M ${leftHub.x} ${leftHub.y} L ${anchorRect.left - sceneRect.left} ${anchorCenterY}" stroke-width="1.6" />
+            <path class="demand-graph-line-glow is-incoming" d="M ${leftHub.x} ${leftHub.y} L ${incomingTip.x} ${incomingTip.y}" stroke-width="5.2" />
+            <path class="demand-graph-line is-incoming" d="M ${leftHub.x} ${leftHub.y} L ${incomingTip.x} ${incomingTip.y}" stroke-width="1.6" />
+            ${buildDemandGraphArrowMarkup('incoming', leftHub, incomingTip)}
         `);
     }
     if (scene.edges.some((edge) => edge.kind !== 'basket' && edge.fromKey === 'anchor')) {
+        const outgoingTip = getDemandGraphArrowTip(
+            { x: anchorRect.right - sceneRect.left, y: anchorCenterY },
+            rightHub,
+            2
+        );
         connectorPaths.push(`
-            <path class="demand-graph-line-glow is-outgoing" d="M ${anchorRect.right - sceneRect.left} ${anchorCenterY} L ${rightHub.x} ${rightHub.y}" stroke-width="5.2" />
-            <path class="demand-graph-line is-outgoing" d="M ${anchorRect.right - sceneRect.left} ${anchorCenterY} L ${rightHub.x} ${rightHub.y}" stroke-width="1.6" />
+            <path class="demand-graph-line-glow is-outgoing" d="M ${anchorRect.right - sceneRect.left} ${anchorCenterY} L ${outgoingTip.x} ${outgoingTip.y}" stroke-width="5.2" />
+            <path class="demand-graph-line is-outgoing" d="M ${anchorRect.right - sceneRect.left} ${anchorCenterY} L ${outgoingTip.x} ${outgoingTip.y}" stroke-width="1.6" />
+            ${buildDemandGraphArrowMarkup('outgoing', { x: anchorRect.right - sceneRect.left, y: anchorCenterY }, outgoingTip)}
         `);
     }
     return `${edgeMarkup}${connectorPaths.join('')}`;
+}
+
+function measureDemandGraphTransitionLayout(sceneElement) {
+    if (!sceneElement?.classList.contains('is-transition-fixed')) return null;
+    const anchorCard = sceneElement.querySelector('.demand-graph-node.is-anchor .demand-graph-node-card');
+    if (!anchorCard) return null;
+    const getMaxWidth = (selector) => {
+        const widths = Array.from(sceneElement.querySelectorAll(selector))
+            .map((element) => element.getBoundingClientRect().width)
+            .filter((width) => width > 0);
+        return widths.length ? Math.max(...widths) : 0;
+    };
+    return {
+        maxIncomingCardWidth: getMaxWidth('.demand-graph-node.is-incoming .demand-graph-node-card'),
+        anchorCardWidth: anchorCard.getBoundingClientRect().width,
+        maxOutgoingCardWidth: getMaxWidth('.demand-graph-node.is-outgoing .demand-graph-node-card')
+    };
+}
+
+function getDemandGraphSceneLayoutMetrics(sceneElement) {
+    if (!sceneElement) return null;
+    return {
+        maxIncomingCardWidth: Math.max(0, toNumber(sceneElement.dataset.layoutIncomingWidth, 0)),
+        anchorCardWidth: Math.max(0, toNumber(sceneElement.dataset.layoutAnchorWidth, 0)),
+        maxOutgoingCardWidth: Math.max(0, toNumber(sceneElement.dataset.layoutOutgoingWidth, 0)),
+        viewportWidth: Math.max(0, toNumber(sceneElement.dataset.layoutViewportWidth, 0)),
+        layoutMode: String(sceneElement.dataset.layoutMode || '').trim()
+    };
+}
+
+function syncDemandGraphMeasuredLayout(model, sceneElement) {
+    if (!sceneElement?.classList.contains('is-transition-fixed')) return false;
+    if (normalizeDemandGraphTab(model?.tab) !== 'transition') return false;
+    const viewportWidth = getDemandGraphViewportWidth(sceneElement);
+    const normalizedViewportWidth = normalizeDemandGraphTransitionViewportWidth(viewportWidth);
+    const expectedLayoutMode = getDemandGraphTransitionLayoutMode(viewportWidth);
+    const currentMetrics = getDemandGraphSceneLayoutMetrics(sceneElement);
+    if (
+        !currentMetrics
+        || Math.abs(normalizedViewportWidth - toNumber(currentMetrics.viewportWidth, 0)) > 12
+        || currentMetrics.layoutMode !== expectedLayoutMode
+    ) {
+        const rerender = AppState.helpers.rerenderProductsSelection;
+        if (typeof rerender === 'function') {
+            const pendingScrollTarget = String(AppState.helpers.productsPendingScrollTarget || '').trim();
+            rerender(!pendingScrollTarget, pendingScrollTarget);
+            return true;
+        }
+        return false;
+    }
+    const measuredMetrics = measureDemandGraphTransitionLayout(sceneElement);
+    if (!measuredMetrics) return false;
+    if (areDemandGraphMeasuredMetricsEqual(measuredMetrics, currentMetrics, 1)) {
+        return false;
+    }
+    setDemandGraphMeasuredMetrics(model, measuredMetrics);
+    const rerender = AppState.helpers.rerenderProductsSelection;
+    if (typeof rerender === 'function') {
+        const pendingScrollTarget = String(AppState.helpers.productsPendingScrollTarget || '').trim();
+        rerender(!pendingScrollTarget, pendingScrollTarget);
+        return true;
+    }
+    return false;
+}
+
+function syncDemandGraphBasketLayout(model, sceneElement) {
+    if (!sceneElement?.classList.contains('is-basket-layout')) return false;
+    if (normalizeDemandGraphTab(model?.tab) !== 'basket') return false;
+    const viewportWidth = normalizeDemandGraphBasketViewportWidth(getDemandGraphViewportWidth(sceneElement));
+    const currentViewportWidth = Math.max(0, toNumber(sceneElement.dataset.layoutViewportWidth, 0));
+    if (Math.abs(viewportWidth - currentViewportWidth) <= 1) {
+        return false;
+    }
+    const rerender = AppState.helpers.rerenderProductsSelection;
+    if (typeof rerender === 'function') {
+        const pendingScrollTarget = String(AppState.helpers.productsPendingScrollTarget || '').trim();
+        rerender(!pendingScrollTarget, pendingScrollTarget);
+        return true;
+    }
+    return false;
 }
 
 function scheduleDemandGraphEdgeLayout() {
@@ -1009,12 +1588,16 @@ function scheduleDemandGraphEdgeLayout() {
     const run = () => {
         const sceneElement = document.querySelector('.demand-graph-scene');
         if (!sceneElement) return;
+        const model = buildDemandGraphModel(selectedId);
+        if (syncDemandGraphMeasuredLayout(model, sceneElement)) return;
+        if (syncDemandGraphBasketLayout(model, sceneElement)) return;
+        applyDemandGraphInitialFraming();
+        syncDemandGraphViewportState();
         const svg = sceneElement.querySelector('.demand-graph-svg');
         const edgeLayer = sceneElement.querySelector('.demand-graph-edge-layer');
         if (!svg || !edgeLayer) return;
         const sceneRect = sceneElement.getBoundingClientRect();
         svg.setAttribute('viewBox', `0 0 ${Math.max(sceneRect.width, 1)} ${Math.max(sceneRect.height, 1)}`);
-        const model = buildDemandGraphModel(selectedId);
         const scene = buildDemandGraphScene(model);
         edgeLayer.innerHTML = buildDemandGraphEdgeMarkup(scene);
     };
@@ -1030,10 +1613,55 @@ function ensureDemandGraphResizeHandler() {
     window.addEventListener('resize', scheduleDemandGraphEdgeLayout);
 }
 
+function applyDemandGraphInitialFraming() {
+    const viewport = document.querySelector('.demand-graph-scene-viewport');
+    const scene = viewport?.querySelector('.demand-graph-scene');
+    if (!viewport || !scene) return;
+    const frameKey = String(scene.dataset.frameKey || '').trim();
+    if (!frameKey) return;
+    if (viewport.dataset.frameKeyApplied === frameKey) return;
+    const initialScrollLeft = Math.max(0, toNumber(scene.dataset.initialScrollLeft, 0));
+    viewport.scrollLeft = Math.min(initialScrollLeft, Math.max(0, viewport.scrollWidth - viewport.clientWidth));
+    viewport.dataset.frameKeyApplied = frameKey;
+}
+
+function syncDemandGraphViewportState() {
+    const viewport = document.querySelector('.demand-graph-scene-viewport');
+    if (!viewport) return;
+    const canPan = viewport.scrollWidth > viewport.clientWidth + 2;
+    viewport.classList.toggle('is-pan-enabled', canPan);
+    if (!canPan) {
+        viewport.classList.remove('is-panning');
+    }
+}
+
+function startDemandGraphPan(event) {
+    const viewport = event.target.closest('.demand-graph-scene-viewport');
+    const scene = viewport?.querySelector('.demand-graph-scene');
+    const targetNode = event.target.closest('.demand-graph-node');
+    const startedOnNode = Boolean(targetNode);
+    const allowNodePan = Boolean(scene?.classList.contains('is-transition-fixed'));
+    if (!viewport || (startedOnNode && !allowNodePan)) return;
+    if (viewport.scrollWidth <= viewport.clientWidth + 2) return;
+    AppState.helpers.demandGraphPan = {
+        viewport,
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startScrollLeft: viewport.scrollLeft,
+        startedOnNode,
+        targetProductId: startedOnNode ? String(targetNode?.dataset.productId || '').trim() : '',
+        moved: false
+    };
+    viewport.classList.add('is-panning');
+    viewport.setPointerCapture?.(event.pointerId);
+    event.preventDefault();
+}
+
 function startDemandGraphNodeDrag(event) {
     const node = event.target.closest('.demand-graph-node');
     const scene = event.target.closest('.demand-graph-scene');
     if (!node || !scene) return;
+    if (node.dataset.dragDisabled === 'true') return;
     const sceneRect = scene.getBoundingClientRect();
     const nodeRect = node.getBoundingClientRect();
     const centerX = nodeRect.left + (nodeRect.width / 2);
@@ -1055,6 +1683,10 @@ function startDemandGraphNodeDrag(event) {
 
 function handleDemandGraphNodeClick(event, id) {
     event.stopPropagation();
+    if (AppState.helpers.demandGraphPanSuppressClick) {
+        AppState.helpers.demandGraphPanSuppressClick = false;
+        return;
+    }
     if (AppState.helpers.demandGraphDrag?.suppressClick) {
         AppState.helpers.demandGraphDrag.suppressClick = false;
         return;
@@ -1063,11 +1695,29 @@ function handleDemandGraphNodeClick(event, id) {
 }
 
 function handleDemandGraphPointerMove(event) {
+    const pan = AppState.helpers.demandGraphPan;
+    if (pan && pan.pointerId === event.pointerId) {
+        if (Math.abs(event.clientX - pan.startX) > 4) {
+            pan.moved = true;
+        }
+        pan.viewport.scrollLeft = pan.startScrollLeft - (event.clientX - pan.startX);
+        return;
+    }
     const drag = AppState.helpers.demandGraphDrag;
     if (!drag || drag.pointerId !== event.pointerId) return;
     const sceneRect = drag.scene.getBoundingClientRect();
-    const nextX = Math.min(sceneRect.width - 24, Math.max(24, event.clientX - sceneRect.left - drag.pointerDx));
-    const nextY = Math.min(sceneRect.height - 24, Math.max(24, event.clientY - sceneRect.top - drag.pointerDy));
+    const cardRect = drag.node.querySelector('.demand-graph-node-card')?.getBoundingClientRect();
+    const halfWidth = Math.max(24, (cardRect?.width || drag.node.getBoundingClientRect().width || 48) / 2);
+    const halfHeight = Math.max(24, (cardRect?.height || drag.node.getBoundingClientRect().height || 48) / 2);
+    const edgeInset = 12;
+    const nextX = Math.min(
+        Math.max(halfWidth + edgeInset, sceneRect.width - halfWidth - edgeInset),
+        Math.max(halfWidth + edgeInset, Math.min(sceneRect.width - halfWidth - edgeInset, event.clientX - sceneRect.left - drag.pointerDx))
+    );
+    const nextY = Math.min(
+        Math.max(halfHeight + edgeInset, sceneRect.height - halfHeight - edgeInset),
+        Math.max(halfHeight + edgeInset, Math.min(sceneRect.height - halfHeight - edgeInset, event.clientY - sceneRect.top - drag.pointerDy))
+    );
     drag.node.style.left = `${nextX}px`;
     drag.node.style.top = `${nextY}px`;
     drag.node.style.transform = 'translate(-50%, -50%)';
@@ -1079,6 +1729,17 @@ function handleDemandGraphPointerMove(event) {
 }
 
 function handleDemandGraphPointerEnd(event) {
+    const pan = AppState.helpers.demandGraphPan;
+    if (pan && pan.pointerId === event.pointerId) {
+        pan.viewport.classList.remove('is-panning');
+        pan.viewport.releasePointerCapture?.(event.pointerId);
+        if (pan.startedOnNode && !pan.moved && pan.targetProductId) {
+            focusQuadrantFromDemandDriver(pan.targetProductId);
+        }
+        AppState.helpers.demandGraphPanSuppressClick = pan.startedOnNode && pan.moved;
+        AppState.helpers.demandGraphPan = null;
+        return;
+    }
     const drag = AppState.helpers.demandGraphDrag;
     if (!drag || drag.pointerId !== event.pointerId) return;
     drag.node.classList.remove('is-dragging');
@@ -1086,6 +1747,7 @@ function handleDemandGraphPointerEnd(event) {
     AppState.helpers.demandGraphDrag = drag.moved ? { suppressClick: true } : null;
 }
 
+window.startDemandGraphPan = startDemandGraphPan;
 window.startDemandGraphNodeDrag = startDemandGraphNodeDrag;
 window.handleDemandGraphNodeClick = handleDemandGraphNodeClick;
 window.addEventListener('pointermove', handleDemandGraphPointerMove);
@@ -1094,58 +1756,105 @@ window.addEventListener('pointercancel', handleDemandGraphPointerEnd);
 
 function renderDemandGraphNetwork(model) {
     const scene = buildDemandGraphScene(model);
-    const nodeButtons = scene.nodes.map((node) => renderDemandGraphNodeButton(
-        node,
-        `left:${node.x}%; top:${node.y}%;`,
-        model.tab
-    )).join('');
+    const viewClass = model.tab === 'basket' ? 'is-basket-view' : 'is-transition-view';
+    const nodeButtons = scene.nodes.map((node) => {
+        const positionStyle = node.positionMode === 'fixed'
+            ? (node.positionEdge === 'right'
+                ? `right:${svgNum(Math.max(0, (scene.canvasWidth || 0) - toNumber(node.x, 0)))}px; top:${svgNum(node.y)}px;`
+                : `left:${svgNum(node.x)}px; top:${svgNum(node.y)}px;`)
+            : `left:${node.x}%; top:${node.y}%;`;
+        return renderDemandGraphNodeButton(node, positionStyle, model.tab);
+    }).join('');
+    const sceneStyle = `width:${svgNum(scene.canvasWidth || DEMAND_GRAPH_TRANSITION_FIGMA_LAYOUT.viewportWidth)}px; height:${svgNum(scene.canvasHeight || DEMAND_GRAPH_TRANSITION_FIGMA_LAYOUT.baseHeight)}px;`;
+    const layoutSignature = scene.layout === 'transition-fixed'
+        ? `${String(scene.layoutData?.layoutMode || 'transition-compact')}:${svgNum(scene.layoutData?.viewportWidth || 0)}:${svgNum(scene.layoutData?.leftColumnWidth || 0)}:${svgNum(scene.layoutData?.anchorCardWidth || 0)}:${svgNum(scene.layoutData?.rightColumnWidth || 0)}:${scene.layoutData?.measured ? 'm' : 'e'}`
+        : 'default';
+    const sceneFrameKey = `${String(model.tab || 'transition')}:${String(model.selected?.id || '')}:${String(scene.layout || 'default')}:${svgNum(scene.canvasWidth || 0)}:${svgNum(scene.canvasHeight || 0)}:${layoutSignature}`;
+    const initialScrollLeft = scene.layout === 'transition-fixed'
+        ? toNumber(scene.layoutData?.initialScrollLeft, 0)
+        : 0;
+    const transitionLayoutClass = scene.layout === 'transition-fixed'
+        ? ` is-${String(scene.layoutData?.layoutMode || 'transition-compact')}`
+        : '';
 
     return `
-        <div class="demand-graph-scene">
-            <svg class="demand-graph-svg" preserveAspectRatio="none" aria-hidden="true">
-                <defs>
-                    <linearGradient id="demandFlowIncomingGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stop-color="#5b93ea" />
-                        <stop offset="100%" stop-color="#8da7cf" />
-                    </linearGradient>
-                    <linearGradient id="demandFlowOutgoingGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stop-color="#8da7cf" />
-                        <stop offset="100%" stop-color="#3eb7a6" />
-                    </linearGradient>
-                </defs>
-                <g class="demand-graph-edge-layer"></g>
-            </svg>
-            <div class="demand-graph-node-layer">${nodeButtons}</div>
+        <p class="demand-graph-network-helper">${escapeHtml(model.meta.guide)}</p>
+        <div class="demand-graph-scene-viewport ${viewClass}" onpointerdown="startDemandGraphPan(event)">
+            <div class="demand-graph-scene ${scene.layout === 'transition-fixed' ? `is-transition-fixed${transitionLayoutClass}` : 'is-basket-layout'}" data-frame-key="${escapeHtml(sceneFrameKey)}" data-initial-scroll-left="${escapeHtml(initialScrollLeft)}" data-layout-incoming-width="${escapeHtml(svgNum(scene.layoutData?.leftColumnWidth || 0))}" data-layout-anchor-width="${escapeHtml(svgNum(scene.layoutData?.anchorCardWidth || 0))}" data-layout-outgoing-width="${escapeHtml(svgNum(scene.layoutData?.rightColumnWidth || 0))}" data-layout-viewport-width="${escapeHtml(svgNum(scene.layoutData?.viewportWidth || 0))}" data-layout-mode="${escapeHtml(String(scene.layoutData?.layoutMode || ''))}" data-layout-measured="${scene.layoutData?.measured ? 'true' : 'false'}" style="${sceneStyle}">
+                <svg class="demand-graph-svg" preserveAspectRatio="none" aria-hidden="true">
+                    <defs>
+                        <linearGradient id="demandFlowIncomingGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#5b93ea" />
+                            <stop offset="100%" stop-color="#8da7cf" />
+                        </linearGradient>
+                        <linearGradient id="demandFlowOutgoingGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#8da7cf" />
+                            <stop offset="100%" stop-color="#3eb7a6" />
+                        </linearGradient>
+                    </defs>
+                    <g class="demand-graph-edge-layer"></g>
+                </svg>
+                <div class="demand-graph-node-layer">${nodeButtons}</div>
+            </div>
         </div>
     `;
 }
 
-function renderDemandGraphInline(quadrantModel) {
+function renderDemandGraphInline(quadrantModel, demandGraphModel = null) {
     const selectedId = String(quadrantModel?.selected?.id || AppState.viewState.products?.quadrant?.selectedId || '').trim();
-    const model = buildDemandGraphModel(selectedId);
+    const model = demandGraphModel || buildDemandGraphModel(selectedId);
+    return renderDemandGraphInlineContent(model);
+}
+
+function renderDemandGraphHeaderCopy() {
+    return `
+        <div class="pgm-quadrant-controls-summary-wrap pgm-demand-graph-head-copy">
+            <h3>제품 관계 구조</h3>
+            <p>이 제품이 어떤 제품과 어떤 관계로 이어지는지 보여줘요.</p>
+        </div>
+    `;
+}
+
+function renderProductsChartViewTabs(chartView) {
+    return `
+        <div class="pgm-chart-tab-group" role="tablist" aria-label="차트 보기">
+            <button
+                class="pgm-chart-tab ${chartView === 'quadrant' ? 'is-active' : ''}"
+                type="button"
+                role="tab"
+                aria-selected="${chartView === 'quadrant' ? 'true' : 'false'}"
+                onclick="setProductsChartView('quadrant')"
+            >제품 수요 포지션</button>
+            <button
+                class="pgm-chart-tab ${chartView === 'demand-graph' ? 'is-active' : ''}"
+                type="button"
+                role="tab"
+                aria-selected="${chartView === 'demand-graph' ? 'true' : 'false'}"
+                onclick="setProductsChartView('demand-graph')"
+            >제품 관계 구조</button>
+        </div>
+    `;
+}
+
+function renderDemandGraphTabControls(model) {
+    return `
+        <div class="pgm-seg-group pgm-demand-graph-tab-toggle" role="tablist" aria-label="선택 제품 주변 흐름 탭">
+            ${Object.entries(DEMAND_GRAPH_TAB_META).map(([key, meta]) => `
+                <button
+                    class="pgm-seg-btn ${model?.tab === key ? 'is-active' : ''}"
+                    type="button"
+                    role="tab"
+                    aria-selected="${model?.tab === key ? 'true' : 'false'}"
+                    onclick="setProductsDemandGraphTab('${key}')"
+                >${meta.label}</button>
+            `).join('')}
+        </div>
+    `;
+}
+
+function renderDemandGraphInlineContent(model) {
     return `
         <div class="demand-graph-wrap is-inline">
-            <div class="demand-graph-head">
-                <div class="demand-graph-head-copy">
-                    <h3>제품 관계 구조</h3>
-                    <p>이 제품이 어떤 제품과 어떤 관계로 이어지는지 보여줘요.</p>
-                </div>
-                <div class="demand-graph-tabs pgm-segment-group" role="tablist" aria-label="선택 제품 주변 흐름 탭">
-                    ${Object.entries(DEMAND_GRAPH_TAB_META).map(([key, meta]) => `
-                        <button
-                            class="btn-primary pgm-control-pill pgm-tab-pill ${model.tab === key ? 'is-active' : ''}"
-                            type="button"
-                            role="tab"
-                            aria-selected="${model.tab === key ? 'true' : 'false'}"
-                            onclick="setProductsDemandGraphTab('${key}')"
-                        >${meta.label}</button>
-                    `).join('')}
-                </div>
-            </div>
-            <p class="demand-graph-helper">
-                <span class="demand-graph-helper-label">${escapeHtml(model.meta.label)}</span>
-                <span>${escapeHtml(model.meta.guide)}</span>
-            </p>
             ${!model.hasAnyDataset ? `
                 <div class="demand-graph-empty">빈발 패턴 데이터가 준비되면 선택 제품 주변 흐름을 보여드릴게요.</div>
             ` : !model.hasDataset ? `
@@ -1153,10 +1862,84 @@ function renderDemandGraphInline(quadrantModel) {
             ` : !model.hasData ? `
                 <div class="demand-graph-empty">${escapeHtml(model.meta.emptyGuide)}</div>
             ` : `
-                <div class="demand-graph-network-panel is-inline">
+                <div class="demand-graph-network-panel is-inline ${model.tab === 'basket' ? 'is-basket-view' : 'is-transition-view'}">
                     ${renderDemandGraphNetwork(model)}
                 </div>
             `}
+        </div>
+    `;
+}
+
+function renderProductQuadrantHeaderCopy(chartView, quadrantControlsSummary, hasModel) {
+    if (chartView === 'demand-graph') {
+        return hasModel
+            ? renderDemandGraphHeaderCopy()
+            : `
+                <div class="pgm-quadrant-controls-summary-wrap pgm-demand-graph-head-copy">
+                    <h3>제품 관계 구조</h3>
+                    <p>선택한 제품이 없어서 관계 구조를 아직 보여줄 수 없어요.</p>
+                </div>
+            `;
+    }
+    if (hasModel) {
+        return `
+            <div class="pgm-quadrant-controls-summary-wrap pgm-demand-graph-head-copy">
+                <h3>제품 수요 포지션</h3>
+                <p>${escapeHtml(quadrantControlsSummary)} 각 제품이 어떤 역할을 하는지 확인해보세요.</p>
+            </div>
+        `;
+    }
+    return `
+        <div class="pgm-quadrant-controls-summary-wrap pgm-demand-graph-head-copy">
+            <h3>제품 수요 포지션</h3>
+            <p>표시할 제품이 없어서 수요 포지션을 아직 보여줄 수 없어요.</p>
+        </div>
+    `;
+}
+
+function renderProductChartContextControls(model, chartView, demandGraphModel, representativeAvailable, convergenceAvailable) {
+    if (!model) return '';
+    if (chartView === 'demand-graph') {
+        return renderDemandGraphTabControls(demandGraphModel);
+    }
+    return `
+        <div class="pgm-seg-group pgm-quadrant-scale-toggle" role="tablist" aria-label="사분면 보기 범위">
+            <button
+                class="pgm-seg-btn ${model.scaleMode === 'raw' ? 'is-active' : ''}"
+                type="button"
+                role="tab"
+                aria-selected="${model.scaleMode === 'raw' ? 'true' : 'false'}"
+                title="전체 제품 범위를 기준으로 보여줘요."
+                onclick="setQuadrantScaleMode('raw')"
+            >전체뷰</button>
+            <button
+                class="pgm-seg-btn ${model.scaleMode !== 'raw' ? 'is-active' : ''}"
+                type="button"
+                role="tab"
+                aria-selected="${model.scaleMode !== 'raw' ? 'true' : 'false'}"
+                title="선택 제품과 주요 연결 범위를 중심으로 확대해 보여줘요."
+                onclick="setQuadrantScaleMode('focus')"
+            >집중뷰</button>
+        </div>
+        <div class="pgm-seg-group pgm-quadrant-edge-toggle" role="tablist" aria-label="사분면 연결 모드">
+            <button
+                class="pgm-seg-btn ${model.edgeMode === 'representative' ? 'is-active' : ''}"
+                type="button"
+                role="tab"
+                aria-selected="${model.edgeMode === 'representative' ? 'true' : 'false'}"
+                title="${escapeHtml(representativeAvailable ? QUADRANT_EDGE_MODE_META.representative.guide : QUADRANT_EDGE_MODE_META.representative.unavailableGuide)}"
+                ${representativeAvailable ? '' : 'disabled'}
+                onclick="setQuadrantEdgeMode('representative')"
+            >${escapeHtml(QUADRANT_EDGE_MODE_META.representative.label)}</button>
+            <button
+                class="pgm-seg-btn ${model.edgeMode === 'convergence' ? 'is-active' : ''}"
+                type="button"
+                role="tab"
+                aria-selected="${model.edgeMode === 'convergence' ? 'true' : 'false'}"
+                title="${escapeHtml(convergenceAvailable ? QUADRANT_EDGE_MODE_META.convergence.guide : QUADRANT_EDGE_MODE_META.convergence.unavailableGuide)}"
+                ${convergenceAvailable ? '' : 'disabled'}
+                onclick="setQuadrantEdgeMode('convergence')"
+            >${escapeHtml(QUADRANT_EDGE_MODE_META.convergence.label)}</button>
         </div>
     `;
 }
@@ -1370,23 +2153,6 @@ function buildQuadrantStrategyModel(model) {
     const highCartConcentration = hasCartSignal && levels.top1Share === '높음';
     const cartType = String(selectedCa?.ca_type || '').toLowerCase();
 
-    let roleText = '현재 반응을 점검할 필요가 있는 제품';
-    if (highEntryContribution && highExpansionContribution && highReturnRole) {
-        roleText = '신규 유입과 재구매를 만들면서 다시 찾는 구매까지 이어지는 핵심 제품';
-    } else if (highConvergenceRole && (highDemand || mediumDemand)) {
-        roleText = '여러 흐름이 모이는 대표 제품';
-    } else if (highEntryContribution && highExpansionContribution) {
-        roleText = '신규 유입과 재구매를 함께 만드는 핵심 제품';
-    } else if (highExpansionContribution && (highContinuity || statusKey === 'expansion-only')) {
-        roleText = '재구매를 지키는 유지형 핵심 제품';
-    } else if (highEntryContribution && (highDemand || statusKey === 'entry-only')) {
-        roleText = '신규 유입을 크게 만드는 확장 후보';
-    } else if (highCartExpansion) {
-        roleText = '장바구니 연결력이 있는 보조 제품';
-    } else if (highDemand || mediumDemand) {
-        roleText = '수요 반응을 확인할 가치가 있는 제품';
-    }
-
     let goalText = '현재 강점을 유지하면서 다음 성장 포인트를 확인해요.';
     if (highDemand && (highEntryContribution || highExpansionContribution) && lowContinuity) {
         goalText = '유입된 수요가 다음 구매로 이어지도록 유지 흐름을 보강해요.';
@@ -1434,7 +2200,6 @@ function buildQuadrantStrategyModel(model) {
     }
 
     return {
-        roleText,
         goalText,
         actionText,
         reasonTags: levels,
@@ -1477,9 +2242,9 @@ function renderQuadrantPanel(model) {
     const hasHistory = (AppState.viewState.products.quadrant.history || []).length > 0;
     const tagStyle = QUADRANT_STATUS_TAG_STYLE[status.key] || QUADRANT_STATUS_TAG_STYLE.hero;
     const transitionCta = selected.hasTransition
-        ? `<button class="btn-primary pgm-side-cta-btn" type="button" onclick="openRetentionFlowModal('${escapeJs(selected.id)}')">90일 추가구매 제품 보기</button>`
+        ? `<button class="btn-primary pgm-side-cta-btn" type="button" onclick="openRetentionFlowModal('${escapeJs(selected.id)}')">추가구매 제품 보기</button>`
         : `
-            <button class="btn-primary pgm-side-cta-btn" type="button" disabled title="90일 추가구매 데이터가 없어 이동할 수 없음">90일 추가구매 제품 보기</button>
+            <button class="btn-primary pgm-side-cta-btn" type="button" disabled title="90일 추가구매 데이터가 없어 이동할 수 없음">추가구매 제품 보기</button>
             <p class="pgm-link-help">구매 후 90일 내 추가구매 데이터가 없어 이동할 수 없어요.</p>
         `;
 
@@ -1522,9 +2287,9 @@ function renderQuadrantPanel(model) {
                 </div>
             </section>
 
-            <!-- 3. 수요 기여 비중 -->
+            <!-- 3. 구매 기여 비중 -->
             <section class="pgm-side-section-card">
-                <h4>수요 기여 비중</h4>
+                <h4>구매 기여 비중</h4>
                 <div class="pgm-demand-share-grid">
                     <div class="pgm-demand-share-card">
                         <label>첫구매 기여 비중</label>
@@ -1541,10 +2306,6 @@ function renderQuadrantPanel(model) {
             <section class="pgm-side-section-card">
                 <h4>운영 전략</h4>
                 <div class="pgm-action-list">
-                    <div class="pgm-action-row">
-                        <label>제품 역할</label>
-                        <p>${escapeHtml(strategy?.roleText || '-')}</p>
-                    </div>
                     <div class="pgm-action-row">
                         <label>전략 목표</label>
                         <p>${escapeHtml(strategy?.goalText || '-')}</p>
@@ -1575,11 +2336,8 @@ function renderQuadrantPanel(model) {
 
 function renderProductQuadrant(model, coreDemandModel = null) {
     const chartView = AppState.viewState.products.chartView === 'demand-graph' ? 'demand-graph' : 'quadrant';
-    const isCompactSidePanel = typeof window !== 'undefined' && window.innerWidth < 1280;
-    const savedSidePanelOpen = AppState.viewState.products?.sidePanelOpen;
-    const isSidePanelOpen = typeof savedSidePanelOpen === 'boolean'
-        ? savedSidePanelOpen
-        : !isCompactSidePanel;
+    const isCompactSidePanel = isCompactProductsSidePanelViewport();
+    const isSidePanelOpen = getProductsSidePanelOpenState(isCompactSidePanel);
     const emptyChartMessage = '표시할 제품이 없습니다.';
     const coreCount = Math.max(0, toNumber(coreDemandModel?.rows?.length, 0));
     const quadrantControlsSummary = coreCount
@@ -1587,74 +2345,23 @@ function renderProductQuadrant(model, coreDemandModel = null) {
         : '핵심 수요를 만드는 제품을 보여줘요.';
     const representativeAvailable = Boolean(model?.edgeAvailability?.representative);
     const convergenceAvailable = Boolean(model?.edgeAvailability?.convergence);
+    const demandGraphModel = chartView === 'demand-graph' && model
+        ? buildDemandGraphModel(String(model?.selected?.id || '').trim())
+        : null;
     return `
         <div class="pgm-quadrant-wrap animate-fade-in">
-            ${model && chartView === 'quadrant' ? `
-                <div class="pgm-quadrant-head">
-                    <div class="pgm-quadrant-controls-summary-wrap">
-                        <div class="pgm-quadrant-controls-summary">${escapeHtml(quadrantControlsSummary)}</div>
-                    </div>
-                    <div class="pgm-quadrant-controls-actions">
-                        <div class="pgm-seg-group pgm-quadrant-scale-toggle" role="tablist" aria-label="사분면 보기 범위">
-                            <button
-                                class="pgm-seg-btn ${model.scaleMode === 'raw' ? 'is-active' : ''}"
-                                type="button"
-                                role="tab"
-                                aria-selected="${model.scaleMode === 'raw' ? 'true' : 'false'}"
-                                title="전체 제품 범위를 기준으로 보여줘요."
-                                onclick="setQuadrantScaleMode('raw')"
-                            >전체뷰</button>
-                            <button
-                                class="pgm-seg-btn ${model.scaleMode !== 'raw' ? 'is-active' : ''}"
-                                type="button"
-                                role="tab"
-                                aria-selected="${model.scaleMode !== 'raw' ? 'true' : 'false'}"
-                                title="선택 제품과 주요 연결 범위를 중심으로 확대해 보여줘요."
-                                onclick="setQuadrantScaleMode('focus')"
-                            >집중뷰</button>
-                        </div>
-                        <div class="pgm-seg-group pgm-quadrant-edge-toggle" role="tablist" aria-label="사분면 연결 모드">
-                            <button
-                                class="pgm-seg-btn ${model.edgeMode === 'representative' ? 'is-active' : ''}"
-                                type="button"
-                                role="tab"
-                                aria-selected="${model.edgeMode === 'representative' ? 'true' : 'false'}"
-                                title="${escapeHtml(representativeAvailable ? QUADRANT_EDGE_MODE_META.representative.guide : QUADRANT_EDGE_MODE_META.representative.unavailableGuide)}"
-                                ${representativeAvailable ? '' : 'disabled'}
-                                onclick="setQuadrantEdgeMode('representative')"
-                            >${escapeHtml(QUADRANT_EDGE_MODE_META.representative.label)}</button>
-                            <button
-                                class="pgm-seg-btn ${model.edgeMode === 'convergence' ? 'is-active' : ''}"
-                                type="button"
-                                role="tab"
-                                aria-selected="${model.edgeMode === 'convergence' ? 'true' : 'false'}"
-                                title="${escapeHtml(convergenceAvailable ? QUADRANT_EDGE_MODE_META.convergence.guide : QUADRANT_EDGE_MODE_META.convergence.unavailableGuide)}"
-                                ${convergenceAvailable ? '' : 'disabled'}
-                                onclick="setQuadrantEdgeMode('convergence')"
-                            >${escapeHtml(QUADRANT_EDGE_MODE_META.convergence.label)}</button>
-                        </div>
-                    </div>
+            <div class="pgm-quadrant-head ${chartView === 'demand-graph' ? 'is-demand-graph-view' : 'is-quadrant-view'}">
+                ${renderProductQuadrantHeaderCopy(chartView, quadrantControlsSummary, Boolean(model))}
+                <div class="pgm-chart-view-switch">
+                    ${renderProductsChartViewTabs(chartView)}
                 </div>
-            ` : ''}
+            </div>
             <div class="pgm-quadrant-body ${isSidePanelOpen ? '' : 'is-side-panel-closed'}">
                 <div class="pgm-chart chart-card ${chartView === 'demand-graph' ? 'is-demand-graph-view' : 'is-quadrant-view'}">
                     <div class="pgm-chart-frame ${chartView === 'demand-graph' ? 'is-demand-graph-view' : 'is-quadrant-view'}">
                         <div class="pgm-chart-header-row">
-                            <div class="pgm-chart-tab-group" role="tablist" aria-label="차트 보기">
-                                <button
-                                    class="pgm-chart-tab ${chartView === 'quadrant' ? 'is-active' : ''}"
-                                    type="button"
-                                    role="tab"
-                                    aria-selected="${chartView === 'quadrant' ? 'true' : 'false'}"
-                                    onclick="setProductsChartView('quadrant')"
-                                >제품 수요 포지션</button>
-                                <button
-                                    class="pgm-chart-tab ${chartView === 'demand-graph' ? 'is-active' : ''}"
-                                    type="button"
-                                    role="tab"
-                                    aria-selected="${chartView === 'demand-graph' ? 'true' : 'false'}"
-                                    onclick="setProductsChartView('demand-graph')"
-                                >제품 관계 구조</button>
+                            <div class="pgm-quadrant-controls-actions is-chart-header ${model ? '' : 'is-empty'}">
+                                ${renderProductChartContextControls(model, chartView, demandGraphModel, representativeAvailable, convergenceAvailable)}
                             </div>
                             <div class="pgm-chart-header-actions">
                                 ${model ? `
@@ -1675,7 +2382,7 @@ function renderProductQuadrant(model, coreDemandModel = null) {
             ? (model
                 ? renderQuadrantStageFrame(model)
                 : `<div class="quadrant-chart-empty"><p>${emptyChartMessage}</p></div>`)
-            : renderDemandGraphInline(model)}
+            : renderDemandGraphInline(model, demandGraphModel)}
                         </div>
                     </div>
                 </div>
@@ -1739,8 +2446,8 @@ function getQuadrantBubbleOuterRadius(point, maxWeekly, visualConfig) {
     return radius + visualConfig.selectedRingGap + visualConfig.selectedRingWidth + visualConfig.pulseExtra + visualConfig.pulseWidth;
 }
 
-function buildQuadrantPixelInsets(model, frame = QUADRANT_SVG_FRAME, visualConfig = getQuadrantVisualConfig(frame)) {
-    const range = getQuadrantRenderRange(model?.scaleRange || {});
+function buildQuadrantPixelInsets(model, frame = QUADRANT_SVG_FRAME, visualConfig = getQuadrantVisualConfig(frame), rangeOverride = null) {
+    const range = getQuadrantRenderRange(rangeOverride || model?.scaleRange || {});
     const points = Array.isArray(model?.points) ? model.points : [];
     const selectedId = String(model?.selected?.id || '').trim();
     const spanX = Math.max(0.02, range.xMax - range.xMin);
@@ -1831,9 +2538,9 @@ function buildQuadrantSummaryBuckets(model) {
     };
 }
 
-function buildQuadrantSvgModel(model, frame = QUADRANT_SVG_FRAME) {
+function buildQuadrantSvgModel(model, frame = QUADRANT_SVG_FRAME, rangeOverride = null) {
     const visualConfig = getQuadrantVisualConfig(frame);
-    const pixelInsets = buildQuadrantPixelInsets(model, frame, visualConfig);
+    const pixelInsets = buildQuadrantPixelInsets(model, frame, visualConfig, rangeOverride);
     const summary = buildQuadrantSummaryBuckets(model);
     const baseRange = pixelInsets.range;
     const spanX = Math.max(0.02, baseRange.xMax - baseRange.xMin);
@@ -2031,25 +2738,25 @@ function renderQuadrantSvgMarkup(svgModel) {
 function renderQuadrantCornerOverlays(corners) {
     if (!corners) return '';
     return `
-        <div class="pgm-quadrant-corner-overlay is-top-left" aria-hidden="true">
+        <div class="pgm-quadrant-corner-overlay is-top-left" data-quadrant-corner="top-left" aria-hidden="true">
             <div class="pgm-quadrant-corner-copy">
                 <div class="pgm-quadrant-corner-title">${escapeHtml(corners.topLeft.label)}</div>
                 <div class="pgm-quadrant-corner-summary">${escapeHtml(corners.topLeft.summary)}</div>
             </div>
         </div>
-        <div class="pgm-quadrant-corner-overlay is-top-right" aria-hidden="true">
+        <div class="pgm-quadrant-corner-overlay is-top-right" data-quadrant-corner="top-right" aria-hidden="true">
             <div class="pgm-quadrant-corner-copy">
                 <div class="pgm-quadrant-corner-title">${escapeHtml(corners.topRight.label)}</div>
                 <div class="pgm-quadrant-corner-summary">${escapeHtml(corners.topRight.summary)}</div>
             </div>
         </div>
-        <div class="pgm-quadrant-corner-overlay is-bottom-left" aria-hidden="true">
+        <div class="pgm-quadrant-corner-overlay is-bottom-left" data-quadrant-corner="bottom-left" aria-hidden="true">
             <div class="pgm-quadrant-corner-copy">
                 <div class="pgm-quadrant-corner-title">${escapeHtml(corners.bottomLeft.label)}</div>
                 <div class="pgm-quadrant-corner-summary">${escapeHtml(corners.bottomLeft.summary)}</div>
             </div>
         </div>
-        <div class="pgm-quadrant-corner-overlay is-bottom-right" aria-hidden="true">
+        <div class="pgm-quadrant-corner-overlay is-bottom-right" data-quadrant-corner="bottom-right" aria-hidden="true">
             <div class="pgm-quadrant-corner-copy">
                 <div class="pgm-quadrant-corner-title">${escapeHtml(corners.bottomRight.label)}</div>
                 <div class="pgm-quadrant-corner-summary">${escapeHtml(corners.bottomRight.summary)}</div>
@@ -2058,8 +2765,122 @@ function renderQuadrantCornerOverlays(corners) {
     `;
 }
 
+function getQuadrantViewportFrame(wrap) {
+    const fallback = QUADRANT_SVG_FRAME;
+    if (!wrap) return fallback;
+    const measuredWidth = Math.round(toNumber(wrap.clientWidth, fallback.width));
+    const measuredHeight = Math.round(toNumber(wrap.clientHeight, fallback.height));
+    return {
+        width: Math.max(QUADRANT_MIN_RENDER_WIDTH, measuredWidth || fallback.width),
+        height: Math.max(260, measuredHeight || fallback.height)
+    };
+}
+
+function getQuadrantSceneFrame(viewportFrame, model) {
+    const frame = {
+        width: Math.max(QUADRANT_MIN_RENDER_WIDTH, toNumber(viewportFrame?.width, QUADRANT_SVG_FRAME.width)),
+        height: Math.max(260, toNumber(viewportFrame?.height, QUADRANT_SVG_FRAME.height))
+    };
+    if (String(model?.scaleMode || '').trim() !== 'focus') return frame;
+
+    const widthFactor = frame.width < 640 ? 1.42 : frame.width < 760 ? 1.28 : 1.16;
+    const heightFactor = frame.width < 640 ? 1.2 : 1.12;
+    return {
+        width: Math.round(Math.max(frame.width + 120, frame.width * widthFactor)),
+        height: Math.round(Math.max(frame.height + 56, frame.height * heightFactor))
+    };
+}
+
+function clampQuadrantRangeToBounds(range, bounds) {
+    const next = { ...range };
+    const boundWidth = Math.max(0.02, bounds.xMax - bounds.xMin);
+    const boundHeight = Math.max(0.02, bounds.yMax - bounds.yMin);
+    const width = Math.max(0.02, next.xMax - next.xMin);
+    const height = Math.max(0.02, next.yMax - next.yMin);
+
+    if (width >= boundWidth) {
+        next.xMin = bounds.xMin;
+        next.xMax = bounds.xMax;
+    } else {
+        if (next.xMin < bounds.xMin) {
+            next.xMax += bounds.xMin - next.xMin;
+            next.xMin = bounds.xMin;
+        }
+        if (next.xMax > bounds.xMax) {
+            next.xMin -= next.xMax - bounds.xMax;
+            next.xMax = bounds.xMax;
+        }
+    }
+
+    if (height >= boundHeight) {
+        next.yMin = bounds.yMin;
+        next.yMax = bounds.yMax;
+    } else {
+        if (next.yMin < bounds.yMin) {
+            next.yMax += bounds.yMin - next.yMin;
+            next.yMin = bounds.yMin;
+        }
+        if (next.yMax > bounds.yMax) {
+            next.yMin -= next.yMax - bounds.yMax;
+            next.yMax = bounds.yMax;
+        }
+    }
+
+    return next;
+}
+
+function getQuadrantSceneRange(model, sceneFrame, viewportFrame) {
+    const activeRange = getQuadrantRenderRange(model?.scaleRange || {});
+    if (String(model?.scaleMode || '').trim() !== 'focus') return activeRange;
+
+    const focusRange = getQuadrantRenderRange(model?.focusRange || activeRange);
+    const rawRange = getQuadrantRenderRange(model?.rawRange || activeRange);
+    const xPad = Math.max(0.02, toNumber(model?.focusRange?.xPad, 0.02));
+    const yPad = Math.max(0.02, toNumber(model?.focusRange?.yPad, 0.02));
+    const bounds = {
+        xMin: rawRange.xMin - (xPad * 0.45),
+        xMax: rawRange.xMax + (xPad * 0.45),
+        yMin: rawRange.yMin - (yPad * 0.45),
+        yMax: rawRange.yMax + (yPad * 0.45)
+    };
+
+    const focusWidth = Math.max(0.02, focusRange.xMax - focusRange.xMin);
+    const focusHeight = Math.max(0.02, focusRange.yMax - focusRange.yMin);
+    const widthFactor = Math.max(1, toNumber(sceneFrame?.width, viewportFrame?.width) / Math.max(1, toNumber(viewportFrame?.width, 1)));
+    const heightFactor = Math.max(1, toNumber(sceneFrame?.height, viewportFrame?.height) / Math.max(1, toNumber(viewportFrame?.height, 1)));
+    const visibleRelaxX = 1 + ((widthFactor - 1) * 0.38);
+    const visibleRelaxY = 1 + ((heightFactor - 1) * 0.32);
+    const expandedWidth = Math.min(bounds.xMax - bounds.xMin, focusWidth * widthFactor * visibleRelaxX);
+    const expandedHeight = Math.min(bounds.yMax - bounds.yMin, focusHeight * heightFactor * visibleRelaxY);
+    const centerX = (focusRange.xMin + focusRange.xMax) / 2;
+    const centerY = (focusRange.yMin + focusRange.yMax) / 2;
+
+    return clampQuadrantRangeToBounds({
+        xMin: centerX - (expandedWidth / 2),
+        xMax: centerX + (expandedWidth / 2),
+        yMin: centerY - (expandedHeight / 2),
+        yMax: centerY + (expandedHeight / 2)
+    }, bounds);
+}
+
+function renderQuadrantCanvasMarkup(svgModel, model) {
+    const canPan = String(model?.scaleMode || '').trim() === 'focus'
+        && (svgModel.frame.width > QUADRANT_SVG_FRAME.width || svgModel.frame.height > QUADRANT_SVG_FRAME.height);
+    return `
+        <div class="quadrant-chart-canvas-viewport ${canPan ? 'is-pan-enabled' : ''}" onpointerdown="startQuadrantCanvasPan(event)" onscroll="syncQuadrantCornerOverlayVisibility()">
+            <div class="quadrant-chart-canvas-scene" style="width:${svgNum(svgModel.frame.width)}px;height:${svgNum(svgModel.frame.height)}px;">
+                ${renderQuadrantSvgMarkup(svgModel)}
+            </div>
+        </div>
+        ${renderQuadrantCornerOverlays(svgModel.corners)}
+        <div class="pgm-quadrant-tooltip" hidden></div>
+    `;
+}
+
 function renderQuadrantStageFrame(model) {
-    const svgModel = buildQuadrantSvgModel(model);
+    const sceneFrame = getQuadrantSceneFrame(QUADRANT_SVG_FRAME, model);
+    const sceneRange = getQuadrantSceneRange(model, sceneFrame, QUADRANT_SVG_FRAME);
+    const svgModel = buildQuadrantSvgModel(model, sceneFrame, sceneRange);
     const meta = buildQuadrantStageMeta(svgModel);
     AppState.helpers.productsQuadrantModel = model;
     AppState.helpers.productsQuadrantSvgModel = svgModel;
@@ -2076,39 +2897,96 @@ function renderQuadrantStageFrame(model) {
             </div>
         </div>
         <div class="quadrant-chart-canvas-wrap">
-            ${renderQuadrantSvgMarkup(svgModel)}
-            ${renderQuadrantCornerOverlays(svgModel.corners)}
-            <div class="pgm-quadrant-tooltip" hidden></div>
+            ${renderQuadrantCanvasMarkup(svgModel, model)}
         </div>
     `;
 }
 
-function getResponsiveQuadrantFrame(wrap) {
-    const fallback = QUADRANT_SVG_FRAME;
-    if (!wrap) return fallback;
-    const measuredWidth = Math.round(toNumber(wrap.clientWidth, fallback.width));
-    const measuredHeight = Math.round(toNumber(wrap.clientHeight, fallback.height));
-    return {
-        width: Math.max(QUADRANT_MIN_RENDER_WIDTH, measuredWidth || fallback.width),
-        height: Math.max(260, measuredHeight || fallback.height)
+function syncQuadrantCanvasViewportState(wrap) {
+    const viewport = wrap?.querySelector('.quadrant-chart-canvas-viewport');
+    if (!viewport) return;
+    const canPan = viewport.scrollWidth > viewport.clientWidth + 2 || viewport.scrollHeight > viewport.clientHeight + 2;
+    viewport.classList.toggle('is-pan-enabled', canPan);
+    if (!canPan) {
+        viewport.classList.remove('is-panning');
+        viewport.scrollLeft = 0;
+        viewport.scrollTop = 0;
+    }
+}
+
+function syncQuadrantCornerOverlayVisibility() {
+    const wrap = document.querySelector('.quadrant-chart-canvas-wrap');
+    const viewport = wrap?.querySelector('.quadrant-chart-canvas-viewport');
+    const svgModel = AppState.helpers.productsQuadrantSvgModel;
+    if (!wrap || !viewport || !svgModel?.centerPx || !svgModel?.frame) return;
+
+    if (!viewport.classList.contains('is-pan-enabled')) {
+        wrap.querySelectorAll('.pgm-quadrant-corner-overlay[data-quadrant-corner]').forEach((node) => {
+            node.classList.remove('is-hidden');
+        });
+        return;
+    }
+
+    const sceneWidth = Math.max(1, toNumber(svgModel.frame.width, 1));
+    const sceneHeight = Math.max(1, toNumber(svgModel.frame.height, 1));
+    const viewLeft = Math.max(0, viewport.scrollLeft);
+    const viewRight = Math.min(sceneWidth, viewLeft + viewport.clientWidth);
+    const viewTop = Math.max(0, viewport.scrollTop);
+    const viewBottom = Math.min(sceneHeight, viewTop + viewport.clientHeight);
+    const centerX = toNumber(svgModel.centerPx.x, sceneWidth / 2);
+    const centerY = toNumber(svgModel.centerPx.y, sceneHeight / 2);
+    const minVisibleWidth = 24;
+    const minVisibleHeight = 24;
+    const intersectSize = (aStart, aEnd, bStart, bEnd) => Math.max(0, Math.min(aEnd, bEnd) - Math.max(aStart, bStart));
+    const visibleLeft = intersectSize(viewLeft, viewRight, 0, centerX);
+    const visibleRight = intersectSize(viewLeft, viewRight, centerX, sceneWidth);
+    const visibleTop = intersectSize(viewTop, viewBottom, 0, centerY);
+    const visibleBottom = intersectSize(viewTop, viewBottom, centerY, sceneHeight);
+    const visibility = {
+        'top-left': visibleLeft > minVisibleWidth && visibleTop > minVisibleHeight,
+        'top-right': visibleRight > minVisibleWidth && visibleTop > minVisibleHeight,
+        'bottom-left': visibleLeft > minVisibleWidth && visibleBottom > minVisibleHeight,
+        'bottom-right': visibleRight > minVisibleWidth && visibleBottom > minVisibleHeight
     };
+
+    wrap.querySelectorAll('.pgm-quadrant-corner-overlay[data-quadrant-corner]').forEach((node) => {
+        const key = String(node.getAttribute('data-quadrant-corner') || '').trim();
+        node.classList.toggle('is-hidden', !visibility[key]);
+    });
+}
+
+function centerQuadrantViewportOnSelected(wrap, svgModel) {
+    const viewport = wrap?.querySelector('.quadrant-chart-canvas-viewport');
+    if (!viewport || !svgModel) return;
+    const selected = (svgModel.points || []).find((point) => point.isSelected) || null;
+    if (!selected) return;
+    const targetLeft = Math.max(0, selected.x - (viewport.clientWidth / 2));
+    const targetTop = Math.max(0, selected.y - (viewport.clientHeight / 2));
+    viewport.scrollLeft = Math.min(targetLeft, Math.max(0, viewport.scrollWidth - viewport.clientWidth));
+    viewport.scrollTop = Math.min(targetTop, Math.max(0, viewport.scrollHeight - viewport.clientHeight));
 }
 
 function renderQuadrantSvgIntoWrap(wrap, model) {
     if (!wrap || !model) return null;
-    const frame = getResponsiveQuadrantFrame(wrap);
-    const svgModel = buildQuadrantSvgModel(model, frame);
+    const viewportFrame = getQuadrantViewportFrame(wrap);
+    const sceneFrame = getQuadrantSceneFrame(viewportFrame, model);
+    const sceneRange = getQuadrantSceneRange(model, sceneFrame, viewportFrame);
+    const svgModel = buildQuadrantSvgModel(model, sceneFrame, sceneRange);
     AppState.helpers.productsQuadrantSvgModel = svgModel;
-    wrap.innerHTML = `
-        ${renderQuadrantSvgMarkup(svgModel)}
-        ${renderQuadrantCornerOverlays(svgModel.corners)}
-        <div class="pgm-quadrant-tooltip" hidden></div>
-    `;
+    wrap.innerHTML = renderQuadrantCanvasMarkup(svgModel, model);
+    syncQuadrantCanvasViewportState(wrap);
+    centerQuadrantViewportOnSelected(wrap, svgModel);
+    syncQuadrantCornerOverlayVisibility();
     return svgModel;
 }
 
 function isCompactProductsSidePanelViewport() {
     return typeof window !== 'undefined' && window.innerWidth < 1280;
+}
+
+function getProductsSidePanelOpenState(isCompact = isCompactProductsSidePanelViewport()) {
+    const savedSidePanelOpen = AppState.viewState.products?.sidePanelOpen;
+    return typeof savedSidePanelOpen === 'boolean' ? savedSidePanelOpen : !isCompact;
 }
 
 function syncQuadrantCanvasWrapHeight() {
@@ -2133,6 +3011,44 @@ function syncQuadrantPanelHeights() {
     chartCard.style.minHeight = '';
     return sideCard.getBoundingClientRect().height || 0;
 }
+
+function startQuadrantCanvasPan(event) {
+    const viewport = event.target.closest('.quadrant-chart-canvas-viewport');
+    if (!viewport || !viewport.classList.contains('is-pan-enabled')) return;
+    if (event.target.closest('.pgm-quadrant-bubble-hitbox')) return;
+    AppState.helpers.productsQuadrantPan = {
+        viewport,
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        startScrollLeft: viewport.scrollLeft,
+        startScrollTop: viewport.scrollTop
+    };
+    viewport.classList.add('is-panning');
+    viewport.setPointerCapture?.(event.pointerId);
+    event.preventDefault();
+}
+
+function handleQuadrantCanvasPointerMove(event) {
+    const pan = AppState.helpers.productsQuadrantPan;
+    if (!pan || pan.pointerId !== event.pointerId) return;
+    pan.viewport.scrollLeft = pan.startScrollLeft - (event.clientX - pan.startX);
+    pan.viewport.scrollTop = pan.startScrollTop - (event.clientY - pan.startY);
+}
+
+function handleQuadrantCanvasPointerEnd(event) {
+    const pan = AppState.helpers.productsQuadrantPan;
+    if (!pan || pan.pointerId !== event.pointerId) return;
+    pan.viewport.classList.remove('is-panning');
+    pan.viewport.releasePointerCapture?.(event.pointerId);
+    AppState.helpers.productsQuadrantPan = null;
+}
+
+window.startQuadrantCanvasPan = startQuadrantCanvasPan;
+window.syncQuadrantCornerOverlayVisibility = syncQuadrantCornerOverlayVisibility;
+window.addEventListener('pointermove', handleQuadrantCanvasPointerMove);
+window.addEventListener('pointerup', handleQuadrantCanvasPointerEnd);
+window.addEventListener('pointercancel', handleQuadrantCanvasPointerEnd);
 
 function ensureQuadrantResizeHandler() {
     if (AppState.helpers.productsQuadrantResizeBound) return;
@@ -2510,8 +3426,8 @@ function renderProductsTableOnly(model = null) {
         <div class="pgm-product-table-card">
             <div class="pgm-product-table-top">
                 <div class="pgm-core-demand-head">
-                    <h3>최근 90일 핵심 수요 제품</h3>
-                    <p class="pgm-core-desc">최근 1년 내 판매 이력이 있고, 최근 90일에도 실제 판매가 이어진 핵심 수요 제품 기준이에요.</p>
+                    <h3>최근 90일 핵심 제품</h3>
+                    <p class="pgm-core-desc">최근 1년 내 판매 이력이 있고, 최근 90일에도 실제 판매가 이어진 핵심 제품이에요.</p>
                 </div>
                 <div class="pgm-product-table-filter-row">
                     ${renderCoreDemandSortTabs(currentSortKey)}
@@ -2588,9 +3504,40 @@ function renderProducts() {
         setTimeout(restore, 80);
     };
 
-    const rerenderProductsSelection = (preserveScroll = false) => {
+    const scrollProductsChartIntoView = (scrollTarget = 'chart-head') => {
+        const chartHead = container.querySelector('.pgm-quadrant-head');
+        const chartWrap = container.querySelector('.pgm-chart-wrap');
+        const target = scrollTarget === 'chart-head'
+            ? (chartHead || chartWrap || container.querySelector('.pgm-quadrant-wrap'))
+            : (chartWrap || chartHead || container.querySelector('.pgm-quadrant-wrap'));
+        if (!target) return;
+        const top = Math.max(0, window.scrollY + target.getBoundingClientRect().top - 16);
+        window.scrollTo({ top, left: 0, behavior: 'smooth' });
+    };
+
+    const scheduleProductsScrollIntent = (scrollTarget, intentToken, renderToken) => {
+        if (!scrollTarget || !intentToken || !renderToken) return;
+        const run = () => {
+            const currentIntent = AppState.helpers.productsScrollIntent;
+            const currentRenderToken = AppState.helpers.productsRenderToken;
+            if (!currentIntent || currentIntent.token !== intentToken) return;
+            if (currentRenderToken !== renderToken) return;
+            scrollProductsChartIntoView(scrollTarget);
+            AppState.helpers.productsScrollIntent = null;
+            AppState.helpers.productsPendingScrollTarget = null;
+        };
+        requestAnimationFrame(() => {
+            requestAnimationFrame(run);
+        });
+        setTimeout(run, 80);
+    };
+
+    const rerenderProductsSelection = (preserveScroll = false, scrollTarget = '') => {
+        const requestedScrollTarget = String(scrollTarget || AppState.helpers.productsPendingScrollTarget || '').trim();
         const scrollY = preserveScroll ? window.scrollY : 0;
         const scrollX = preserveScroll ? window.scrollX : 0;
+        const renderToken = (toNumber(AppState.helpers.productsRenderToken, 0) || 0) + 1;
+        AppState.helpers.productsRenderToken = renderToken;
         const nextQuadrantModel = buildQuadrantModel(
             getScopedProductsData(),
             qState.selectedId,
@@ -2619,12 +3566,36 @@ function renderProducts() {
         if (preserveScroll) {
             restoreProductsScrollPosition(scrollX, scrollY);
         }
+        if (requestedScrollTarget) {
+            const activeIntent = AppState.helpers.productsScrollIntent;
+            if (activeIntent?.target === requestedScrollTarget) {
+                activeIntent.renderToken = renderToken;
+            } else {
+                const nextIntentToken = (toNumber(AppState.helpers.productsScrollIntentSeq, 0) || 0) + 1;
+                AppState.helpers.productsScrollIntentSeq = nextIntentToken;
+                AppState.helpers.productsScrollIntent = {
+                    token: nextIntentToken,
+                    target: requestedScrollTarget,
+                    renderToken
+                };
+            }
+            const finalIntent = AppState.helpers.productsScrollIntent;
+            scheduleProductsScrollIntent(finalIntent?.target, finalIntent?.token, renderToken);
+        } else {
+            AppState.helpers.productsScrollIntent = null;
+        }
     };
+    AppState.helpers.rerenderProductsSelection = rerenderProductsSelection;
 
     window.selectQuadrantItem = (entityId, options = {}) => {
         const targetId = String(entityId || '').trim();
         if (!targetId) return;
         const preserveScroll = Boolean(options?.preserveScroll);
+        const scrollTarget = String(options?.scrollTarget || (options?.scrollToChart ? 'chart-head' : '')).trim();
+        AppState.helpers.productsPendingScrollTarget = preserveScroll ? null : scrollTarget;
+        if (!scrollTarget) {
+            AppState.helpers.productsScrollIntent = null;
+        }
         if (preserveScroll && document.activeElement instanceof HTMLElement) {
             document.activeElement.blur();
         }
@@ -2635,14 +3606,14 @@ function renderProducts() {
         }
         qState.selectedId = targetId;
         AppState.helpers.focusEntityId = targetId;
-        rerenderProductsSelection(preserveScroll);
+        rerenderProductsSelection(preserveScroll, scrollTarget);
     };
 
     window.focusQuadrantFromTable = (entityId) => {
         const targetId = String(entityId || '').trim();
         if (!targetId) return;
         if (typeof window.selectQuadrantItem === 'function') {
-            window.selectQuadrantItem(targetId, { preserveScroll: true });
+            window.selectQuadrantItem(targetId, { preserveScroll: false, scrollTarget: 'chart-head' });
         }
     };
 
@@ -2670,12 +3641,12 @@ function renderProducts() {
     };
 
     window.toggleProductsSidePanel = () => {
-        AppState.viewState.products.sidePanelOpen = !AppState.viewState.products.sidePanelOpen;
+        AppState.viewState.products.sidePanelOpen = !getProductsSidePanelOpenState();
         rerenderProductsSelection(true);
     };
 
     window.closeProductsSidePanel = () => {
-        if (!AppState.viewState.products.sidePanelOpen) return;
+        if (!getProductsSidePanelOpenState()) return;
         AppState.viewState.products.sidePanelOpen = false;
         rerenderProductsSelection(true);
     };

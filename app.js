@@ -2445,6 +2445,34 @@ window.closeRetentionFlowModal = () => {
     if (modal) modal.remove();
 };
 
+window.focusQuadrantProductFromModal = (entityId) => {
+    const targetId = String(entityId || '').trim();
+    if (!targetId) return;
+    window.closeRetentionFlowModal();
+    window.closeCartFlowModal();
+    if (typeof window.focusQuadrantFromDemandDriver === 'function') {
+        window.focusQuadrantFromDemandDriver(targetId);
+    }
+};
+
+function renderModalProductCell(name, id) {
+    const productName = String(name || '-').trim() || '-';
+    const productId = String(id || '-').trim() || '-';
+    return `
+        <button
+            class="modal-product-cell-button"
+            type="button"
+            onclick="event.stopPropagation();focusQuadrantProductFromModal('${escapeJs(productId)}')"
+            title="${escapeHtml(productName)}"
+        >
+            <span class="modal-product-cell">
+                <span class="modal-product-name">${escapeHtml(productName)}</span>
+                <span class="modal-product-id">${escapeHtml(productId)}</span>
+            </span>
+        </button>
+    `;
+}
+
 window.openRetentionFlowModal = async (entityId) => {
     const focusId = String(entityId || '').trim();
     if (!focusId) return;
@@ -2456,7 +2484,7 @@ window.openRetentionFlowModal = async (entityId) => {
     modal.innerHTML = `
         <div class="modal-card retention-flow-modal-card">
             <div class="modal-header">
-                <h3 class="modal-title">90일 리텐션 흐름</h3>
+                <h3 class="modal-title">추가구매 상품</h3>
                 <button class="modal-close" type="button" onclick="closeRetentionFlowModal()">&times;</button>
             </div>
             <div class="modal-body">
@@ -2475,7 +2503,7 @@ window.openRetentionFlowModal = async (entityId) => {
     const title = modal.querySelector('.modal-title');
     const body = modal.querySelector('.modal-body');
     const focusName = getProductName(focusId);
-    title.textContent = `90일 리텐션 흐름 · ${focusName}`;
+    title.textContent = `추가구매 상품 · ${focusName}`;
 
     try {
         if (!Array.isArray(AppState.data.anchorTransition) || !AppState.data.anchorTransition.length) {
@@ -2504,29 +2532,26 @@ window.openRetentionFlowModal = async (entityId) => {
         const rows = related.slice(0, 200).map((row) => {
             return `
                 <tr>
-                    <td>${renderProductCell(getProductName(row.pca_product_id), row.pca_product_id, 42, { groupClickable: true })}</td>
-                    <td style="text-align:right">${formatNumber(row.transition_customer_cnt)}</td>
-                    <td style="text-align:right">${formatPercent(row.transition_rate, 2)}</td>
-                    <td style="text-align:right">${formatNumber(row.avg_days_to_pca, 1)}일</td>
+                    <td>${renderModalProductCell(getProductName(row.pca_product_id), row.pca_product_id)}</td>
+                    <td class="is-numeric">${formatNumber(row.transition_customer_cnt)}</td>
+                    <td class="is-numeric">${formatPercent(row.transition_rate, 2)}</td>
+                    <td class="is-numeric">${formatNumber(row.avg_days_to_pca, 1)}일</td>
                 </tr>
             `;
         }).join('');
 
         body.innerHTML = `
-            <div class="retention-flow-summary">
-                고객의 첫 구매 여부와 무관하게, <strong>${escapeHtml(focusName)}</strong>의 이 제품 첫 구매 기준으로 90일 내 리텐션 흐름 ${formatNumber(related.length)}개를 보여줘요.
-            </div>
             <div class="chart-hint" style="margin-top:0.25rem;">
                 기준 안내: 고객의 첫 구매 여부와 무관하게, 이 제품 첫 구매 기준이에요.
             </div>
-            <div class="table-container retention-flow-table-wrap">
-                <table class="data-table">
+            <div class="table-container retention-flow-table-wrap modal-table-wrap">
+                <table class="data-table modal-data-table is-retention-table">
                     <thead>
                         <tr>
                             <th>다음 구매 제품</th>
-                            <th style="text-align:right">90일 재구매 고객수</th>
-                            <th style="text-align:right">90일 재구매율</th>
-                            <th style="text-align:right">평균 재구매 소요일</th>
+                            <th class="is-numeric">90일 재구매 고객수</th>
+                            <th class="is-numeric">90일 재구매율</th>
+                            <th class="is-numeric">평균 재구매 소요일</th>
                         </tr>
                     </thead>
                     <tbody>${rows}</tbody>
@@ -2602,22 +2627,19 @@ window.openCartFlowModal = async (entityId) => {
             const otherId = String(row.i || '').toLowerCase() === qId ? row.j : row.i;
             return `
                 <tr>
-                    <td>${renderProductCell(getProductName(otherId), otherId, 42, { groupClickable: true })}</td>
-                    <td style="text-align:right">${formatNumber(row.co_order_cnt)}</td>
+                    <td>${renderModalProductCell(getProductName(otherId), otherId)}</td>
+                    <td class="is-numeric">${formatNumber(row.co_order_cnt)}</td>
                 </tr>
             `;
         }).join('');
 
         body.innerHTML = `
-            <div class="retention-flow-summary">
-                <strong>${escapeHtml(focusName)}</strong> 기준 함께 구매되는 제품 상위 ${formatNumber(Math.min(related.length, 30))}개를 보여줘요.
-            </div>
-            <div class="table-container retention-flow-table-wrap">
-                <table class="data-table">
+            <div class="table-container retention-flow-table-wrap modal-table-wrap">
+                <table class="data-table modal-data-table is-cart-table">
                     <thead>
                         <tr>
                             <th>연관 제품</th>
-                            <th style="text-align:right">동시구매 수</th>
+                            <th class="is-numeric">동시구매 수</th>
                         </tr>
                     </thead>
                     <tbody>${rows}</tbody>
