@@ -13,6 +13,11 @@ The Settings Panel is a global utility panel accessible from the sidebar. It cov
 1. **제품 그룹 관리** — Operator-defined logical grouping of product SKUs into named entities.
 2. **데이터 관리** — CSV upload, local sync from `/data/`, and IndexedDB reset.
 
+> **⚠️ 프로덕션 스코프 제외 항목**
+>
+> - **제품 그룹 관리 탭 — 프로덕션 제외:** 이 탭 전체(3단계 마법사, grouping 상태 모델, `pgm_product_group_map.csv` import/export)는 프로덕션 버전에서 구현하지 않음. 현재 앱(데모/테스트용) 기준 스펙임.
+> - **데이터 관리 탭 (CSV 업로드) — API로 교체:** 프로덕션에서는 CSV 업로드/로컬 동기화 대신 **API 연동으로 데이터를 자동 로드**. 설정 패널의 "데이터 관리" 탭 자체가 필요 없어질 수 있음.
+
 The panel must not cover the main chart area when open. It opens as a side panel or overlay anchored to the sidebar, leaving the primary content area visible and interactive.
 
 ---

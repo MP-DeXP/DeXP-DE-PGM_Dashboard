@@ -4,6 +4,11 @@
 **Scope:** Defines which CSV files feed which screens on the Product Page, how data is merged and transformed, and what fallback behavior is expected when files are absent.
 **Column-level schema:** See `DATA_SCHEMA.md`. This document does not re-list field types or value ranges.
 
+> **⚠️ 프로덕션 전환 예정 사항**
+>
+> - **데이터 로딩:** 현재는 IndexedDB + CSV 업로드 구조이나, 프로덕션에서는 **API 호출로 교체** 예정. 각 CSV 키(`anchorScored`, `productDemandGravity` 등)에 대응하는 API 엔드포인트가 정의되어야 함.
+> - **제품 그룹핑:** 프로덕션 범위에서 **제외** 예정. `pgm_product_group_map.csv` 및 관련 병합 로직은 구현하지 않음.
+
 ---
 
 ## 1. Storage Layer

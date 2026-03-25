@@ -14,6 +14,11 @@ The current app is Vanilla JS with no build step and no framework. All logic run
 
 The target is a React-based SPA. The migration must preserve all behavioral invariants described in this document. UI changes are out of scope unless explicitly noted.
 
+> **⚠️ 프로덕션 전환 예정 사항 (현재 앱과의 주요 차이)**
+>
+> 1. **데이터 로딩 — CSV → API:** 현재 앱은 IndexedDB에 저장된 CSV를 읽지만, 프로덕션에서는 **API 엔드포인트에서 데이터를 fetch**하는 방식으로 교체 예정. `DataProvider`는 IndexedDB 대신 API 클라이언트를 사용해야 함. `REQUIRED_FILES`의 논리 키(`anchorScored`, `productDemandGravity` 등)는 각각 API 엔드포인트에 1:1 매핑될 것.
+> 2. **제품 그룹핑 — 제외:** `<SettingsPanel>`의 "제품 그룹 관리" 탭 및 그룹핑 관련 로직 전체(`grouping` 상태, `getMergedCoreDemandRows`의 grouping 병합, `pgm_product_group_map.csv`)는 프로덕션에서 **구현하지 않음**. `entity_id` 단위 집계가 필요하다면 API 응답에서 사전 집계된 형태로 받아야 함.
+
 ---
 
 ## 2. AppState Structure and React Mapping
