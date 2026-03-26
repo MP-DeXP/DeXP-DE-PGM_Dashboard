@@ -69,11 +69,6 @@ const REQUIRED_FILES = {
         filename: '_insight_entry_transition_path.csv',
         aliases: ['_insight_aa_transition_path.csv', 'aa_transition_path.csv']
     },
-    caProfile: {
-        key: 'ca_profile',
-        filename: '_insight_basket_gravity_profile.csv',
-        aliases: ['_insight_ca_profile.csv', 'ca_profile.csv']
-    },
     biiWindow: {
         key: 'bii_window',
         filename: '_insight_bii_window.csv',
@@ -132,7 +127,6 @@ const AppState = {
         cartAnchorDetail: [],
         aaCohortJourney: [],
         aaTransitionPath: [],
-        caProfile: [],
         biiWindow: [],
         brandImpactTimeseries: [],
         brandImpactDailyPulse: [],
@@ -156,7 +150,6 @@ const AppState = {
         cartAnchorDetail: [],
         aaCohortJourney: [],
         aaTransitionPath: [],
-        caProfile: [],
         biiWindow: [],
         brandImpactTimeseries: [],
         brandImpactDailyPulse: [],
@@ -1597,21 +1590,6 @@ function transformCartAnchorDetailRows(rows) {
     return result;
 }
 
-function buildTopCompanionMapFromDetail(detailRows) {
-    const top = new Map();
-    (detailRows || []).forEach((row) => {
-        const i = String(row.i || '').trim();
-        const j = String(row.j || '').trim();
-        const co = toNumber(row.co_order_cnt, 0);
-        if (!i || !j || i === j || co <= 0) return;
-        const currentI = top.get(i);
-        if (!currentI || co > currentI.co_order_cnt) top.set(i, { id: j, co_order_cnt: co });
-        const currentJ = top.get(j);
-        if (!currentJ || co > currentJ.co_order_cnt) top.set(j, { id: i, co_order_cnt: co });
-    });
-    return top;
-}
-
 function transformCartAnchorRows(rows) {
     const src = rows || [];
     const map = new Map();
@@ -1677,69 +1655,6 @@ function transformCartAnchorRows(rows) {
             Basket_Gravity_Primary_Type: caType
         };
     }).sort((a, b) => toNumber(b.order_cnt, 0) - toNumber(a.order_cnt, 0));
-}
-
-function transformCaProfileRows(rows, topCompanionMap) {
-    const src = rows || [];
-    const map = new Map();
-    src.forEach((row) => {
-        const rawId = String(row.product_id || '').trim();
-        if (!rawId) return;
-        const id = resolveEntityId(rawId);
-        if (!id) return;
-        if (!map.has(id)) {
-            map.set(id, {
-                product_id: id,
-                companion_count: 0,
-                attach_num: 0,
-                attach_den: 0,
-                median_num: 0,
-                median_den: 0,
-                breadth_num: 0,
-                breadth_den: 0,
-                top1_num: 0,
-                top1_den: 0,
-                top3_num: 0,
-                top3_den: 0,
-                caTypeScores: {}
-            });
-        }
-        const acc = map.get(id);
-        const companionCount = Math.max(0, toNumber(row.companion_count, 0));
-        const weight = companionCount;
-        acc.companion_count += companionCount;
-        if (weight > 0) {
-            acc.attach_num += toNumber(row.attach_rate, 0) * weight;
-            acc.attach_den += weight;
-            acc.median_num += toNumber(row.median_cart_size, 0) * weight;
-            acc.median_den += weight;
-            acc.breadth_num += toNumber(row.breadth_lift, 0) * weight;
-            acc.breadth_den += weight;
-            acc.top1_num += toNumber(row.top1_share, 0) * weight;
-            acc.top1_den += weight;
-            acc.top3_num += toNumber(row.top3_share, 0) * weight;
-            acc.top3_den += weight;
-        }
-        const caType = normalizeCategoryValue(row.ca_type, 'None');
-        if (weight > 0) {
-            acc.caTypeScores[caType] = toNumber(acc.caTypeScores[caType], 0) + weight;
-        }
-    });
-
-    return Array.from(map.values()).map((acc) => {
-        const caType = determinePrimaryType(acc.caTypeScores, 'None');
-        return {
-            product_id: acc.product_id,
-            ca_type: caType,
-            attach_rate: acc.attach_den > 0 ? acc.attach_num / acc.attach_den : 0,
-            median_cart_size: acc.median_den > 0 ? acc.median_num / acc.median_den : 0,
-            breadth_lift: acc.breadth_den > 0 ? acc.breadth_num / acc.breadth_den : 0,
-            companion_count: acc.companion_count,
-            top1_share: acc.top1_den > 0 ? acc.top1_num / acc.top1_den : 0,
-            top3_share: acc.top3_den > 0 ? acc.top3_num / acc.top3_den : 0,
-            top1_companion_product_id: topCompanionMap.get(acc.product_id)?.id || ''
-        };
-    }).sort((a, b) => toNumber(b.attach_rate, 0) - toNumber(a.attach_rate, 0));
 }
 
 function transformAaCohortJourneyRows(rows) {
@@ -1888,9 +1803,7 @@ function rebuildDerivedData() {
     AppState.data.insightDemandGraphEdges = transformInsightDemandGraphEdgesRows(raw.insightDemandGraphEdges || []);
     AppState.data.insightDemandGraphPatterns = transformInsightDemandGraphPatternsRows(raw.insightDemandGraphPatterns || []);
     AppState.data.cartAnchorDetail = transformCartAnchorDetailRows(raw.cartAnchorDetail || []);
-    const topCompanionMap = buildTopCompanionMapFromDetail(AppState.data.cartAnchorDetail);
     AppState.data.cartAnchor = transformCartAnchorRows(raw.cartAnchor || []);
-    AppState.data.caProfile = transformCaProfileRows(raw.caProfile || [], topCompanionMap);
     AppState.data.aaCohortJourney = transformAaCohortJourneyRows(raw.aaCohortJourney || []);
     AppState.data.aaTransitionPath = transformAaTransitionPathRows(raw.aaTransitionPath || [], AppState.data.aaCohortJourney);
     AppState.helpers.productNameMap = buildProductNameMap();

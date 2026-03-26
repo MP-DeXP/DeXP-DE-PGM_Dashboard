@@ -2118,12 +2118,7 @@ function getRelativeLevelFromRows(value, rows, field) {
 function buildQuadrantStrategyModel(model) {
     if (!model?.selected) return null;
     const selected = model.selected;
-    const selectedId = String(selected.id || '').trim();
     const scopedPoints = model.points || [];
-    const pointIdSet = new Set(scopedPoints.map((point) => String(point.id || '').trim()).filter(Boolean));
-    const scopedCaRows = (AppState.data.caProfile || []).filter((row) => pointIdSet.has(String(row.product_id || '').trim()));
-    const selectedCa = scopedCaRows.find((row) => String(row.product_id || '').trim() === selectedId) || null;
-    const cartRowsForLevel = selectedCa ? scopedCaRows : [];
 
     const levels = {
         weeklyForecast: getRelativeLevelFromRows(selected.weeklyForecast, scopedPoints, 'weeklyForecast'),
@@ -2131,13 +2126,9 @@ function buildQuadrantStrategyModel(model) {
         entryDemandShare: getRelativeLevelFromRows(selected.entryDemandShare, scopedPoints, 'entryDemandShare'),
         expansionDemandShare: getRelativeLevelFromRows(selected.expansionDemandShare, scopedPoints, 'expansionDemandShare'),
         returnRole: getRelativeLevelFromRows(selected.returnScore, scopedPoints, 'returnScore'),
-        convergenceRole: getRelativeLevelFromRows(selected.convergenceScore, scopedPoints, 'convergenceScore'),
-        attachRate: selectedCa ? getRelativeLevelFromRows(selectedCa.attach_rate, cartRowsForLevel, 'attach_rate') : '-',
-        breadthLift: selectedCa ? getRelativeLevelFromRows(selectedCa.breadth_lift, cartRowsForLevel, 'breadth_lift') : '-',
-        top1Share: selectedCa ? getRelativeLevelFromRows(selectedCa.top1_share, cartRowsForLevel, 'top1_share') : '-'
+        convergenceRole: getRelativeLevelFromRows(selected.convergenceScore, scopedPoints, 'convergenceScore')
     };
 
-    const statusKey = String(model.status?.key || '');
     const highDemand = levels.weeklyForecast === '높음';
     const mediumDemand = levels.weeklyForecast === '보통';
     const lowDemand = levels.weeklyForecast === '낮음';
@@ -2148,10 +2139,6 @@ function buildQuadrantStrategyModel(model) {
     const highReturnRole = levels.returnRole === '높음';
     const highConvergenceRole = levels.convergenceRole === '높음';
     const lowContribution = levels.entryDemandShare === '낮음' && levels.expansionDemandShare === '낮음';
-    const hasCartSignal = Boolean(selectedCa);
-    const highCartExpansion = hasCartSignal && (levels.attachRate === '높음' || levels.breadthLift === '높음');
-    const highCartConcentration = hasCartSignal && levels.top1Share === '높음';
-    const cartType = String(selectedCa?.ca_type || '').toLowerCase();
 
     let goalText = '현재 강점을 유지하면서 다음 성장 포인트를 확인해요.';
     if (highDemand && (highEntryContribution || highExpansionContribution) && lowContinuity) {
@@ -2162,8 +2149,6 @@ function buildQuadrantStrategyModel(model) {
         goalText = '여러 흐름이 모이는 대표 제품 역할을 더 분명하게 만들어요.';
     } else if (highContinuity && !highEntryContribution) {
         goalText = '안정적인 재구매 반응을 바탕으로 신규 유입 모수를 넓혀요.';
-    } else if (highCartExpansion && (mediumDemand || highDemand)) {
-        goalText = '장바구니 연계 노출로 보조 수요를 더 크게 만들어봐요.';
     } else if (highEntryContribution && !highExpansionContribution) {
         goalText = '첫 구매 이후 다음 구매 전환을 높이는 구조를 만들어요.';
     } else if (highExpansionContribution && !highEntryContribution) {
@@ -2181,14 +2166,6 @@ function buildQuadrantStrategyModel(model) {
         actionText = '대표 상세와 세트 연결을 정리해 여러 흐름의 도착점 역할이 더 잘 보이게 만들어봐요.';
     } else if (highContinuity && !highEntryContribution) {
         actionText = '구매 지속 반응이 좋은 만큼 대표 진입 지면과 신규 유입 캠페인에서 노출 확대를 검토해봐요.';
-    } else if (highCartExpansion) {
-        if (highCartConcentration) {
-            actionText = '상위 조합은 유지하되 한 조합 쏠림을 점검하면서 함께 구매·세트 노출을 넓혀봐요.';
-        } else if (cartType === 'set' || levels.breadthLift === '높음') {
-            actionText = '세트 제안과 함께 구매 영역을 보강해 장바구니 확장을 검토해봐요.';
-        } else {
-            actionText = '상세 교차노출과 장바구니 추천 영역을 보강해 연관 구매 연결을 키워봐요.';
-        }
     } else if (lowDemand && lowContribution) {
         actionText = '가격·구성·메시지를 작게 바꿔보며 반응 개선 여부를 먼저 확인해봐요.';
     } else if (highEntryContribution && !highExpansionContribution) {
@@ -2202,8 +2179,7 @@ function buildQuadrantStrategyModel(model) {
     return {
         goalText,
         actionText,
-        reasonTags: levels,
-        selectedCa
+        reasonTags: levels
     };
 }
 

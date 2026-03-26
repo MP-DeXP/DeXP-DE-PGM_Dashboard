@@ -100,6 +100,8 @@
 ## 8) `ca_profile` (신규)
 용도: Insight Studio - Basket Gravity Insight
 
+현재 대시보드 런타임에서는 로드하지 않으며, 참고용 스키마만 유지한다.
+
 필수 컬럼:
 - `product_id`
 - `ca_type` (`Core` / `Pair` / `Set` / `None` 권장)
@@ -355,7 +357,6 @@ alias:
 - `cart_anchor_detail`
 - `aa_cohort_journey`
 - `aa_transition_path`
-- `ca_profile`
 - `bii_window`
 - `brand_impact_timeseries`
 - `brand_impact_daily_pulse`

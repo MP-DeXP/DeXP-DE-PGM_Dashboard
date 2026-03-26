@@ -450,7 +450,6 @@ CSV 업로드
 | `cartAnchorDetail` | `pgm_basket_gravity_detail.csv` | `cart_anchor_detail.csv` |
 | `aaCohortJourney` | `_insight_entry_cohort_journey.csv` | `_insight_aa_cohort_journey.csv`, `aa_cohort_journey.csv` |
 | `aaTransitionPath` | `_insight_entry_transition_path.csv` | `_insight_aa_transition_path.csv`, `aa_transition_path.csv` |
-| `caProfile` | `_insight_basket_gravity_profile.csv` | `_insight_ca_profile.csv`, `ca_profile.csv` |
 | `biiWindow` | `_insight_bii_window.csv` | `bii_window.csv`, `brand_impact_windows.csv`, `brand_impact_index.csv`, `purchase_activation_windows.csv`, `purchase_activation_index.csv` |
 | `brandImpactTimeseries` | `_insight_brand_impact_timeseries.csv` | `brand_impact_timeseries.csv`, `purchase_activation_timeseries.csv`, `_insight_purchase_activation_timeseries.csv` |
 | `brandImpactDailyPulse` | `_insight_brand_impact_daily_pulse.csv` | `brand_impact_daily_pulse.csv`, `purchase_activation_daily_pulse.csv`, `_insight_purchase_activation_daily_pulse.csv` |

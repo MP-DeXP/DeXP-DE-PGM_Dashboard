@@ -41,7 +41,6 @@ Defined in `app.js`. Each entry declares the logical key used throughout the app
 | `insightDemandGraphNodes` | `_insight_demand_graph_nodes.csv` | `insight_demand_graph_nodes.csv` |
 | `insightDemandGraphEdges` | `_insight_demand_graph_edges.csv` | `insight_demand_graph_edges.csv` |
 | `insightDemandGraphPatterns` | `_insight_demand_graph_patterns.csv` | `insight_demand_graph_patterns.csv` |
-| `caProfile` | `_insight_basket_gravity_profile.csv` | `_insight_ca_profile.csv`, `ca_profile.csv` |
 | `aaCohortJourney` | `_insight_entry_cohort_journey.csv` | _(none)_ |
 | `aaTransitionPath` | `_insight_entry_transition_path.csv` | _(none)_ |
 | `productGroupMap` | `pgm_product_group_map.csv` | `product_group_map.csv`, `_meta_product_group_map.csv` |
@@ -65,7 +64,6 @@ The alias list exists solely for file-upload matching. Pipeline outputs should a
 | `_insight_demand_graph_nodes.csv` | Demand graph modal (enhanced node data) |
 | `_insight_demand_graph_edges.csv` | Demand graph modal — transition tab (pre-computed, preferred source) |
 | `_insight_demand_graph_patterns.csv` | Demand graph modal (pattern summaries) |
-| `_insight_basket_gravity_profile.csv` | Side panel (cart role metrics: `ca_type`, `attach_rate`, etc.) |
 | `pgm_product_group_map.csv` | Entire Product page (product grouping, `entity_id` mapping) |
 
 ---
@@ -135,8 +133,6 @@ Source file: `pgm_scored.csv` for the fields below.
 | 첫구매 기여 비중 | `first_customer_cnt` | This product's value / SUM of all products' `first_customer_cnt` |
 | 재구매 기여 비중 | `repurchase_customer_cnt_90d` | This product's value / SUM of all products' `repurchase_customer_cnt_90d` |
 
-**Cart metrics section (`caProfile`):** Requires a matching row in `_insight_basket_gravity_profile.csv` keyed by `product_id` (after grouping resolution). If no matching row exists for the selected product, the entire cart metrics section is hidden — it is not shown with empty or zero values.
-
 ### 5.3 Demand Graph Modal — Transition Tab
 
 Data source priority (first available source wins):
@@ -171,7 +167,6 @@ Basket-level summary (tab header metrics) comes from `pgm_basket_gravity.csv`.
 | `pgm_scored.csv` (`anchorScored`) | **REQUIRED.** If absent, the entire Product page renders an empty state with an upload CTA. No other computation proceeds. |
 | `pgm_product_demand_gravity.csv` | Optional. Falls back to `AA_Score` / `PCA_Score` from `pgm_scored.csv`. Return and Convergence scores unavailable. |
 | `pgm_product_group_map.csv` | Optional. Products are not grouped; each raw `product_id` treated as its own entity. |
-| `_insight_basket_gravity_profile.csv` | Optional. Cart metrics section hidden in side panel for all products. |
 | `pgm_product_transition_edge.csv` | Optional. Transition tab falls back to `pgm_entry_to_expansion_transition.csv`. |
 | `pgm_entry_to_expansion_transition.csv` | Optional (legacy). Only used if `productTransitionEdge` and `insightDemandGraphEdges` are both absent. |
 | `_insight_demand_graph_edges.csv` | Optional. Falls back to `pgm_product_transition_edge.csv`. |
@@ -193,7 +188,5 @@ All files are fetched from IndexedDB in parallel at app init. There is no lazy l
 | 구매 지속 가능성 | `repurchase_rate_90d` | `pgm_scored.csv` |
 | 첫구매 기여 비중 | `first_customer_cnt / total` | `pgm_scored.csv` (computed by frontend) |
 | 재구매 기여 비중 | `repurchase_customer_cnt_90d / total` | `pgm_scored.csv` (computed by frontend) |
-| 함께 담김 비율 | `attach_rate` | `_insight_basket_gravity_profile.csv` |
-| 장바구니 역할 유형 | `ca_type` (`Core` / `Pair` / `Set` / `None`) | `_insight_basket_gravity_profile.csv` |
 
 For full field definitions, valid value ranges, and data types for every field listed above, refer to `DATA_SCHEMA.md`.
