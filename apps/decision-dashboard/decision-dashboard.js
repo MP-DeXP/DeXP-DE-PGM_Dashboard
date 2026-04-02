@@ -18,68 +18,93 @@ const DASHBOARD_STATE = {
 const ISSUE_CARDS = Object.freeze([
     {
         id: REPRESENTATIVE_ISSUE_ID,
+        featured: true,
         title: '장기 체류 / 무판매 재고 집중',
+        kicker: '가장 먼저 볼 문제',
         severity: 'High',
+        signalLead: '21일 넘게 안 팔린 SKU 9개',
+        signalDetail: '재고 575개가 6개 매장에 묶여 있습니다',
         departments: ['MD', '매장운영'],
-        evidence: '입고 후 21일 이상 지났지만 판매 0인 SKU가 9개이고, 6개 매장에 재고 575개가 묶여 있어요.',
-        metricLabel: '영향 재고',
+        metricLabel: '잠재 손실 재고',
         metricValue: '575개',
-        metricNote: '대표 deep dive 구현 완료',
+        metricNote: '6개 매장 동시 영향',
+        metricTone: 'critical',
+        ctaLabel: '지금 바로 보기',
         deepDiveEnabled: true
     },
     {
         id: 'store-imbalance',
         title: '특정 매장 판매 저조 / 재고 불균형',
-        severity: 'High',
+        kicker: '우선 판단 필요',
+        severity: 'Medium',
+        signalLead: '핵심 SKU 14개가 4개 매장에 쏠림',
+        signalDetail: '반응 낮은 매장에 재고가 묶여 판매 기회를 놓치고 있습니다',
         departments: ['MD', '매장운영'],
-        evidence: '반응이 약한 매장에 주력 SKU가 과하게 쌓여 있고, 반응이 좋은 매장은 빠르게 소진되고 있어요.',
-        metricLabel: '영향 매장',
+        metricLabel: '편중 매장',
         metricValue: '4개',
-        metricNote: '재배치 판단 필요',
+        metricNote: '우선 판단 필요',
+        metricTone: 'warning',
+        ctaLabel: '우선 판단 필요',
         deepDiveEnabled: false
     },
     {
         id: 'season-progress',
         title: '시즌 판매 진척 이상징후',
+        kicker: '추가 확인 필요',
         severity: 'Medium',
+        signalLead: '시즌 3개 카테고리, 목표 대비 -12%',
+        signalDetail: '회복이 늦어지면 시즌 재고 부담이 빠르게 커집니다',
         departments: ['브랜드운영', '영업관리'],
-        evidence: '시즌 핵심 상품군 중 3개 카테고리가 목표 대비 판매 진척이 늦고 있어요.',
         metricLabel: '진척 차이',
         metricValue: '-12%',
-        metricNote: '시즌 중간 점검 필요',
+        metricNote: '추가 확인 필요',
+        metricTone: 'warning',
+        ctaLabel: '추가 확인 필요',
         deepDiveEnabled: false
     },
     {
         id: 'dispatch-drop',
         title: '출고율 저하로 판매 기회 손실 위험',
+        kicker: '즉시 확인 필요',
         severity: 'High',
+        signalLead: '출고 지연 18건, 판매 기회 손실 확산',
+        signalDetail: '반응 있는 SKU도 제때 매장에 못 들어가고 있습니다',
         departments: ['영업관리', '재고운영'],
-        evidence: '지난 7일 출고율이 떨어지며 반응이 있는 SKU도 제때 매장에 도착하지 못하고 있어요.',
         metricLabel: '출고 지연',
         metricValue: '18건',
         metricNote: '즉시 확인 필요',
+        metricTone: 'critical',
+        ctaLabel: '즉시 확인 필요',
         deepDiveEnabled: false
     },
     {
         id: 'reorder-warning',
         title: '발주 기준 경고 / 안전재고 미감지',
+        kicker: '조치 후보',
         severity: 'Medium',
+        signalLead: '안전재고 미감지 SKU 7개',
+        signalDetail: '판매가 이어지는 상품이 경고 없이 기준 아래로 내려가고 있습니다',
         departments: ['재고운영', 'MD'],
-        evidence: '상위 판매 SKU 일부가 안전재고 밑으로 내려왔지만 발주 경고가 늦게 잡히고 있어요.',
         metricLabel: '경고 SKU',
         metricValue: '7개',
-        metricNote: '추가 확인 필요',
+        metricNote: '조치 후보',
+        metricTone: 'warning',
+        ctaLabel: '조치 후보',
         deepDiveEnabled: false
     },
     {
         id: 'price-resistance',
         title: '가격 저항 구간 의심 SKU',
+        kicker: '추가 확인 필요',
         severity: 'Medium',
+        signalLead: '전환 하락 -9.4%, 가격 저항 의심',
+        signalDetail: '유입은 유지되지만 구매 직전 이탈이 커지고 있습니다',
         departments: ['MD', '브랜드운영'],
-        evidence: '유입은 유지되지만 장바구니 이후 구매 전환이 꺾이는 가격대 SKU가 보여요.',
         metricLabel: '전환 하락',
         metricValue: '-9.4%',
-        metricNote: '가격 테스트 후보',
+        metricNote: '추가 확인 필요',
+        metricTone: 'warning',
+        ctaLabel: '추가 확인 필요',
         deepDiveEnabled: false
     }
 ]);
@@ -426,10 +451,6 @@ function buildSummary(filteredCandidates) {
     };
 }
 
-function getSelectedIssue() {
-    return ISSUE_CARDS.find((issue) => issue.id === DASHBOARD_STATE.selectedIssueId) || ISSUE_CARDS[0];
-}
-
 function renderMetaPill(iconClass, label) {
     return `
         <span class="decision-meta-pill">
@@ -441,27 +462,33 @@ function renderMetaPill(iconClass, label) {
 
 function renderIssueCards() {
     return ISSUE_CARDS.map((issue) => {
-        const selectedClass = issue.id === DASHBOARD_STATE.selectedIssueId ? 'is-selected' : '';
+        const featuredClass = issue.featured ? 'is-featured' : '';
+        const selectedClass = !issue.featured && issue.id === DASHBOARD_STATE.selectedIssueId ? 'is-subselected' : '';
         const severityClass = getSeverityClass(issue.severity);
+        const metricToneClass = issue.metricTone ? `is-${issue.metricTone}` : 'is-neutral';
         const ctaMarkup = issue.deepDiveEnabled
-            ? `<button class="btn-primary" type="button" data-action="open-decision" data-issue-id="${escapeHtml(issue.id)}">상세 보기</button>`
-            : `<button class="decision-secondary-btn" type="button" data-action="preview-issue" data-issue-id="${escapeHtml(issue.id)}">확장 예정</button>`;
+            ? `<button class="btn-primary" type="button" data-action="open-decision" data-issue-id="${escapeHtml(issue.id)}">${escapeHtml(issue.ctaLabel)}</button>`
+            : `<button class="decision-secondary-btn is-judgment" type="button" data-action="preview-issue" data-issue-id="${escapeHtml(issue.id)}">${escapeHtml(issue.ctaLabel)}</button>`;
 
         return `
-            <article class="decision-issue-card ${selectedClass}">
+            <article class="decision-issue-card ${featuredClass} ${selectedClass}">
                 <div class="decision-card-top">
-                    <span class="decision-kicker">${issue.deepDiveEnabled ? '대표 deep dive' : '확장 후보'}</span>
+                    <span class="decision-kicker">${escapeHtml(issue.kicker)}</span>
                     <span class="decision-status-badge ${severityClass}">${escapeHtml(issue.severity)}</span>
                 </div>
+                <div class="decision-card-signal">
+                    <strong>${escapeHtml(issue.signalLead)}</strong>
+                    <p>${escapeHtml(issue.signalDetail)}</p>
+                </div>
                 <div class="decision-card-title">
+                    <span class="decision-card-name-label">문제 유형</span>
                     <h4>${escapeHtml(issue.title)}</h4>
-                    <p>${escapeHtml(issue.evidence)}</p>
                 </div>
                 <div class="decision-tag-row">
                     ${issue.departments.map((department) => `<span class="decision-tag">${escapeHtml(department)}</span>`).join('')}
                 </div>
                 <div class="decision-card-body">
-                    <div class="decision-card-metric">
+                    <div class="decision-card-metric ${metricToneClass}">
                         <div>
                             <label>${escapeHtml(issue.metricLabel)}</label>
                             <strong>${escapeHtml(issue.metricValue)}</strong>
@@ -475,27 +502,6 @@ function renderIssueCards() {
             </article>
         `;
     }).join('');
-}
-
-function renderIssueNote() {
-    const selectedIssue = getSelectedIssue();
-    const isRepresentative = selectedIssue.id === REPRESENTATIVE_ISSUE_ID;
-    const title = isRepresentative
-        ? '현재 v1 대표 화면은 바로 이어서 들어갈 수 있어요.'
-        : `${selectedIssue.title} 이슈는 카드 레벨까지만 먼저 보여줘요.`;
-    const body = isRepresentative
-        ? '여러 실제 문제를 먼저 보여준 뒤, 대표 이슈 하나만 decision screen으로 깊게 이어지는 구조를 유지했어요.'
-        : '이번 프로토타입에서는 첫 화면에 다양한 운영 문제를 먼저 올려 보여주고, 실제 drill-down은 장기 체류 / 무판매 재고 집중에 집중해 설득력을 높였어요.';
-
-    return `
-        <div class="decision-issue-note">
-            <div>
-                <strong>${escapeHtml(title)}</strong>
-                <p>${escapeHtml(body)}</p>
-            </div>
-            ${isRepresentative ? '<button class="btn-primary" type="button" data-action="open-decision" data-issue-id="long-aged-inventory">대표 이슈 보기</button>' : ''}
-        </div>
-    `;
 }
 
 function renderInboxScreen() {
@@ -517,16 +523,14 @@ function renderInboxScreen() {
             <div class="decision-section-head">
                 <div>
                     <h3>Problem Discovery Inbox</h3>
-                    <p>여러 운영 이슈를 한 화면에서 빠르게 스캔하고, 지금 먼저 볼 문제를 바로 좁혀요.</p>
+                    <p>지금 손실이 커질 문제부터 먼저 좁혀서, 바로 판단이 필요한 이슈를 우선 보여줘요.</p>
                 </div>
-                ${renderMetaPill('ph-squares-four', '6개 이슈 surfaced')}
+                ${renderMetaPill('ph-warning-circle', `우선 검토 이슈 ${ISSUE_CARDS.length}개`)}
             </div>
             <div class="decision-issue-grid">
                 ${renderIssueCards()}
             </div>
         </section>
-
-        ${renderIssueNote()}
     `;
 }
 
