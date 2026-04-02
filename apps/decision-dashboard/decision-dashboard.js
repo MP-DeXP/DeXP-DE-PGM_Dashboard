@@ -754,17 +754,45 @@ function renderStoreRows(selectedCandidate) {
 }
 
 function renderActionRows(selectedCandidate) {
+    const primaryAction = selectedCandidate.actionOptions.find((action) => action.tone === 'primary') || {
+        label: selectedCandidate.recommendedAction,
+        reason: selectedCandidate.actionReason,
+        tone: 'primary'
+    };
+    const secondaryActions = selectedCandidate.actionOptions.filter((action) => action !== primaryAction);
+
     return `
-        <div class="decision-action-list">
-            ${selectedCandidate.actionOptions.map((action) => `
-                <div class="decision-action-block ${action.tone === 'primary' ? 'is-primary' : ''}">
-                    <div class="decision-action-head">
-                        <strong>${escapeHtml(action.label)}</strong>
-                        <span class="decision-priority-badge ${action.tone === 'primary' ? 'is-high' : 'is-medium'}">${action.tone === 'primary' ? '우선' : '보조'}</span>
-                    </div>
-                    <p class="decision-detail-copy">${escapeHtml(action.reason)}</p>
+        <div class="decision-action-stack">
+            <div class="decision-action-block is-primary">
+                <div class="decision-action-topline">
+                    <span class="decision-action-label">추천 액션 1순위</span>
+                    <span class="decision-priority-badge is-high">우선</span>
                 </div>
-            `).join('')}
+                <div class="decision-action-head">
+                    <strong>${escapeHtml(primaryAction.label)}</strong>
+                </div>
+                <p class="decision-detail-copy">${escapeHtml(primaryAction.reason)}</p>
+                <div class="decision-action-signal">
+                    <label>먼저 보는 이유</label>
+                    <span>${escapeHtml(selectedCandidate.actionReason)}</span>
+                </div>
+            </div>
+            ${secondaryActions.length ? `
+                <div class="decision-action-secondary">
+                    <h6>보조 액션</h6>
+                    <div class="decision-action-list">
+                        ${secondaryActions.map((action) => `
+                            <div class="decision-action-block">
+                                <div class="decision-action-head">
+                                    <strong>${escapeHtml(action.label)}</strong>
+                                    <span class="decision-priority-badge is-medium">보조</span>
+                                </div>
+                                <p class="decision-detail-copy">${escapeHtml(action.reason)}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
         </div>
     `;
 }
@@ -774,12 +802,12 @@ function renderDecisionDetail(selectedCandidate) {
         return `
             <section class="decision-detail-card card animate-fade-in">
                 <div class="decision-detail-header">
-                    <h3>상세 근거</h3>
-                    <p>선택한 후보가 있으면 근거와 권장 액션을 같이 보여줘요.</p>
+                    <h3>상세 판단 화면</h3>
+                    <p>선택한 후보가 있으면 왜 먼저 봐야 하는지와 다음 판단을 바로 이어서 보여줘요.</p>
                 </div>
                 <div class="decision-empty-state">
-                    <strong>현재 조건에서는 대표 후보가 비어 있어요.</strong>
-                    <p>필터를 완화하면 다시 근거와 액션을 이어서 볼 수 있어요.</p>
+                    <strong>현재 조건에서는 바로 볼 후보가 없습니다.</strong>
+                    <p>필터를 조금 넓히면 근거와 추천 액션을 다시 확인할 수 있어요.</p>
                     <button class="btn-primary" type="button" data-action="reset-filters">필터 초기화</button>
                 </div>
             </section>
@@ -789,54 +817,57 @@ function renderDecisionDetail(selectedCandidate) {
     return `
         <section class="decision-detail-card card animate-fade-in">
             <div class="decision-detail-header">
-                <h3>상세 근거와 액션</h3>
-                <p>단순 조회가 아니라, 지금 왜 이 SKU를 먼저 봐야 하는지와 어떤 판단 옵션이 적절한지 같이 보여줘요.</p>
+                <h3>상세 판단 화면</h3>
+                <p>지금 무엇을 먼저 봐야 하는지, 왜 그런지, 그리고 어떤 판단이 먼저 필요한지를 한 흐름으로 보여줘요.</p>
             </div>
             <div class="decision-detail-panel">
                 <div class="decision-detail-hero">
                     <div class="decision-detail-main">
+                        <span class="decision-detail-eyebrow">현재 보고 있는 후보</span>
                         <h4>${escapeHtml(selectedCandidate.productName)}</h4>
-                        <p>${escapeHtml(selectedCandidate.skuId)} · ${escapeHtml(selectedCandidate.brand)} · ${escapeHtml(selectedCandidate.category)}</p>
+                        <p class="decision-detail-sku">${escapeHtml(selectedCandidate.skuId)}</p>
+                        <p>${escapeHtml(selectedCandidate.brand)} · ${escapeHtml(selectedCandidate.category)}</p>
                     </div>
                     <span class="decision-priority-badge ${getSeverityClass(selectedCandidate.priority)}">${escapeHtml(selectedCandidate.priority)}</span>
                 </div>
 
                 <div class="decision-detail-grid">
                     <div class="decision-detail-metric">
-                        <label>왜 상위 후보인가</label>
+                        <label>먼저 필요한 판단</label>
                         <strong>${escapeHtml(selectedCandidate.recommendedAction)}</strong>
                         <span>${escapeHtml(selectedCandidate.actionReason)}</span>
                     </div>
                     <div class="decision-detail-metric">
-                        <label>카테고리 평균 대비 체류</label>
+                        <label>평균 대비 체류</label>
                         <strong>${formatNumber(selectedCandidate.daysInStock - selectedCandidate.categoryBaselineDays)}일 더 김</strong>
-                        <span>평균 ${formatNumber(selectedCandidate.categoryBaselineDays)}일 대비 길게 머물고 있어요.</span>
+                        <span>카테고리 평균 ${formatNumber(selectedCandidate.categoryBaselineDays)}일보다 길게 머물고 있어요.</span>
                     </div>
                 </div>
 
                 <div class="decision-detail-block">
-                    <h5>왜 지금 이 SKU를 우선 검토해야 하나요?</h5>
+                    <h5>왜 우선 봐야 하나</h5>
                     <p class="decision-detail-copy">${escapeHtml(selectedCandidate.rationale)}</p>
                 </div>
 
                 <div class="decision-detail-cells">
                     <div class="decision-detail-block">
-                        <h5>최근 판매 부재 신호</h5>
+                        <h5>최근 신호</h5>
                         <p class="decision-detail-copy">${escapeHtml(selectedCandidate.recentSignal)}</p>
                     </div>
                     <div class="decision-detail-block">
-                        <h5>운영 판단 메모</h5>
+                        <h5>판단 메모</h5>
                         <p class="decision-detail-copy">${escapeHtml(selectedCandidate.actionReason)}</p>
                     </div>
                 </div>
 
                 <div class="decision-store-block">
-                    <h5>매장별 재고 분포</h5>
+                    <h5>어디에 어떻게 쌓여 있나</h5>
+                    <p class="decision-detail-note">재고가 묶여 있는 매장과 현장 신호를 함께 보여줘요.</p>
                     ${renderStoreRows(selectedCandidate)}
                 </div>
 
                 <div class="decision-action-group">
-                    <h5>권장 액션과 그 이유</h5>
+                    <h5>그래서 무엇을 해야 하나</h5>
                     ${renderActionRows(selectedCandidate)}
                 </div>
 
@@ -844,11 +875,11 @@ function renderDecisionDetail(selectedCandidate) {
                     <div class="decision-difference-grid">
                         <div class="decision-bridge-cell">
                             <strong>ERP</strong>
-                            <p>어느 매장에 얼마나 있는지는 보여주지만, 왜 지금 이 SKU를 먼저 봐야 하는지는 사람이 다시 판단해야 해요.</p>
+                            <p>재고 위치는 보여주지만, 무엇을 먼저 해야 하는지는 직접 다시 정리해야 해요.</p>
                         </div>
                         <div class="decision-bridge-cell is-accent">
                             <strong>MERCURY X</strong>
-                            <p>지금 볼 문제를 먼저 좁히고, 근거와 다음 판단 옵션을 한 화면에서 이어줘요.</p>
+                            <p>먼저 볼 후보를 좁히고, 근거와 액션 1순위를 바로 이어줘요.</p>
                         </div>
                     </div>
                 </div>
@@ -866,20 +897,20 @@ function renderDecisionScreen() {
         <div class="decision-breadcrumb-row animate-fade-in">
             <button class="decision-breadcrumb" type="button" data-action="go-inbox">
                 <i class="ph ph-arrow-left"></i>
-                Problem Discovery Inbox로 돌아가기
+                핵심 문제 목록으로 돌아가기
             </button>
-            ${renderMetaPill('ph-path', '문제 발견 → 대표 이슈 판단')}
+            ${renderMetaPill('ph-path', '문제 발견 → 상세 판단')}
         </div>
 
         <section class="decision-summary-card card animate-fade-in">
             <div class="decision-summary-top">
                 <div class="decision-summary-head">
                     <div class="decision-summary-tags">
-                        <span class="decision-kicker">Representative issue drill-down</span>
+                        <span class="decision-kicker">대표 이슈 상세</span>
                         <span class="decision-status-badge is-high">High</span>
                     </div>
                     <h2>장기 체류 / 무판매 재고 집중</h2>
-                    <p>입고 후 21일 이상 경과했고, 누적 판매가 0이며, 전 매장 기준으로 재고가 묶여 있는 SKU를 먼저 보여줘요.</p>
+                    <p>입고 후 21일 이상 지나고 판매가 없는 SKU 중에서, 재고가 묶인 후보를 먼저 보여줘요.</p>
                 </div>
                 <div class="decision-meta-stack">
                     ${renderMetaPill('ph-funnel', '입고 후 21일 이상')}
