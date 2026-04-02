@@ -7,6 +7,10 @@ const INBOX_DEPARTMENT_FILTERS = Object.freeze([
     { value: 'marketing', label: '마케팅' },
     { value: 'sc', label: 'SC' }
 ]);
+const INBOX_VIEW_OPTIONS = Object.freeze([
+    { value: 'list', label: '목록 보기' },
+    { value: 'cards', label: '카드 보기' }
+]);
 const DEFAULT_FILTERS = Object.freeze({
     store: 'all',
     brand: 'all',
@@ -17,6 +21,7 @@ const DEFAULT_FILTERS = Object.freeze({
 const DASHBOARD_STATE = {
     screen: 'inbox',
     inboxDepartment: 'all',
+    inboxView: 'list',
     selectedIssueId: REPRESENTATIVE_ISSUE_ID,
     selectedSkuId: 'MX-OW-214',
     filters: { ...DEFAULT_FILTERS },
@@ -468,13 +473,31 @@ function renderMetaPill(iconClass, label) {
     `;
 }
 
-function getFilteredIssues() {
-    if (DASHBOARD_STATE.inboxDepartment === 'all') return ISSUE_CARDS;
+function getOrderedFilteredIssues() {
+    const withIndex = ISSUE_CARDS.map((issue, index) => ({ issue, index }));
+    const filteredIssues = DASHBOARD_STATE.inboxDepartment === 'all'
+        ? withIndex
+        : withIndex.filter(({ issue }) => {
+            const selectedDepartment = INBOX_DEPARTMENT_FILTERS.find((option) => option.value === DASHBOARD_STATE.inboxDepartment)?.label;
+            if (!selectedDepartment) return true;
+            return issue.departments.includes(selectedDepartment);
+        });
 
-    const selectedDepartment = INBOX_DEPARTMENT_FILTERS.find((option) => option.value === DASHBOARD_STATE.inboxDepartment)?.label;
-    if (!selectedDepartment) return ISSUE_CARDS;
+    const severityRank = { High: 1, Medium: 2 };
 
-    return ISSUE_CARDS.filter((issue) => issue.departments.includes(selectedDepartment));
+    return filteredIssues
+        .sort((left, right) => {
+            if (left.issue.featured !== right.issue.featured) {
+                return left.issue.featured ? -1 : 1;
+            }
+
+            const leftRank = severityRank[left.issue.severity] || 99;
+            const rightRank = severityRank[right.issue.severity] || 99;
+            if (leftRank !== rightRank) return leftRank - rightRank;
+
+            return left.index - right.index;
+        })
+        .map(({ issue }) => issue);
 }
 
 function normalizeInboxSelection(filteredIssues) {
@@ -491,7 +514,7 @@ function normalizeInboxSelection(filteredIssues) {
 
 function renderInboxDepartmentFilter() {
     return `
-        <div class="decision-inbox-toolbar" aria-label="유관부서 관점 필터">
+        <div class="decision-toolbar-group" aria-label="유관부서 관점 필터">
             <span class="decision-label">관점 필터</span>
             <div class="decision-chip-row">
                 ${INBOX_DEPARTMENT_FILTERS.map((option) => {
@@ -514,14 +537,53 @@ function renderInboxDepartmentFilter() {
     `;
 }
 
+function renderInboxViewToggle() {
+    return `
+        <div class="decision-toolbar-group is-view-toggle" aria-label="보기 전환">
+            <span class="decision-label">보기 전환</span>
+            <div class="decision-view-toggle" role="tablist" aria-label="핵심 문제 보기 방식">
+                ${INBOX_VIEW_OPTIONS.map((option) => {
+                    const activeClass = option.value === DASHBOARD_STATE.inboxView ? ' is-active' : '';
+                    const ariaSelected = option.value === DASHBOARD_STATE.inboxView ? 'true' : 'false';
+                    return `
+                        <button
+                            class="decision-view-toggle-btn${activeClass}"
+                            type="button"
+                            role="tab"
+                            data-action="set-inbox-view"
+                            data-inbox-view="${escapeHtml(option.value)}"
+                            aria-selected="${ariaSelected}"
+                        >
+                            ${escapeHtml(option.label)}
+                        </button>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function renderInboxToolbar() {
+    return `
+        <div class="decision-inbox-toolbar">
+            ${renderInboxDepartmentFilter()}
+            ${renderInboxViewToggle()}
+        </div>
+    `;
+}
+
+function renderInboxEmptyState() {
+    return `
+        <article class="decision-empty-state card">
+            <strong>해당 관점에서 보이는 이슈가 아직 없습니다.</strong>
+            <p>다른 부서 필터를 선택하거나 전체 보기로 돌아가 전사 이슈를 다시 확인해보세요.</p>
+        </article>
+    `;
+}
+
 function renderIssueCards(filteredIssues) {
     if (!filteredIssues.length) {
-        return `
-            <article class="decision-empty-state card">
-                <strong>해당 관점에서 보이는 이슈가 아직 없습니다.</strong>
-                <p>다른 부서 필터를 선택하거나 전체 보기로 돌아가 전사 이슈를 다시 확인해보세요.</p>
-            </article>
-        `;
+        return renderInboxEmptyState();
     }
 
     return filteredIssues.map((issue) => {
@@ -567,8 +629,77 @@ function renderIssueCards(filteredIssues) {
     }).join('');
 }
 
+function renderIssueList(filteredIssues) {
+    if (!filteredIssues.length) {
+        return renderInboxEmptyState();
+    }
+
+    return `
+        <div class="table-container decision-issue-list-wrap">
+            <table class="data-table decision-issue-list">
+                <thead>
+                    <tr>
+                        <th>시급도</th>
+                        <th>문제명</th>
+                        <th>유관 부서</th>
+                        <th>한 줄 근거</th>
+                        <th>핵심 수치</th>
+                        <th>상세 보기</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${filteredIssues.map((issue) => {
+                        const featuredClass = issue.featured ? ' is-featured' : '';
+                        const selectedClass = issue.id === DASHBOARD_STATE.selectedIssueId ? ' is-selected' : '';
+                        const severityClass = getSeverityClass(issue.severity);
+                        const metricToneClass = issue.metricTone ? ` is-${issue.metricTone}` : '';
+                        const ctaMarkup = issue.deepDiveEnabled
+                            ? `<button class="btn-primary" type="button" data-action="open-decision" data-issue-id="${escapeHtml(issue.id)}">${escapeHtml(issue.ctaLabel)}</button>`
+                            : `<button class="decision-secondary-btn is-judgment" type="button" data-action="preview-issue" data-issue-id="${escapeHtml(issue.id)}">${escapeHtml(issue.ctaLabel)}</button>`;
+
+                        return `
+                            <tr class="clickable decision-issue-row${featuredClass}${selectedClass}" data-action="preview-issue" data-issue-id="${escapeHtml(issue.id)}">
+                                <td>
+                                    <span class="decision-status-badge ${severityClass}">${escapeHtml(issue.severity)}</span>
+                                </td>
+                                <td>
+                                    <div class="decision-issue-name-cell">
+                                        ${issue.featured ? `<span class="decision-kicker">${escapeHtml(issue.kicker)}</span>` : ''}
+                                        <strong>${escapeHtml(issue.title)}</strong>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="decision-tag-row">
+                                        ${issue.departments.map((department) => `<span class="decision-tag">${escapeHtml(department)}</span>`).join('')}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="decision-issue-signal-cell">
+                                        <strong>${escapeHtml(issue.signalLead)}</strong>
+                                        <p>${escapeHtml(issue.signalDetail)}</p>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="decision-issue-metric-cell${metricToneClass}">
+                                        <label>${escapeHtml(issue.metricLabel)}</label>
+                                        <strong>${escapeHtml(issue.metricValue)}</strong>
+                                        <span>${escapeHtml(issue.metricNote)}</span>
+                                    </div>
+                                </td>
+                                <td class="decision-issue-cta-cell">
+                                    ${ctaMarkup}
+                                </td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
 function renderInboxScreen() {
-    const filteredIssues = getFilteredIssues();
+    const filteredIssues = getOrderedFilteredIssues();
     normalizeInboxSelection(filteredIssues);
 
     return `
@@ -593,10 +724,10 @@ function renderInboxScreen() {
                 </div>
                 ${renderMetaPill('ph-warning-circle', `우선 검토 이슈 ${filteredIssues.length}개`)}
             </div>
-            ${renderInboxDepartmentFilter()}
-            <div class="decision-issue-grid">
-                ${renderIssueCards(filteredIssues)}
-            </div>
+            ${renderInboxToolbar()}
+            ${DASHBOARD_STATE.inboxView === 'list'
+                ? renderIssueList(filteredIssues)
+                : `<div class="decision-issue-grid">${renderIssueCards(filteredIssues)}</div>`}
         </section>
     `;
 }
@@ -998,6 +1129,12 @@ function handleContentClick(event) {
     const action = actionTarget.dataset.action;
     if (action === 'set-inbox-department') {
         DASHBOARD_STATE.inboxDepartment = actionTarget.dataset.departmentFilter || 'all';
+        renderDashboard();
+        return;
+    }
+
+    if (action === 'set-inbox-view') {
+        DASHBOARD_STATE.inboxView = actionTarget.dataset.inboxView || 'list';
         renderDashboard();
         return;
     }

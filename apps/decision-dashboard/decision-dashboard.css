@@ -184,9 +184,21 @@
 #page-decision-dashboard .decision-inbox-toolbar {
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
-    gap: 12px 16px;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px 20px;
     margin-bottom: 18px;
+}
+
+#page-decision-dashboard .decision-toolbar-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 14px;
+}
+
+#page-decision-dashboard .decision-toolbar-group.is-view-toggle {
+    justify-content: flex-end;
 }
 
 #page-decision-dashboard .decision-inbox-toolbar .decision-label {
@@ -230,11 +242,164 @@
     box-shadow: 0 6px 14px rgba(30, 133, 251, 0.08);
 }
 
+#page-decision-dashboard .decision-view-toggle {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px;
+    border: 1px solid #edf1f5;
+    border-radius: 999px;
+    background: #f8fafc;
+}
+
+#page-decision-dashboard .decision-view-toggle-btn {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 30px;
+    padding: 0 12px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--dark-600);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+#page-decision-dashboard .decision-view-toggle-btn.is-active {
+    background: #ffffff;
+    color: var(--dark-800);
+    box-shadow: 0 4px 10px rgba(23, 36, 51, 0.08);
+}
+
 #page-decision-dashboard .decision-issue-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 16px;
     align-items: stretch;
+}
+
+#page-decision-dashboard .decision-issue-list-wrap {
+    margin-top: 0;
+}
+
+#page-decision-dashboard .decision-issue-list {
+    min-width: 980px;
+}
+
+#page-decision-dashboard .decision-issue-list th {
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 12px;
+}
+
+#page-decision-dashboard .decision-issue-list td {
+    vertical-align: top;
+    font-size: 13px;
+}
+
+#page-decision-dashboard .decision-issue-row {
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+#page-decision-dashboard .decision-issue-list tbody tr.decision-issue-row:hover td {
+    background: #f8fbff;
+}
+
+#page-decision-dashboard .decision-issue-row.is-selected td {
+    background: #eef6ff;
+}
+
+#page-decision-dashboard .decision-issue-row.is-selected td:first-child {
+    box-shadow: inset 3px 0 0 #1e85fb;
+}
+
+#page-decision-dashboard .decision-issue-row.is-featured td {
+    background: #fff8f8;
+}
+
+#page-decision-dashboard .decision-issue-row.is-featured td:first-child {
+    box-shadow: inset 3px 0 0 #d14343;
+}
+
+#page-decision-dashboard .decision-issue-row.is-featured.is-selected td {
+    background: linear-gradient(180deg, #fff4f4 0%, #eef6ff 100%);
+}
+
+#page-decision-dashboard .decision-issue-name-cell,
+#page-decision-dashboard .decision-issue-signal-cell,
+#page-decision-dashboard .decision-issue-metric-cell {
+    display: flex;
+    flex-direction: column;
+}
+
+#page-decision-dashboard .decision-issue-name-cell {
+    gap: 8px;
+}
+
+#page-decision-dashboard .decision-issue-name-cell strong,
+#page-decision-dashboard .decision-issue-signal-cell strong,
+#page-decision-dashboard .decision-issue-metric-cell strong {
+    color: var(--dark-800);
+}
+
+#page-decision-dashboard .decision-issue-name-cell strong {
+    font-size: 14px;
+    line-height: 1.45;
+    word-break: keep-all;
+}
+
+#page-decision-dashboard .decision-issue-row.is-selected .decision-issue-name-cell strong {
+    color: #0f4fa8;
+}
+
+#page-decision-dashboard .decision-issue-signal-cell {
+    gap: 4px;
+}
+
+#page-decision-dashboard .decision-issue-signal-cell strong {
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+#page-decision-dashboard .decision-issue-signal-cell p,
+#page-decision-dashboard .decision-issue-metric-cell span {
+    margin: 0;
+    color: var(--dark-600);
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+#page-decision-dashboard .decision-issue-metric-cell {
+    gap: 4px;
+}
+
+#page-decision-dashboard .decision-issue-metric-cell label {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.4;
+    font-weight: 600;
+}
+
+#page-decision-dashboard .decision-issue-metric-cell.is-critical strong {
+    color: #b42318;
+}
+
+#page-decision-dashboard .decision-issue-metric-cell.is-warning strong {
+    color: #b36b00;
+}
+
+#page-decision-dashboard .decision-issue-cta-cell {
+    white-space: nowrap;
+}
+
+#page-decision-dashboard .decision-issue-cta-cell .btn-primary,
+#page-decision-dashboard .decision-issue-cta-cell .decision-secondary-btn {
+    min-width: 96px;
 }
 
 #page-decision-dashboard .decision-issue-card {
@@ -1004,6 +1169,10 @@
     #page-decision-dashboard .decision-inbox-toolbar {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    #page-decision-dashboard .decision-toolbar-group.is-view-toggle {
+        justify-content: flex-start;
     }
 
     #page-decision-dashboard .decision-issue-grid {
