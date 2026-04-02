@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MERCURY X - 의사결정 대시보드</title>
+
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="stylesheet" as="style" crossorigin
+        href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css');
+    </style>
+
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="./decision-dashboard.css">
+</head>
+
+<body id="page-decision-dashboard">
+    <div class="app-container">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <img src="../../assets/CI.png" alt="mercuryX CI" class="sidebar-logo-ci">
+                <img src="../../assets/logo.png" alt="mercuryX" class="sidebar-logo-mark">
+                <button class="sidebar-collapse-btn" title="사이드바 접기" aria-label="사이드바 접기">
+                    <i class="ph ph-arrow-line-left"></i>
+                </button>
+            </div>
+
+            <div class="sidebar-divider"></div>
+
+            <ul class="nav-links">
+                <li onclick="window.location.href='../brand/'">
+                    <span class="nav-icon"><i class="ph ph-buildings"></i></span>
+                    <span>구매 활성도</span>
+                </li>
+                <li onclick="window.location.href='../products/'">
+                    <span class="nav-icon"><i class="ph ph-tag"></i></span>
+                    <span>제품 관계 인사이트</span>
+                </li>
+                <li class="active" onclick="window.location.href='../decision-dashboard/'">
+                    <span class="nav-icon"><i class="ph ph-compass-tool"></i></span>
+                    <span>의사결정 대시보드</span>
+                </li>
+            </ul>
+
+            <div class="sidebar-bottom">
+                <div class="sidebar-bottom-item decision-sidebar-note" title="Mock prototype only">
+                    <span class="nav-icon"><i class="ph ph-flask"></i></span>
+                    <span>Mock prototype</span>
+                </div>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <header class="top-bar">
+                <div class="gnb-left">
+                    <div class="gnb-icon"><i class="ph ph-lightbulb"></i></div>
+                    <h1 id="page-title">의사결정 대시보드</h1>
+                </div>
+                <div class="gnb-right">
+                    <div class="gnb-company-badge">
+                        <img src="../../assets/logo.png" alt="mercuryX" class="gnb-company-logo">
+                        <span class="gnb-company-name">MERCURY X</span>
+                        <span class="gnb-company-chevron"><i class="ph ph-caret-down"></i></span>
+                    </div>
+                    <div class="gnb-avatar">
+                        <i class="ph ph-user"></i>
+                    </div>
+                </div>
+            </header>
+
+            <div id="content-area"></div>
+        </main>
+    </div>
+
+    <script src="./decision-dashboard.js"></script>
+</body>
+
+</html>

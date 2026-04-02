@@ -11,11 +11,16 @@
 ## 페이지 구성
 - `apps/brand/`: 브랜드 구조 대시보드
 - `apps/products/`: 제품 관계 인사이트 (제품 상태 4분면, 리텐션/장바구니 모달 포함)
+- `apps/decision-dashboard/`: 의사결정 대시보드 (mock-only 세일즈 프로토타입)
 
 ## 실행 방법
-1. 브라우저에서 `apps/products/` 또는 `apps/brand/`를 직접 엽니다.
-2. 앱 시작 시 `data/` 폴더 CSV를 자동으로 다시 읽습니다.
+1. 브라우저에서 `apps/products/`, `apps/brand/`, 또는 `apps/decision-dashboard/`를 직접 엽니다.
+2. `apps/products/`와 `apps/brand/`는 앱 시작 시 `data/` 폴더 CSV를 자동으로 다시 읽습니다.
 3. 누락 파일이 있으면 사이드바 하단 `설정 > 데이터 관리 > CSV 업로드`로 추가합니다.
+
+## 의사결정 대시보드 메모
+- `apps/decision-dashboard/`는 CSV 업로드 없이 바로 열리는 mock prototype입니다.
+- `Products`의 디자인 언어를 재사용하되, 기존 `Products` 앱 코드는 수정하지 않습니다.
 
 ## 설정 메뉴
 사이드바 하단 `설정`에서 아래 기능을 제공합니다.
