@@ -1,5 +1,12 @@
 const REPRESENTATIVE_ISSUE_ID = 'long-aged-inventory';
 const SIDEBAR_STORAGE_KEY = 'pgm_sidebar_collapsed';
+const INBOX_DEPARTMENT_FILTERS = Object.freeze([
+    { value: 'all', label: '전체' },
+    { value: 'operations', label: '운영' },
+    { value: 'md', label: 'MD' },
+    { value: 'marketing', label: '마케팅' },
+    { value: 'sc', label: 'SC' }
+]);
 const DEFAULT_FILTERS = Object.freeze({
     store: 'all',
     brand: 'all',
@@ -9,6 +16,7 @@ const DEFAULT_FILTERS = Object.freeze({
 
 const DASHBOARD_STATE = {
     screen: 'inbox',
+    inboxDepartment: 'all',
     selectedIssueId: REPRESENTATIVE_ISSUE_ID,
     selectedSkuId: 'MX-OW-214',
     filters: { ...DEFAULT_FILTERS },
@@ -24,7 +32,7 @@ const ISSUE_CARDS = Object.freeze([
         severity: 'High',
         signalLead: '21일 넘게 안 팔린 SKU 9개',
         signalDetail: '재고 575개가 6개 매장에 묶여 있습니다',
-        departments: ['MD', '매장운영'],
+        departments: ['MD', '운영'],
         metricLabel: '잠재 손실 재고',
         metricValue: '575개',
         metricNote: '6개 매장 동시 영향',
@@ -36,30 +44,15 @@ const ISSUE_CARDS = Object.freeze([
         id: 'store-imbalance',
         title: '특정 매장 판매 저조 / 재고 불균형',
         kicker: '우선 판단 필요',
-        severity: 'Medium',
+        severity: 'High',
         signalLead: '핵심 SKU 14개가 4개 매장에 쏠림',
         signalDetail: '반응 낮은 매장에 재고가 묶여 판매 기회를 놓치고 있습니다',
-        departments: ['MD', '매장운영'],
+        departments: ['MD', '운영'],
         metricLabel: '편중 매장',
         metricValue: '4개',
         metricNote: '우선 판단 필요',
-        metricTone: 'warning',
+        metricTone: 'critical',
         ctaLabel: '우선 판단 필요',
-        deepDiveEnabled: false
-    },
-    {
-        id: 'season-progress',
-        title: '시즌 판매 진척 이상징후',
-        kicker: '추가 확인 필요',
-        severity: 'Medium',
-        signalLead: '시즌 3개 카테고리, 목표 대비 -12%',
-        signalDetail: '회복이 늦어지면 시즌 재고 부담이 빠르게 커집니다',
-        departments: ['브랜드운영', '영업관리'],
-        metricLabel: '진척 차이',
-        metricValue: '-12%',
-        metricNote: '추가 확인 필요',
-        metricTone: 'warning',
-        ctaLabel: '추가 확인 필요',
         deepDiveEnabled: false
     },
     {
@@ -69,12 +62,27 @@ const ISSUE_CARDS = Object.freeze([
         severity: 'High',
         signalLead: '출고 지연 18건, 판매 기회 손실 확산',
         signalDetail: '반응 있는 SKU도 제때 매장에 못 들어가고 있습니다',
-        departments: ['영업관리', '재고운영'],
+        departments: ['운영', 'SC'],
         metricLabel: '출고 지연',
         metricValue: '18건',
         metricNote: '즉시 확인 필요',
         metricTone: 'critical',
         ctaLabel: '즉시 확인 필요',
+        deepDiveEnabled: false
+    },
+    {
+        id: 'season-progress',
+        title: '시즌 판매 진척 이상징후',
+        kicker: '추가 확인 필요',
+        severity: 'Medium',
+        signalLead: '시즌 3개 카테고리, 목표 대비 -12%',
+        signalDetail: '회복이 늦어지면 시즌 재고 부담이 빠르게 커집니다',
+        departments: ['마케팅', '운영'],
+        metricLabel: '진척 차이',
+        metricValue: '-12%',
+        metricNote: '추가 확인 필요',
+        metricTone: 'warning',
+        ctaLabel: '추가 확인 필요',
         deepDiveEnabled: false
     },
     {
@@ -84,7 +92,7 @@ const ISSUE_CARDS = Object.freeze([
         severity: 'Medium',
         signalLead: '안전재고 미감지 SKU 7개',
         signalDetail: '판매가 이어지는 상품이 경고 없이 기준 아래로 내려가고 있습니다',
-        departments: ['재고운영', 'MD'],
+        departments: ['SC', 'MD'],
         metricLabel: '경고 SKU',
         metricValue: '7개',
         metricNote: '조치 후보',
@@ -99,7 +107,7 @@ const ISSUE_CARDS = Object.freeze([
         severity: 'Medium',
         signalLead: '전환 하락 -9.4%, 가격 저항 의심',
         signalDetail: '유입은 유지되지만 구매 직전 이탈이 커지고 있습니다',
-        departments: ['MD', '브랜드운영'],
+        departments: ['MD', '마케팅'],
         metricLabel: '전환 하락',
         metricValue: '-9.4%',
         metricNote: '추가 확인 필요',
@@ -460,8 +468,63 @@ function renderMetaPill(iconClass, label) {
     `;
 }
 
-function renderIssueCards() {
-    return ISSUE_CARDS.map((issue) => {
+function getFilteredIssues() {
+    if (DASHBOARD_STATE.inboxDepartment === 'all') return ISSUE_CARDS;
+
+    const selectedDepartment = INBOX_DEPARTMENT_FILTERS.find((option) => option.value === DASHBOARD_STATE.inboxDepartment)?.label;
+    if (!selectedDepartment) return ISSUE_CARDS;
+
+    return ISSUE_CARDS.filter((issue) => issue.departments.includes(selectedDepartment));
+}
+
+function normalizeInboxSelection(filteredIssues) {
+    if (!filteredIssues.length) {
+        DASHBOARD_STATE.selectedIssueId = REPRESENTATIVE_ISSUE_ID;
+        return;
+    }
+
+    if (filteredIssues.some((issue) => issue.id === DASHBOARD_STATE.selectedIssueId)) return;
+
+    const representativeIssue = filteredIssues.find((issue) => issue.id === REPRESENTATIVE_ISSUE_ID);
+    DASHBOARD_STATE.selectedIssueId = representativeIssue ? representativeIssue.id : filteredIssues[0].id;
+}
+
+function renderInboxDepartmentFilter() {
+    return `
+        <div class="decision-inbox-toolbar" aria-label="유관부서 관점 필터">
+            <span class="decision-label">관점 필터</span>
+            <div class="decision-chip-row">
+                ${INBOX_DEPARTMENT_FILTERS.map((option) => {
+                    const activeClass = option.value === DASHBOARD_STATE.inboxDepartment ? ' is-active' : '';
+                    const ariaPressed = option.value === DASHBOARD_STATE.inboxDepartment ? 'true' : 'false';
+                    return `
+                        <button
+                            class="decision-filter-chip${activeClass}"
+                            type="button"
+                            data-action="set-inbox-department"
+                            data-department-filter="${escapeHtml(option.value)}"
+                            aria-pressed="${ariaPressed}"
+                        >
+                            ${escapeHtml(option.label)}
+                        </button>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function renderIssueCards(filteredIssues) {
+    if (!filteredIssues.length) {
+        return `
+            <article class="decision-empty-state card">
+                <strong>해당 관점에서 보이는 이슈가 아직 없습니다.</strong>
+                <p>다른 부서 필터를 선택하거나 전체 보기로 돌아가 전사 이슈를 다시 확인해보세요.</p>
+            </article>
+        `;
+    }
+
+    return filteredIssues.map((issue) => {
         const featuredClass = issue.featured ? 'is-featured' : '';
         const selectedClass = !issue.featured && issue.id === DASHBOARD_STATE.selectedIssueId ? 'is-subselected' : '';
         const severityClass = getSeverityClass(issue.severity);
@@ -505,6 +568,9 @@ function renderIssueCards() {
 }
 
 function renderInboxScreen() {
+    const filteredIssues = getFilteredIssues();
+    normalizeInboxSelection(filteredIssues);
+
     return `
         <section class="decision-hero-card card animate-fade-in">
             <div class="decision-hero-top">
@@ -522,13 +588,14 @@ function renderInboxScreen() {
         <section class="card animate-fade-in">
             <div class="decision-section-head">
                 <div>
-                    <h3>Problem Discovery Inbox</h3>
+                    <h3>핵심 문제 목록</h3>
                     <p>지금 손실이 커질 문제부터 먼저 좁혀서, 바로 판단이 필요한 이슈를 우선 보여줘요.</p>
                 </div>
-                ${renderMetaPill('ph-warning-circle', `우선 검토 이슈 ${ISSUE_CARDS.length}개`)}
+                ${renderMetaPill('ph-warning-circle', `우선 검토 이슈 ${filteredIssues.length}개`)}
             </div>
+            ${renderInboxDepartmentFilter()}
             <div class="decision-issue-grid">
-                ${renderIssueCards()}
+                ${renderIssueCards(filteredIssues)}
             </div>
         </section>
     `;
@@ -898,6 +965,12 @@ function handleContentClick(event) {
     if (!actionTarget) return;
 
     const action = actionTarget.dataset.action;
+    if (action === 'set-inbox-department') {
+        DASHBOARD_STATE.inboxDepartment = actionTarget.dataset.departmentFilter || 'all';
+        renderDashboard();
+        return;
+    }
+
     if (action === 'preview-issue') {
         DASHBOARD_STATE.selectedIssueId = actionTarget.dataset.issueId || REPRESENTATIVE_ISSUE_ID;
         renderDashboard();
