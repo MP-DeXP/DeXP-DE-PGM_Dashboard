@@ -9142,7 +9142,8 @@ body {
 
 .pgm-usage-filter-grid select,
 .pgm-usage-filter-grid input,
-.pgm-usage-product-selector select {
+.pgm-usage-product-selector select,
+.pgm-usage-product-selector input {
     width: 100%;
     height: 36px;
     border: 1px solid var(--gray-200);
@@ -9158,7 +9159,8 @@ body {
 
 .pgm-usage-filter-grid select:focus,
 .pgm-usage-filter-grid input:focus,
-.pgm-usage-product-selector select:focus {
+.pgm-usage-product-selector select:focus,
+.pgm-usage-product-selector input:focus {
     border-color: #b7c3d0;
 }
 
@@ -9529,6 +9531,12 @@ body {
     color: var(--dark-100);
     font-size: 12px;
     line-height: 1.4;
+}
+
+.pgm-usage-compare-search-meta {
+    color: var(--dark-100);
+    font-size: 11px;
+    line-height: 1.45;
 }
 
 .pgm-usage-product-selector button {

@@ -35,6 +35,14 @@ const PGM_USAGE_STATUS_LABELS = {
     not_applicable: '비대상'
 };
 
+const PGM_USAGE_STATUS_ORDER = {
+    operational_candidate: 5,
+    testable: 4,
+    hypothesis_only: 3,
+    insufficient: 2,
+    not_applicable: 1
+};
+
 const PGM_USAGE_SCOPE_LABELS = {
     broad_rollout: '넓은 적용 검토',
     limited_rollout: '제한 적용 검토',
@@ -399,6 +407,7 @@ function pgmUsageCurrentState() {
             flagFilter: 'all',
             eligibilityFilter: 'all',
             productSearch: '',
+            compareSearch: '',
             selectedProductId: '',
             compareProductId: '',
             selectedPurposeKey: '',
@@ -410,6 +419,9 @@ function pgmUsageCurrentState() {
     }
     if (typeof AppState.viewState.pgmUsage.selectedPurposeKey !== 'string') {
         AppState.viewState.pgmUsage.selectedPurposeKey = '';
+    }
+    if (typeof AppState.viewState.pgmUsage.compareSearch !== 'string') {
+        AppState.viewState.pgmUsage.compareSearch = '';
     }
     if (typeof AppState.viewState.pgmUsage.actionReviewOpen !== 'boolean') {
         AppState.viewState.pgmUsage.actionReviewOpen = true;
@@ -462,6 +474,17 @@ function pgmUsageRowsForProduct(rows, productId) {
         });
 }
 
+function pgmUsageSearchProducts(products, search, excludedProductId = '', preservedProductId = '') {
+    const query = String(search || '').trim().toLowerCase();
+    return (products || []).filter((product) => {
+        if (product.productId === excludedProductId) return false;
+        if (product.productId === preservedProductId) return true;
+        if (!query) return true;
+        const haystack = `${product.productName || ''} ${product.productId || ''}`.toLowerCase();
+        return haystack.includes(query);
+    });
+}
+
 function pgmUsageBuildModel() {
     const state = pgmUsageCurrentState();
     const rows = pgmUsageRows();
@@ -474,6 +497,9 @@ function pgmUsageBuildModel() {
     if (!compareProduct && state.compareProductId) state.compareProductId = '';
     const selectedRows = selectedProduct ? pgmUsageRowsForProduct(rows, selectedProduct.productId) : [];
     const compareRows = compareProduct ? pgmUsageRowsForProduct(rows, compareProduct.productId) : [];
+    const compareCandidates = selectedProduct
+        ? pgmUsageSearchProducts(products, state.compareSearch, selectedProduct.productId, state.compareProductId)
+        : [];
 
     return {
         rows,
@@ -484,6 +510,7 @@ function pgmUsageBuildModel() {
         compareProduct,
         selectedRows,
         compareRows,
+        compareCandidates,
         selectedCount: [selectedProduct, compareProduct].filter(Boolean).length,
         snapshotLabel: pgmUsageSnapshotLabel(rows),
         summary: pgmUsageSummary(filteredRows),
@@ -780,6 +807,15 @@ function pgmUsageRenderGlobalArea(model) {
 }
 
 function pgmUsageRenderProductSelector(model) {
+    const compareSearch = String(model.state.compareSearch || '').trim();
+    const compareCandidates = model.compareCandidates || [];
+    const compareMetaText = !model.state.selectedProductId
+        ? ''
+        : !compareCandidates.length
+            ? '검색 결과가 없어요. 검색어를 바꾸거나 왼쪽 후보 테이블의 비교 추가 버튼을 사용할 수 있어요.'
+            : compareSearch
+                ? `검색 결과 ${pgmUsageFormatNumber(compareCandidates.length)}개 · 선택하면 바로 비교가 열립니다.`
+                : `비교 가능한 다른 상품 ${pgmUsageFormatNumber(compareCandidates.length)}개 · 검색해서 빠르게 찾을 수 있어요.`;
     return `
         <div class="pgm-usage-product-selector">
             <label>
@@ -799,16 +835,17 @@ function pgmUsageRenderProductSelector(model) {
             ${model.state.selectedProductId ? `
                 <label class="pgm-usage-compare-slot">
                     <span>비교 추가</span>
+                    <input type="search" value="${pgmUsageEscape(model.state.compareSearch)}" placeholder="비교할 상품명 또는 ID 검색"
+                        oninput="handlePgmUsageCompareSearch(this.value)">
                     <select onchange="addPgmUsageCompareProduct(this.value, '')">
-                        <option value="">두 번째 상품을 선택하세요</option>
-                        ${model.products
-                            .filter((product) => product.productId !== model.state.selectedProductId)
-                            .map((product) => `
-                                <option value="${pgmUsageEscape(product.productId)}" ${model.state.compareProductId === product.productId ? 'selected' : ''}>
-                                    ${pgmUsageEscape(product.productName)} (${pgmUsageEscape(product.productId)})
-                                </option>
-                            `).join('')}
+                        <option value="">${pgmUsageEscape(compareSearch ? '검색 결과에서 상품을 선택하세요' : '두 번째 상품을 선택하세요')}</option>
+                        ${compareCandidates.map((product) => `
+                            <option value="${pgmUsageEscape(product.productId)}" ${model.state.compareProductId === product.productId ? 'selected' : ''}>
+                                ${pgmUsageEscape(product.productName)} (${pgmUsageEscape(product.productId)})
+                            </option>
+                        `).join('')}
                     </select>
+                    <small class="pgm-usage-compare-search-meta">${pgmUsageEscape(compareMetaText)}</small>
                 </label>
                 ${model.state.compareProductId ? `
                     <button type="button" onclick="clearPgmUsageCompareProduct()">비교 해제</button>
@@ -908,7 +945,7 @@ function pgmUsageRenderActionReview(row, mode = 'single') {
         return `
             <div class="pgm-usage-action-review is-missing">
                 <strong>액션 검토</strong>
-                <p>액션 후보 CSV에 이 상품-목적 행이 없습니다. 효과 판정만 기준으로 검토합니다.</p>
+                <p>연결된 액션 후보를 찾지 못했어요. 지금은 효과 판정만 기준으로 검토합니다.</p>
             </div>
         `;
     }
@@ -927,26 +964,123 @@ function pgmUsageRenderActionReview(row, mode = 'single') {
     `;
 }
 
-function pgmUsageEffectScore(row) {
-    if (!row) return -1;
-    return ((PGM_USAGE_SCOPE_ORDER[row.scope] || 0) * 100)
-        + ((PGM_USAGE_LEVEL_ORDER[row.confidence] || 0) * 20)
-        + ((PGM_USAGE_LEVEL_ORDER[row.strength] || 0) * 10)
-        + Math.round(pgmUsageNumber(row.signalScore, 0) * 10);
+function pgmUsagePairCautionScore(row) {
+    if (!row) return 0;
+    let score = 0;
+    if (row.preconditionFlag) score += 1;
+    if (row.riskFlag) score += 1;
+    if (row.eligibility === 'downweight') score += 1;
+    if (row.eligibility === 'exclude') score += 2;
+    return score;
+}
+
+function pgmUsagePairGuardrailText(row) {
+    const bits = [];
+    if (row?.preconditionFlag) bits.push('전제조건');
+    if (row?.riskFlag) bits.push('리스크');
+    if (row?.eligibility === 'downweight') bits.push('제한 반영');
+    if (row?.eligibility === 'exclude') bits.push('제외');
+    return bits.join(', ');
+}
+
+function pgmUsagePairComparison(rowA, rowB) {
+    const fields = [
+        {
+            key: 'scope',
+            label: '검토 범위',
+            rankA: PGM_USAGE_SCOPE_ORDER[rowA?.scope] || 0,
+            rankB: PGM_USAGE_SCOPE_ORDER[rowB?.scope] || 0
+        },
+        {
+            key: 'status',
+            label: '상태',
+            rankA: PGM_USAGE_STATUS_ORDER[rowA?.status] || 0,
+            rankB: PGM_USAGE_STATUS_ORDER[rowB?.status] || 0
+        },
+        {
+            key: 'confidence',
+            label: '근거 수준',
+            rankA: PGM_USAGE_LEVEL_ORDER[rowA?.confidence] || 0,
+            rankB: PGM_USAGE_LEVEL_ORDER[rowB?.confidence] || 0
+        },
+        {
+            key: 'strength',
+            label: '효과 강도',
+            rankA: PGM_USAGE_LEVEL_ORDER[rowA?.strength] || 0,
+            rankB: PGM_USAGE_LEVEL_ORDER[rowB?.strength] || 0
+        }
+    ];
+    const firstDiffIndex = fields.findIndex((field) => field.rankA !== field.rankB);
+    if (firstDiffIndex === -1) {
+        return {
+            kind: 'same',
+            fields,
+            firstDiff: null,
+            winnerKey: ''
+        };
+    }
+    const firstDiff = fields[firstDiffIndex];
+    return {
+        kind: 'different',
+        fields,
+        firstDiff,
+        winnerKey: firstDiff.rankA > firstDiff.rankB ? 'a' : 'b',
+        firstDiffIndex
+    };
+}
+
+function pgmUsagePairReason(fieldKey, winnerRow) {
+    if (fieldKey === 'scope') {
+        return `검토 범위가 ${pgmUsageLabel(PGM_USAGE_SCOPE_LABELS, winnerRow.scope)} 쪽으로 더 앞서 보여`;
+    }
+    if (fieldKey === 'status') {
+        return `상태가 ${pgmUsageLabel(PGM_USAGE_STATUS_LABELS, winnerRow.status)} 쪽으로 더 앞서 보여`;
+    }
+    if (fieldKey === 'confidence') {
+        return '검토 범위와 상태는 비슷하지만 근거 수준 표기가 더 높아';
+    }
+    if (fieldKey === 'strength') {
+        return '검토 범위·상태·근거 수준은 비슷하지만 효과 강도 표기가 더 높아';
+    }
+    return '표시된 계약 필드 기준으로 조금 더 앞서 보여';
 }
 
 function pgmUsagePairInterpretation(rowA, productA, rowB, productB) {
     if (!rowA && !rowB) return '두 상품 모두 이 목적의 산출 행이 아직 없습니다.';
     if (rowA && !rowB) return `${productA.productName || productA.productId}만 이 목적의 산출 행이 있습니다.`;
     if (!rowA && rowB) return `${productB.productName || productB.productId}만 이 목적의 산출 행이 있습니다.`;
-    const scoreA = pgmUsageEffectScore(rowA);
-    const scoreB = pgmUsageEffectScore(rowB);
-    if (Math.abs(scoreA - scoreB) < 12) {
-        return '현재 선택한 두 상품 사이에서는 효과 신호가 비슷합니다. 범위, 플래그, 근거 지표를 함께 확인합니다.';
+    const comparison = pgmUsagePairComparison(rowA, rowB);
+    if (comparison.kind === 'same') {
+        const cautionGap = Math.abs(pgmUsagePairCautionScore(rowA) - pgmUsagePairCautionScore(rowB));
+        if (cautionGap) {
+            return '현재 두 상품은 검토 범위·상태·근거 수준·효과 강도가 비슷합니다. 다만 전제조건·리스크 또는 적격성 차이가 있어 주의 조건까지 같이 확인하는 편이 안전합니다. 전체 상품 순위가 아니라 현재 두 상품 사이의 해석입니다.';
+        }
+        return '현재 두 상품은 검토 범위·상태·근거 수준·효과 강도가 비슷하게 읽힙니다. 세부 지표와 플래그를 함께 확인합니다. 전체 상품 순위가 아니라 현재 두 상품 사이의 해석입니다.';
     }
-    const winner = scoreA > scoreB ? productA : productB;
-    const loser = scoreA > scoreB ? productB : productA;
-    return `${winner.productName || winner.productId} 쪽이 ${loser.productName || loser.productId}보다 이 목적에서는 더 강함으로 읽힙니다. 전체 상품 순위가 아니라 현재 두 상품 사이의 해석입니다.`;
+
+    const winner = comparison.winnerKey === 'a' ? productA : productB;
+    const loser = comparison.winnerKey === 'a' ? productB : productA;
+    const winnerRow = comparison.winnerKey === 'a' ? rowA : rowB;
+    const loserRow = comparison.winnerKey === 'a' ? rowB : rowA;
+    const winnerName = winner.productName || winner.productId;
+    const loserName = loser.productName || loser.productId;
+    const winnerCautionScore = pgmUsagePairCautionScore(winnerRow);
+    const loserCautionScore = pgmUsagePairCautionScore(loserRow);
+    const cautionGap = winnerCautionScore - loserCautionScore;
+    const subtleRead = comparison.firstDiffIndex >= 2 || cautionGap > 0;
+    const reason = pgmUsagePairReason(comparison.firstDiff.key, winnerRow);
+
+    if (subtleRead) {
+        const guardrailText = cautionGap > 0 && pgmUsagePairGuardrailText(winnerRow)
+            ? ` 다만 ${pgmUsagePairGuardrailText(winnerRow)}가 함께 보여 보수적으로 읽어야 합니다.`
+            : ' 차이가 큰 편은 아니라 보수적으로 읽는 편이 맞습니다.';
+        return `${winnerName} 쪽이 ${loserName}보다 이 목적에서는 조금 더 강함으로 읽히지만, ${reason}.${guardrailText} 전체 상품 순위가 아니라 현재 두 상품 사이의 해석입니다.`;
+    }
+
+    const guardrailText = cautionGap > 0 && pgmUsagePairGuardrailText(winnerRow)
+        ? ` 다만 ${pgmUsagePairGuardrailText(winnerRow)}가 있어 실행 판단은 별도 검토가 필요합니다.`
+        : '';
+    return `${winnerName} 쪽이 ${loserName}보다 이 목적에서는 더 강함으로 읽힙니다. ${reason}.${guardrailText} 전체 상품 순위가 아니라 현재 두 상품 사이의 해석입니다.`;
 }
 
 function pgmUsageRenderSelectedPurposeCards(model) {
@@ -1159,9 +1293,14 @@ window.selectPgmUsageProduct = (productId, purposeKey = '') => {
     const state = pgmUsageCurrentState();
     state.selectedProductId = String(productId || '').trim();
     state.selectedPurposeKey = String(purposeKey || '').trim();
-    if (!state.selectedProductId || state.compareProductId === state.selectedProductId) {
-        state.compareProductId = '';
-    }
+    state.compareProductId = '';
+    state.compareSearch = '';
+    renderPgmUsage();
+};
+
+window.handlePgmUsageCompareSearch = (value) => {
+    const state = pgmUsageCurrentState();
+    state.compareSearch = String(value || '').trim();
     renderPgmUsage();
 };
 
@@ -1199,6 +1338,7 @@ window.clearPgmUsageSelectedProduct = () => {
     const state = pgmUsageCurrentState();
     state.selectedProductId = '';
     state.compareProductId = '';
+    state.compareSearch = '';
     state.selectedPurposeKey = '';
     renderPgmUsage();
 };
