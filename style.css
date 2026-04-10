@@ -9332,6 +9332,22 @@ body {
     background: #f7fafc;
 }
 
+.pgm-usage-candidate-chip.is-selected-product {
+    border-color: #c9d8ea;
+    background: #f5f9ff;
+}
+
+.pgm-usage-candidate-chip.is-selected-focus {
+    border-color: #8dbbf3;
+    background: #edf5ff;
+    box-shadow: inset 0 0 0 1px rgba(30, 133, 251, 0.16);
+}
+
+.pgm-usage-candidate-chip.is-selected-focus span:first-child,
+.pgm-usage-candidate-chip.is-selected-focus small {
+    color: #184f87;
+}
+
 .pgm-usage-candidate-chip span:first-child {
     overflow: hidden;
     color: var(--dark-800);

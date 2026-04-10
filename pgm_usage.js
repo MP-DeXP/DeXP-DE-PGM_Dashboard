@@ -485,6 +485,23 @@ function pgmUsageSearchProducts(products, search, excludedProductId = '', preser
     });
 }
 
+function pgmUsageRowsForPurposeBoard(rows, selectedProductId = '') {
+    const topRows = (rows || []).slice(0, 5);
+    const normalizedSelectedId = String(selectedProductId || '').trim();
+    if (!normalizedSelectedId) return topRows;
+
+    const selectedRow = (rows || []).find((row) => row.productId === normalizedSelectedId);
+    if (!selectedRow) return topRows;
+
+    const alreadyIncluded = topRows.some((row) => (
+        row.productId === selectedRow.productId && row.purposeKey === selectedRow.purposeKey
+    ));
+    if (alreadyIncluded) return topRows;
+
+    if (topRows.length < 5) return [...topRows, selectedRow];
+    return [...topRows.slice(0, 4), selectedRow];
+}
+
 function pgmUsageBuildModel() {
     const state = pgmUsageCurrentState();
     const rows = pgmUsageRows();
@@ -691,7 +708,7 @@ function pgmUsageRenderPurposeBoards(model) {
             ${PGM_USAGE_PURPOSES.map((purpose) => {
                 const rows = model.filteredRows.filter((row) => row.purposeKey === purpose.key);
                 const reviewableCount = rows.filter(pgmUsageIsReviewable).length;
-                const topRows = rows.slice(0, 5);
+                const topRows = pgmUsageRowsForPurposeBoard(rows, model.state.selectedProductId);
                 return `
                     <article class="pgm-usage-purpose-card">
                         <div class="pgm-usage-purpose-card-head">
@@ -702,17 +719,28 @@ function pgmUsageRenderPurposeBoards(model) {
                             <strong>${pgmUsageFormatNumber(reviewableCount)}</strong>
                         </div>
                         <div class="pgm-usage-purpose-list">
-                            ${topRows.length ? topRows.map((row) => `
-                                <button type="button" class="pgm-usage-candidate-chip"
+                            ${topRows.length ? topRows.map((row) => {
+                                const isSelectedProduct = row.productId === model.state.selectedProductId;
+                                const isSelectedFocus = isSelectedProduct && row.purposeKey === model.state.selectedPurposeKey;
+                                const chipClassNames = [
+                                    'pgm-usage-candidate-chip',
+                                    isSelectedProduct ? 'is-selected-product' : '',
+                                    isSelectedFocus ? 'is-selected-focus' : ''
+                                ].filter(Boolean).join(' ');
+                                return `
+                                <button type="button" class="${chipClassNames}"
                                     onclick="selectPgmUsageProduct('${pgmUsageEscapeJsAttr(row.productId)}', '${pgmUsageEscapeJsAttr(row.purposeKey)}')">
                                     <span>${pgmUsageEscape(row.productName || row.productId)}</span>
                                     <small>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_SCOPE_LABELS, row.scope))} · ${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_LEVEL_LABELS, row.confidence))}</small>
                                     <span class="pgm-usage-mini-flags">
+                                        ${isSelectedFocus ? pgmUsageBadge('현재 보고 있음', 'medium') : ''}
+                                        ${!isSelectedFocus && isSelectedProduct ? pgmUsageBadge('같은 상품', 'strong') : ''}
                                         ${row.preconditionFlag ? pgmUsageBadge('전제', 'caution') : ''}
                                         ${row.riskFlag ? pgmUsageBadge('리스크', 'risk') : ''}
                                     </span>
                                 </button>
-                            `).join('') : `
+                            `;
+                            }).join('') : `
                                 <div class="pgm-usage-inline-empty">현재 필터에서 표시할 후보가 없습니다.</div>
                             `}
                         </div>
