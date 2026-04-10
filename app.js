@@ -108,6 +108,11 @@ const REQUIRED_FILES = {
         key: 'product_group_map',
         filename: 'pgm_product_group_map.csv',
         aliases: ['product_group_map.csv', '_meta_product_group_map.csv']
+    },
+    productPurposeEffects: {
+        key: 'product_purpose_effects',
+        filename: 'pgm_product_purpose_effects.csv',
+        aliases: ['product_purpose_effects.csv']
     }
 };
 
@@ -134,7 +139,8 @@ const AppState = {
         brandPurchaseDriverTimeseries: [],
         brandStructureTimeseries: [],
         apfActionRules: [],
-        productGroupMap: []
+        productGroupMap: [],
+        productPurposeEffects: []
     },
     rawData: {
         brandScore: null,
@@ -157,7 +163,8 @@ const AppState = {
         brandPurchaseDriverTimeseries: [],
         brandStructureTimeseries: [],
         apfActionRules: [],
-        productGroupMap: []
+        productGroupMap: [],
+        productPurposeEffects: []
     },
     viewState: {
         brand: {
@@ -183,6 +190,17 @@ const AppState = {
         },
         settings: {
             activeTab: 'grouping'
+        },
+        pgmUsage: {
+            purposeFilter: 'all',
+            scopeFilter: 'all',
+            confidenceFilter: 'all',
+            strengthFilter: 'all',
+            flagFilter: 'all',
+            eligibilityFilter: 'all',
+            productSearch: '',
+            selectedProductId: '',
+            selectedPurposeKey: ''
         }
     },
     charts: {},
@@ -3517,6 +3535,22 @@ function initSidebarCollapse() {
     };
 }
 
+function ensurePgmUsageNavItem(pageId) {
+    const navLinks = document.querySelector('.nav-links');
+    if (!navLinks || navLinks.querySelector('[data-nav-id="pgm-usage"]')) return;
+    const li = document.createElement('li');
+    li.dataset.navId = 'pgm-usage';
+    li.className = pageId === 'page-pgm-usage' ? 'active' : '';
+    li.onclick = () => {
+        window.location.href = pageId === 'page-pgm-usage' ? './' : '../pgm_usage/';
+    };
+    li.innerHTML = `
+        <span class="nav-icon"><i class="ph ph-clipboard-text"></i></span>
+        <span>목적별 활용 검토</span>
+    `;
+    navLinks.appendChild(li);
+}
+
 window.renderSettingsModal = () => {
     const body = document.getElementById('settings-modal-body');
     if (!body) return;
@@ -3671,9 +3705,19 @@ async function init() {
         settingsTrigger.onclick = () => showSettingsModal();
     }
     initSidebarCollapse();
+    ensurePgmUsageNavItem(pageId);
 
     try {
         const keys = await DB.getAllKeys();
+        if (pageId === 'page-pgm-usage') {
+            AppState.rawData.productPurposeEffects = keys.length
+                ? await loadOptionalDataFromDB(REQUIRED_FILES.productPurposeEffects, [])
+                : [];
+            AppState.data.productPurposeEffects = AppState.rawData.productPurposeEffects;
+            renderPgmUsage();
+            applyFriendlyUi(document.body);
+            return;
+        }
         if (keys.length === 0) {
             document.getElementById('content-area').innerHTML = `
                 <div class="card animate-fade-in" style="text-align:center; padding:4rem;">
