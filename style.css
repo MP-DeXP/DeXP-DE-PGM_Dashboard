@@ -9479,6 +9479,10 @@ body {
 .pgm-usage-selected-panel {
     position: sticky;
     top: 0;
+    max-height: calc(100vh - var(--header-height) - 48px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
 }
 
 .pgm-usage-product-selector {
@@ -9634,6 +9638,8 @@ body {
 
     .pgm-usage-selected-panel {
         position: static;
+        max-height: none;
+        overflow: visible;
     }
 }
 
