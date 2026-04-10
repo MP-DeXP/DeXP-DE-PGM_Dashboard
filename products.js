@@ -44,6 +44,7 @@ function withAlpha(color, alpha) {
     return normalizedColor;
 }
 
+const QUADRANT_EDGE_TOP_N = 8;
 const QUADRANT_CONVERGENCE_EDGE_TOP_N = 8;
 const QUADRANT_RETURN_LOOP_TOP_N = 4;
 const QUADRANT_THUMBNAIL_SRC = '../../assets/thumbnail.png';
@@ -85,6 +86,30 @@ const DEMAND_GRAPH_BASKET_LIMIT = 6;
 const DEMAND_GRAPH_SUMMARY_LIMIT = 5;
 const QUADRANT_SVG_FRAME = Object.freeze({ width: 708, height: 585 });
 const QUADRANT_MIN_RENDER_WIDTH = 360;
+const PURPOSE_REVIEW_SIGNAL_EPSILON = 1e-9;
+const PURPOSE_REVIEW_DIRECT_USABLE_RATIO = 0.08;
+const PURPOSE_REVIEW_INDIRECT_USABLE_RATIO = 0.05;
+const PURPOSE_REVIEW_DIRECT_USABLE_RANK = 0.35;
+const PURPOSE_REVIEW_INDIRECT_USABLE_RANK = 0.25;
+const PURPOSE_REVIEW_STRONG_SIGNAL_RATIO = 0.16;
+const PURPOSE_REVIEW_STRONG_SIGNAL_RANK = 0.68;
+const PURPOSE_REVIEW_COMPARE_HOLD_GAP = 0.06;
+const PURPOSE_REVIEW_MIN_COMPARE_GAP = 0.16;
+const PURPOSE_REVIEW_HIGH_CONFIDENCE_GAP = 0.24;
+const PURPOSE_REVIEW_FLAT_DIRECT_SCORE_WEIGHT = 0.32;
+const PURPOSE_REVIEW_FLAT_INDIRECT_SCORE_WEIGHT = 0.48;
+const PURPOSE_REVIEW_DIRECT_SPREAD_RATIO = 0.12;
+const PURPOSE_REVIEW_INDIRECT_SPREAD_RATIO = 0.08;
+const PURPOSE_REVIEW_DIRECT_TOP_GAP_RATIO = 0.04;
+const PURPOSE_REVIEW_INDIRECT_TOP_GAP_RATIO = 0.025;
+const PURPOSE_REVIEW_BOUNDED_DIRECT_SPREAD_ABS = 0.04;
+const PURPOSE_REVIEW_BOUNDED_INDIRECT_SPREAD_ABS = 0.03;
+const PURPOSE_REVIEW_BOUNDED_DIRECT_TOP_GAP_ABS = 0.015;
+const PURPOSE_REVIEW_BOUNDED_INDIRECT_TOP_GAP_ABS = 0.01;
+const PURPOSE_REVIEW_DIRECT_COMPARE_GAP_RATIO = 0.05;
+const PURPOSE_REVIEW_INDIRECT_COMPARE_GAP_RATIO = 0.03;
+const PURPOSE_REVIEW_BOUNDED_DIRECT_COMPARE_GAP_ABS = 0.015;
+const PURPOSE_REVIEW_BOUNDED_INDIRECT_COMPARE_GAP_ABS = 0.01;
 
 function normalizeDemandGraphTab(tab) {
     return String(tab || '').trim().toLowerCase() === 'basket' ? 'basket' : 'transition';
@@ -488,8 +513,53 @@ function buildConvergenceQuadrantEdges(pointIdSet, selectedId) {
         .slice(0, QUADRANT_CONVERGENCE_EDGE_TOP_N);
 }
 
+function parseReturnLoopPathIds(pathValue) {
+    return String(pathValue || '').trim().split(/\s*->\s*/).map((part) => String(part || '').trim()).filter(Boolean);
+}
+
+function getNormalizedReturnLoopDetailRows() {
+    const aggregated = new Map();
+
+    (AppState.data.returnGravityLoopDetail || []).forEach((row) => {
+        const productId = String(firstDefinedValue(
+            row.product_id,
+            row.return_product_id,
+            row.anchor_product_id,
+            row.source_product_id,
+            ''
+        )).trim();
+        const pathIds = parseReturnLoopPathIds(firstDefinedValue(row.intermediate_path, row.product_path, ''));
+        const inferredViaId = pathIds.length ? pathIds[pathIds.length - 1] : '';
+        const viaId = String(firstDefinedValue(
+            row.last_via_product_id,
+            row.via_product_id,
+            row.intermediate_product_id,
+            inferredViaId,
+            ''
+        )).trim();
+        const explicitCustomers = Math.max(0, toNumber(row.return_loop_customer_cnt, NaN));
+        const inferredCustomers = String(firstDefinedValue(row.qualified_return_flag, '')).trim() === '1' && viaId
+            ? 1
+            : 0;
+        const customers = explicitCustomers > 0 ? explicitCustomers : inferredCustomers;
+        if (!productId || !viaId || viaId === productId || customers <= 0) return;
+
+        const key = `${productId}::${viaId}`;
+        if (!aggregated.has(key)) {
+            aggregated.set(key, {
+                product_id: productId,
+                last_via_product_id: viaId,
+                return_loop_customer_cnt: 0
+            });
+        }
+        aggregated.get(key).return_loop_customer_cnt += customers;
+    });
+
+    return Array.from(aggregated.values());
+}
+
 function buildReturnQuadrantEdges(pointIdSet, selectedId) {
-    return (AppState.data.returnGravityLoopDetail || [])
+    return getNormalizedReturnLoopDetailRows()
         .filter((row) => String(firstDefinedValue(row.product_id, row.anchor_product_id, '')).trim() === selectedId)
         .filter((row) => {
             const lastVia = String(firstDefinedValue(row.last_via_product_id, row.via_product_id, row.intermediate_product_id, '')).trim();
@@ -514,7 +584,7 @@ function buildReturnQuadrantEdges(pointIdSet, selectedId) {
 function getReturnPatternSummary(selectedId) {
     const targetId = String(selectedId || '').trim();
     if (!targetId) return [];
-    return (AppState.data.returnGravityLoopDetail || [])
+    return getNormalizedReturnLoopDetailRows()
         .filter((row) => String(firstDefinedValue(row.product_id, row.anchor_product_id, '')).trim() === targetId)
         .map((row) => ({
             id: String(firstDefinedValue(row.last_via_product_id, row.via_product_id, row.intermediate_product_id, '')).trim(),
@@ -2183,6 +2253,1233 @@ function buildQuadrantStrategyModel(model) {
     };
 }
 
+function getRelativeRank(value, values) {
+    const nums = (values || []).filter((item) => Number.isFinite(item)).sort((a, b) => a - b);
+    if (!nums.length || !Number.isFinite(value)) return NaN;
+    if (nums.length === 1) return 1;
+    const epsilon = 1e-9;
+    let lower = 0;
+    while (lower < nums.length && nums[lower] < value - epsilon) lower += 1;
+    let upper = lower;
+    while (upper < nums.length && nums[upper] <= value + epsilon) upper += 1;
+    if (lower >= nums.length) return 1;
+    const avgIndex = ((lower + Math.max(lower, upper - 1)) / 2);
+    return avgIndex / Math.max(1, nums.length - 1);
+}
+
+function getPurposeSignalMeta(values) {
+    const finiteValues = (values || []).filter((value) => Number.isFinite(value));
+    const positiveValues = finiteValues.filter((value) => value > PURPOSE_REVIEW_SIGNAL_EPSILON);
+    const sortedPositiveValues = positiveValues.slice().sort((a, b) => b - a);
+    const max = finiteValues.length ? Math.max(...finiteValues) : 0;
+    const min = finiteValues.length ? Math.min(...finiteValues) : 0;
+    const positiveMax = positiveValues.length ? Math.max(...positiveValues) : 0;
+    const positiveMin = positiveValues.length ? Math.min(...positiveValues) : 0;
+    const spreadAbs = positiveValues.length > 1 ? Math.max(0, positiveMax - positiveMin) : 0;
+    const spreadRatio = positiveMax > PURPOSE_REVIEW_SIGNAL_EPSILON
+        ? spreadAbs / positiveMax
+        : 0;
+    const secondPositiveMax = sortedPositiveValues.length > 1 ? sortedPositiveValues[1] : 0;
+    const topGapAbs = sortedPositiveValues.length > 1
+        ? Math.max(0, positiveMax - secondPositiveMax)
+        : spreadAbs;
+    const topGapRatio = positiveMax > PURPOSE_REVIEW_SIGNAL_EPSILON
+        ? topGapAbs / positiveMax
+        : 0;
+    return {
+        values: finiteValues,
+        max,
+        min,
+        positiveValues,
+        positiveMin,
+        positiveMax,
+        spreadAbs,
+        spreadRatio,
+        secondPositiveMax,
+        topGapAbs,
+        topGapRatio,
+        hasData: positiveValues.length > 0 && (positiveMax > PURPOSE_REVIEW_SIGNAL_EPSILON || Math.abs(max - min) > PURPOSE_REVIEW_SIGNAL_EPSILON)
+    };
+}
+
+function getPurposeSignalSpreadProfile(signal, meta) {
+    const boundedScale = meta.max <= 1 + PURPOSE_REVIEW_SIGNAL_EPSILON
+        && meta.min >= -PURPOSE_REVIEW_SIGNAL_EPSILON;
+    const minSpreadRatio = signal.direct
+        ? PURPOSE_REVIEW_DIRECT_SPREAD_RATIO
+        : PURPOSE_REVIEW_INDIRECT_SPREAD_RATIO;
+    const minTopGapRatio = signal.direct
+        ? PURPOSE_REVIEW_DIRECT_TOP_GAP_RATIO
+        : PURPOSE_REVIEW_INDIRECT_TOP_GAP_RATIO;
+    const minSpreadAbs = boundedScale
+        ? (signal.direct ? PURPOSE_REVIEW_BOUNDED_DIRECT_SPREAD_ABS : PURPOSE_REVIEW_BOUNDED_INDIRECT_SPREAD_ABS)
+        : 0;
+    const minTopGapAbs = boundedScale
+        ? (signal.direct ? PURPOSE_REVIEW_BOUNDED_DIRECT_TOP_GAP_ABS : PURPOSE_REVIEW_BOUNDED_INDIRECT_TOP_GAP_ABS)
+        : 0;
+    const spreadAdequate = meta.positiveValues.length > 1 && (
+        meta.spreadRatio >= minSpreadRatio
+        || meta.topGapRatio >= minTopGapRatio
+        || meta.spreadAbs >= minSpreadAbs
+        || meta.topGapAbs >= minTopGapAbs
+    );
+    return {
+        boundedScale,
+        spreadAdequate,
+        scoreWeightMultiplier: spreadAdequate
+            ? 1
+            : (signal.direct ? PURPOSE_REVIEW_FLAT_DIRECT_SCORE_WEIGHT : PURPOSE_REVIEW_FLAT_INDIRECT_SCORE_WEIGHT)
+    };
+}
+
+function getPurposeSignalLead(primary, alternative, signal, meta) {
+    const primaryState = primary?.signalStates?.find((item) => item.key === signal.key) || null;
+    const alternativeState = alternative?.signalStates?.find((item) => item.key === signal.key) || null;
+    const spreadProfile = getPurposeSignalSpreadProfile(signal, meta);
+    const rawGap = Math.max(0, toNumber(primaryState?.rawValue, 0) - toNumber(alternativeState?.rawValue, 0));
+    const gapRatio = meta.positiveMax > PURPOSE_REVIEW_SIGNAL_EPSILON
+        ? rawGap / meta.positiveMax
+        : 0;
+    const minGapRatio = signal.direct
+        ? PURPOSE_REVIEW_DIRECT_COMPARE_GAP_RATIO
+        : PURPOSE_REVIEW_INDIRECT_COMPARE_GAP_RATIO;
+    const minGapAbs = spreadProfile.boundedScale
+        ? (signal.direct ? PURPOSE_REVIEW_BOUNDED_DIRECT_COMPARE_GAP_ABS : PURPOSE_REVIEW_BOUNDED_INDIRECT_COMPARE_GAP_ABS)
+        : 0;
+    const gapAdequate = Boolean(
+        spreadProfile.spreadAdequate
+        && primaryState?.isUsable
+        && alternativeState?.isUsable
+        && (
+            gapRatio >= minGapRatio
+            || rawGap >= minGapAbs
+        )
+    );
+
+    return {
+        primaryState,
+        alternativeState,
+        rawGap,
+        gapRatio,
+        gapAdequate,
+        spreadAdequate: spreadProfile.spreadAdequate,
+        weight: signal.weight,
+        direct: signal.direct
+    };
+}
+
+function summarizePurposeLead(primary, alternative, config, signalMeta) {
+    const leads = config.signals.map((signal) => getPurposeSignalLead(
+        primary,
+        alternative,
+        signal,
+        signalMeta[signal.key] || getPurposeSignalMeta([])
+    ));
+    const adequateLeads = leads.filter((lead) => lead.gapAdequate);
+    const directAdequateLeads = adequateLeads.filter((lead) => lead.direct);
+    return {
+        leads,
+        adequateLeadCount: adequateLeads.length,
+        adequateLeadWeight: adequateLeads.reduce((sum, lead) => sum + lead.weight, 0),
+        directAdequateLeadCount: directAdequateLeads.length,
+        directAdequateLeadWeight: directAdequateLeads.reduce((sum, lead) => sum + lead.weight, 0),
+        hasAdequateDirectLead: directAdequateLeads.length > 0
+    };
+}
+
+function getPurposeCandidateSignalState(signal, point, meta) {
+    const rawValue = toNumber(signal.accessor(point), NaN);
+    const rank = meta.hasData ? getRelativeRank(rawValue, meta.values) : 0;
+    const normalizedValue = meta.positiveMax > PURPOSE_REVIEW_SIGNAL_EPSILON && Number.isFinite(rawValue)
+        ? rawValue / meta.positiveMax
+        : 0;
+    const spreadProfile = getPurposeSignalSpreadProfile(signal, meta);
+    const usableRatioThreshold = signal.direct
+        ? PURPOSE_REVIEW_DIRECT_USABLE_RATIO
+        : PURPOSE_REVIEW_INDIRECT_USABLE_RATIO;
+    const usableRankThreshold = signal.direct
+        ? PURPOSE_REVIEW_DIRECT_USABLE_RANK
+        : PURPOSE_REVIEW_INDIRECT_USABLE_RANK;
+    const hasCandidateValue = Number.isFinite(rawValue);
+    const hasPositiveValue = hasCandidateValue && rawValue > PURPOSE_REVIEW_SIGNAL_EPSILON;
+    const isUsable = Boolean(
+        meta.hasData
+        && hasPositiveValue
+        && (
+            normalizedValue >= usableRatioThreshold
+            || (spreadProfile.spreadAdequate && Number.isFinite(rank) && rank >= usableRankThreshold)
+        )
+    );
+    const isStrong = Boolean(
+        isUsable
+        && spreadProfile.spreadAdequate
+        && (
+            normalizedValue >= PURPOSE_REVIEW_STRONG_SIGNAL_RATIO
+            || (Number.isFinite(rank) && rank >= PURPOSE_REVIEW_STRONG_SIGNAL_RANK)
+        )
+    );
+
+    return {
+        ...signal,
+        rawValue,
+        rank: Number.isFinite(rank) ? rank : 0,
+        hasData: meta.hasData,
+        hasCandidateValue,
+        hasPositiveValue,
+        normalizedValue,
+        spreadAdequate: spreadProfile.spreadAdequate,
+        scoreWeightMultiplier: spreadProfile.scoreWeightMultiplier,
+        isUsable,
+        isStrong
+    };
+}
+
+function joinKoreanLabels(labels = []) {
+    const cleaned = (labels || []).map((label) => String(label || '').trim()).filter(Boolean);
+    if (!cleaned.length) return '';
+    if (cleaned.length === 1) return cleaned[0];
+    if (cleaned.length === 2) return `${cleaned[0]}${hasBatchim(cleaned[0]) ? '과' : '와'} ${cleaned[1]}`;
+    return `${cleaned.slice(0, -1).join(', ')}, ${cleaned[cleaned.length - 1]}`;
+}
+
+function hasBatchim(text) {
+    const normalized = String(text || '').trim();
+    if (!normalized) return false;
+    const lastChar = normalized[normalized.length - 1];
+    const code = lastChar.charCodeAt(0);
+    if (code < 0xac00 || code > 0xd7a3) return false;
+    return (code - 0xac00) % 28 !== 0;
+}
+
+function buildTransitionSignalMap() {
+    const map = new Map();
+    const sourceRows = Array.isArray(AppState.data.productTransitionEdge) && AppState.data.productTransitionEdge.length
+        ? AppState.data.productTransitionEdge
+        : (AppState.data.anchorTransition || []);
+
+    const ensure = (id) => {
+        const normalizedId = String(id || '').trim();
+        if (!normalizedId) return null;
+        if (!map.has(normalizedId)) {
+            map.set(normalizedId, {
+                outboundCustomers: 0,
+                outboundPartners: new Set(),
+                inboundCustomers: 0,
+                inboundPartners: new Set()
+            });
+        }
+        return map.get(normalizedId);
+    };
+
+    sourceRows.forEach((row) => {
+        const sourceId = String(firstDefinedValue(row.source_product_id, row.aa_product_id, row.entry_product_id, '')).trim();
+        const targetId = String(firstDefinedValue(row.target_product_id, row.pca_product_id, row.expansion_product_id, '')).trim();
+        const customers = Math.max(0, toNumber(firstDefinedValue(row.transition_customer_cnt, row.transition_customers, 0), 0));
+        if (!sourceId || !targetId || sourceId === targetId || customers <= 0) return;
+        const source = ensure(sourceId);
+        const target = ensure(targetId);
+        if (!source || !target) return;
+        source.outboundCustomers += customers;
+        source.outboundPartners.add(targetId);
+        target.inboundCustomers += customers;
+        target.inboundPartners.add(sourceId);
+    });
+
+    map.forEach((value) => {
+        value.outboundPartnerCount = value.outboundPartners.size;
+        value.inboundPartnerCount = value.inboundPartners.size;
+    });
+    return map;
+}
+
+function buildReturnSignalMap() {
+    const map = new Map();
+    const ensure = (id) => {
+        const normalizedId = String(id || '').trim();
+        if (!normalizedId) return null;
+        if (!map.has(normalizedId)) {
+            map.set(normalizedId, {
+                loopCustomers: 0,
+                loopPartners: new Set()
+            });
+        }
+        return map.get(normalizedId);
+    };
+
+    getNormalizedReturnLoopDetailRows().forEach((row) => {
+        const productId = String(firstDefinedValue(row.product_id, row.anchor_product_id, '')).trim();
+        const viaId = String(firstDefinedValue(row.last_via_product_id, row.via_product_id, row.intermediate_product_id, '')).trim();
+        const customers = Math.max(0, toNumber(row.return_loop_customer_cnt, 0));
+        if (!productId || customers <= 0) return;
+        const target = ensure(productId);
+        if (!target) return;
+        target.loopCustomers += customers;
+        if (viaId && viaId !== productId) target.loopPartners.add(viaId);
+    });
+
+    map.forEach((value) => {
+        value.loopPartnerCount = value.loopPartners.size;
+    });
+    return map;
+}
+
+function buildBasketSignalMap() {
+    const map = new Map();
+    const ensure = (id) => {
+        const normalizedId = String(id || '').trim();
+        if (!normalizedId) return null;
+        if (!map.has(normalizedId)) {
+            map.set(normalizedId, {
+                support: 0,
+                partners: new Set()
+            });
+        }
+        return map.get(normalizedId);
+    };
+
+    (AppState.data.insightDemandGraphPatterns || [])
+        .filter((row) => String(row.pattern_type || '').trim() === 'basket_pair')
+        .forEach((row) => {
+            const anchorId = String(row.anchor_product_id || '').trim();
+            const ids = parseDemandGraphPatternIds(row);
+            const relatedIds = Array.from(new Set([anchorId, ...ids].filter(Boolean)));
+            if (relatedIds.length < 2) return;
+            const support = Math.max(0, toNumber(row.support_value, 0));
+            relatedIds.forEach((productId) => {
+                const target = ensure(productId);
+                if (!target) return;
+                target.support += support;
+                relatedIds.forEach((partnerId) => {
+                    if (partnerId && partnerId !== productId) {
+                        target.partners.add(partnerId);
+                    }
+                });
+            });
+        });
+
+    map.forEach((value) => {
+        value.partnerCount = value.partners.size;
+    });
+    return map;
+}
+
+function getPurposeConfigs(transitionSignals, returnSignals, basketSignals) {
+    return [
+        {
+            key: 'entry-growth',
+            title: '신규 유입 / 첫 구매 확대',
+            outcomeText: '신규 유입 확대 실험을 먼저 붙여볼 근거가 보여요.',
+            fallbackTradeoff: '다음 구매 연결이나 다시 찾는 구매는 다른 후보가 더 안정적일 수 있어요.',
+            selectedGoodText: '이 상품은 신규 유입이나 첫 구매 확대를 먼저 볼 때 잘 맞아요.',
+            selectedCautionText: '이 상품은 신규 유입이나 첫 구매 확대를 보조로 확인할 때 참고할 만해요.',
+            selectedWeakText: '이 상품은 신규 유입이나 첫 구매 확대만 보고 바로 밀기에는 아직 조심스러워요.',
+            selectedDataText: '이 상품은 신규 유입이나 첫 구매 확대로 보기에는 아직 근거가 부족해요.',
+            signals: [
+                {
+                    key: 'entryShare',
+                    label: '첫 구매 비중',
+                    weight: 0.42,
+                    direct: true,
+                    accessor: (point) => toNumber(point.entryDemandShare, 0)
+                },
+                {
+                    key: 'entryGravity',
+                    label: '첫 구매 유입 신호',
+                    weight: 0.38,
+                    direct: true,
+                    accessor: (point) => toNumber(point.entry, 0)
+                },
+                {
+                    key: 'weeklyDemand',
+                    label: '현재 수요 규모',
+                    weight: 0.20,
+                    direct: false,
+                    accessor: (point) => toNumber(point.weeklyForecast, 0)
+                }
+            ],
+            minDirectSignals: 1
+        },
+        {
+            key: 'next-purchase',
+            title: '다음 구매 연결 강화',
+            outcomeText: '첫 구매 뒤 이어지는 다음 구매 흐름을 점검하기 좋은 후보예요.',
+            fallbackTradeoff: '신규 유입 자체는 다른 후보가 더 빠르게 만들 수 있어요.',
+            selectedGoodText: '이 상품은 다음 구매 연결을 먼저 볼 때 중심 후보로 보기 좋아요.',
+            selectedCautionText: '이 상품은 다음 구매 연결을 보조로 점검할 때 참고할 만해요.',
+            selectedWeakText: '이 상품은 다음 구매 연결만 보고 강하게 해석하기에는 아직 조심스러워요.',
+            selectedDataText: '이 상품은 다음 구매 연결 목적으로 보기에는 아직 근거가 부족해요.',
+            signals: [
+                {
+                    key: 'expansionShare',
+                    label: '다음 구매 비중',
+                    weight: 0.30,
+                    direct: true,
+                    accessor: (point) => toNumber(point.expansionDemandShare, 0)
+                },
+                {
+                    key: 'continuityRate',
+                    label: '구매 지속성',
+                    weight: 0.26,
+                    direct: true,
+                    accessor: (point) => toNumber(point.repurchaseRate90d, 0)
+                },
+                {
+                    key: 'transitionOutCustomers',
+                    label: '직접 이어진 구매 수',
+                    weight: 0.26,
+                    direct: true,
+                    connection: true,
+                    accessor: (point) => toNumber(transitionSignals.get(point.id)?.outboundCustomers, 0)
+                },
+                {
+                    key: 'transitionOutPartners',
+                    label: '연결되는 제품 수',
+                    weight: 0.18,
+                    direct: false,
+                    accessor: (point) => toNumber(transitionSignals.get(point.id)?.outboundPartnerCount, 0)
+                }
+            ],
+            minDirectSignals: 2
+        },
+        {
+            key: 'return-strength',
+            title: '다시 찾는 구매 강화',
+            outcomeText: '다시 찾는 구매 유지 장치를 붙여볼 근거가 상대적으로 더 보여요.',
+            fallbackTradeoff: '첫 구매 확대 관점에서는 다른 후보가 더 선명할 수 있어요.',
+            selectedGoodText: '이 상품은 다시 찾는 구매를 붙잡는 용도로 먼저 보기 좋아요.',
+            selectedCautionText: '이 상품은 다시 찾는 구매를 보조로 관리할 때 참고할 만해요.',
+            selectedWeakText: '이 상품은 다시 찾는 구매 강화만 보고 바로 밀기에는 아직 조심스러워요.',
+            selectedDataText: '이 상품은 다시 찾는 구매 강화로 보기에는 아직 근거가 부족해요.',
+            signals: [
+                {
+                    key: 'returnGravity',
+                    label: '다시 찾는 구매 신호',
+                    weight: 0.42,
+                    direct: true,
+                    accessor: (point) => toNumber(point.returnScore, 0)
+                },
+                {
+                    key: 'returnLoopCustomers',
+                    label: '돌아오는 구매 수',
+                    weight: 0.24,
+                    direct: true,
+                    connection: true,
+                    accessor: (point) => toNumber(returnSignals.get(point.id)?.loopCustomers, 0)
+                },
+                {
+                    key: 'continuityRate',
+                    label: '구매 지속성',
+                    weight: 0.22,
+                    direct: false,
+                    accessor: (point) => toNumber(point.repurchaseRate90d, 0)
+                },
+                {
+                    key: 'returnLoopPartners',
+                    label: '되돌아오는 경로 수',
+                    weight: 0.12,
+                    direct: false,
+                    accessor: (point) => toNumber(returnSignals.get(point.id)?.loopPartnerCount, 0)
+                }
+            ],
+            minDirectSignals: 1
+        },
+        {
+            key: 'basket-expansion',
+            title: '함께 담기 확장',
+            outcomeText: '세트 제안이나 장바구니 노출을 검토하기에 상대적으로 유리해 보여요.',
+            fallbackTradeoff: '단독 구매 관점에서는 더 집중해서 봐야 할 후보가 따로 있을 수 있어요.',
+            selectedGoodText: '이 상품은 함께 담기 확장을 먼저 볼 때 활용하기 좋아요.',
+            selectedCautionText: '이 상품은 함께 담기 확장을 보조로 검토할 때 참고할 만해요.',
+            selectedWeakText: '이 상품은 함께 담기 확장만 보고 바로 밀기에는 아직 조심스러워요.',
+            selectedDataText: '이 상품은 함께 담기 확장으로 보기에는 아직 근거가 부족해요.',
+            signals: [
+                {
+                    key: 'basketSupport',
+                    label: '함께 담긴 주문 수',
+                    weight: 0.44,
+                    direct: true,
+                    connection: true,
+                    accessor: (point) => toNumber(basketSignals.get(point.id)?.support, 0)
+                },
+                {
+                    key: 'basketPartners',
+                    label: '함께 담긴 제품 수',
+                    weight: 0.24,
+                    direct: true,
+                    connection: true,
+                    accessor: (point) => toNumber(basketSignals.get(point.id)?.partnerCount, 0)
+                },
+                {
+                    key: 'weeklyDemand',
+                    label: '현재 수요 규모',
+                    weight: 0.18,
+                    direct: false,
+                    accessor: (point) => toNumber(point.weeklyForecast, 0)
+                },
+                {
+                    key: 'continuityRate',
+                    label: '구매 지속성',
+                    weight: 0.14,
+                    direct: false,
+                    accessor: (point) => toNumber(point.repurchaseRate90d, 0)
+                }
+            ],
+            minDirectSignals: 1
+        }
+    ];
+}
+
+function getPurposeCandidateSignalLabels(candidate, limit = 2) {
+    const states = candidate?.strongSignals?.length
+        ? candidate.strongSignals
+        : (candidate?.signalStates || [])
+            .filter((signal) => signal.isUsable)
+            .sort((a, b) => {
+                if (Number(b.direct) !== Number(a.direct)) return Number(b.direct) - Number(a.direct);
+                return b.rank - a.rank;
+            });
+    return states.slice(0, limit).map((signal) => signal.label);
+}
+
+function isPurposeCandidateSupported(candidate, config, minUsableSignals, requiresConnectionEvidence) {
+    return Boolean(
+        candidate
+        && candidate.availableSignalCount >= minUsableSignals
+        && candidate.directSignalCount >= config.minDirectSignals
+        && (!requiresConnectionEvidence || candidate.connectionSignalCount >= 1)
+    );
+}
+
+function getPurposeComparisonHoldGap(config, primary, alternative, requiresConnectionEvidence) {
+    const alternativeWeak = !alternative
+        || alternative.availableSignalCount < 2
+        || alternative.directSignalCount < Math.max(1, config.minDirectSignals)
+        || (requiresConnectionEvidence && alternative.connectionSignalCount < 1);
+    return Math.max(
+        PURPOSE_REVIEW_MIN_COMPARE_GAP,
+        PURPOSE_REVIEW_COMPARE_HOLD_GAP
+            + (primary?.directSignalCount > config.minDirectSignals ? 0 : 0.03)
+            + (alternativeWeak ? 0.03 : 0)
+            + (requiresConnectionEvidence && primary?.connectionSignalCount >= 1 ? 0 : 0.02)
+            + (primary?.strongSignalCount >= 2 ? 0 : 0.02)
+    );
+}
+
+function getPurposeGlobalEvidenceLabel(primary, config, minUsableSignals, requiresConnectionEvidence, comparisonNote, scoreGap, effectiveComparisonHoldGap, leadSummary) {
+    if (!primary) return '데이터가 부족합니다';
+    const hasRequiredDirect = primary.directSignalCount >= config.minDirectSignals;
+    const hasRequiredUsableSignals = primary.availableSignalCount >= minUsableSignals;
+    const hasConnectionEvidence = !requiresConnectionEvidence || primary.connectionSignalCount >= 1;
+    const directEvidenceStrong = primary.directStrongSignalCount >= config.minDirectSignals
+        || primary.directUsableWeight >= 0.5;
+    const usableEvidenceStrong = primary.strongSignalCount >= Math.max(2, config.minDirectSignals);
+    const hasAdequateDirectLead = !leadSummary || leadSummary.hasAdequateDirectLead;
+    if (
+        !comparisonNote
+        && hasRequiredDirect
+        && hasRequiredUsableSignals
+        && hasConnectionEvidence
+        && hasAdequateDirectLead
+        && primary.spreadReadyDirectSignalCount >= config.minDirectSignals
+        && directEvidenceStrong
+        && (!requiresConnectionEvidence || primary.strongConnectionSignalCount >= 1)
+        && usableEvidenceStrong
+        && scoreGap >= Math.max(PURPOSE_REVIEW_HIGH_CONFIDENCE_GAP, effectiveComparisonHoldGap + 0.05)
+    ) {
+        return '높음';
+    }
+    if (
+        hasRequiredDirect
+        && primary.availableSignalCount >= 2
+        && hasConnectionEvidence
+        && primary.spreadReadyDirectSignalCount >= 1
+        && primary.usableWeight >= 0.45
+        && primary.directUsableWeight >= 0.24
+        && scoreGap >= Math.max(PURPOSE_REVIEW_COMPARE_HOLD_GAP, effectiveComparisonHoldGap - 0.04)
+    ) {
+        return '보통';
+    }
+    return '낮음';
+}
+
+function getPurposeSelectedEvidenceLabel(candidate, config, minUsableSignals, requiresConnectionEvidence) {
+    if (!candidate) return '데이터가 부족합니다';
+    const hasRequiredDirect = candidate.directSignalCount >= config.minDirectSignals;
+    const hasConnectionEvidence = !requiresConnectionEvidence || candidate.connectionSignalCount >= 1;
+    if (
+        hasRequiredDirect
+        && candidate.availableSignalCount >= minUsableSignals
+        && hasConnectionEvidence
+        && candidate.spreadReadyDirectSignalCount >= config.minDirectSignals
+        && (candidate.directStrongSignalCount >= config.minDirectSignals || candidate.directUsableWeight >= 0.5)
+        && candidate.usableWeight >= 0.55
+    ) {
+        return '높음';
+    }
+    if (
+        candidate.availableSignalCount >= 2
+        && candidate.directSignalCount >= Math.max(1, config.minDirectSignals - 1)
+        && (!requiresConnectionEvidence || candidate.connectionSignalCount >= 1)
+        && candidate.spreadReadyDirectSignalCount >= 1
+        && candidate.usableWeight >= 0.32
+    ) {
+        return '보통';
+    }
+    if (candidate.availableSignalCount >= 1 || candidate.directSignalCount >= 1) {
+        return '낮음';
+    }
+    return '데이터가 부족합니다';
+}
+
+function describePurposeDataGap(candidate, config, requiresConnectionEvidence) {
+    if (!candidate) return '이 상품을 바로 해석할 만큼 확인된 목적 신호가 아직 없어요.';
+    if (candidate.directSignalCount >= Math.max(1, config.minDirectSignals) && candidate.spreadReadyDirectSignalCount < 1) {
+        return '이 상품과 다른 후보들 차이가 아직 크지 않아 목적을 단정하기 어려워요.';
+    }
+    if (candidate.directSignalCount < Math.max(1, config.minDirectSignals)) {
+        return '직접 확인되는 목적 신호가 아직 충분하지 않아요.';
+    }
+    if (requiresConnectionEvidence && candidate.connectionSignalCount < 1) {
+        return '직접 이어지거나 함께 담기는 연결 근거가 아직 약해요.';
+    }
+    return '상대 비교에 쓸 만큼 일관된 신호가 충분하지 않아요.';
+}
+
+function getPurposeSelectedExpectedEffectText(purposeKey, fitKey) {
+    const normalizedFitKey = String(fitKey || '').trim();
+    if (normalizedFitKey === 'insufficient') {
+        return '기대효과를 읽기에는 근거가 아직 부족해요.';
+    }
+
+    const cautiousMode = normalizedFitKey === 'caution' || normalizedFitKey === 'weak';
+    switch (String(purposeKey || '').trim()) {
+    case 'entry-growth':
+        return cautiousMode
+            ? '첫 구매 유입을 넓히는 실험을 작게 붙여볼 참고 후보로 볼 수 있어요.'
+            : '첫 구매 유입을 넓히는 실험 후보로 볼 수 있어요.';
+    case 'next-purchase':
+        return cautiousMode
+            ? '다음 구매 연결 흐름을 보조적으로 점검하는 데 참고할 수 있어요.'
+            : '다음 구매 연결 흐름을 점검하는 데 도움을 줄 수 있어요.';
+    case 'return-strength':
+        return cautiousMode
+            ? '다시 찾는 구매 유지 장치를 작게 검토하는 데 참고할 수 있어요.'
+            : '다시 찾는 구매 유지 장치를 검토하는 데 참고할 수 있어요.';
+    case 'basket-expansion':
+        return cautiousMode
+            ? '함께 담기 제안 노출을 보조적으로 검토하는 데 의미가 있어요.'
+            : '함께 담기 제안 노출을 검토하는 데 의미가 있어요.';
+    default:
+        return cautiousMode
+            ? '이 목적에 맞는 운영 실험을 작게 검토하는 데 참고할 수 있어요.'
+            : '이 목적에 맞는 운영 실험을 검토하는 데 참고할 수 있어요.';
+    }
+}
+
+function getPurposeSelectedActionText(purposeKey, fitKey) {
+    const normalizedFitKey = String(fitKey || '').trim();
+    if (normalizedFitKey === 'insufficient') {
+        return '이 목적은 지금 바로 쓰기보다 데이터가 더 쌓이는지 먼저 확인해보세요.';
+    }
+
+    const cautiousMode = normalizedFitKey === 'caution' || normalizedFitKey === 'weak';
+    switch (String(purposeKey || '').trim()) {
+    case 'entry-growth':
+        return cautiousMode
+            ? '신규 유입이나 첫 구매 실험은 작은 범위에서만 참고해보세요.'
+            : '신규 유입이나 첫 구매 확대 후보로 먼저 확인해보세요.';
+    case 'next-purchase':
+        return cautiousMode
+            ? '첫 구매 뒤 이어지는 다음 구매 흐름을 보조로만 점검해보세요.'
+            : '첫 구매 뒤 이어지는 다음 구매 흐름부터 먼저 점검해보세요.';
+    case 'return-strength':
+        return cautiousMode
+            ? '다시 찾는 구매 관리 장치는 작은 범위에서만 참고해보세요.'
+            : '다시 찾는 구매를 붙잡는 운영 장치부터 먼저 검토해보세요.';
+    case 'basket-expansion':
+        return cautiousMode
+            ? '함께 담기 제안은 보조 시나리오로만 가볍게 확인해보세요.'
+            : '함께 담기 제안이나 세트 노출 후보로 먼저 검토해보세요.';
+    default:
+        return cautiousMode
+            ? '이 목적은 보조 용도로만 가볍게 참고해보세요.'
+            : '이 목적부터 먼저 검토해보세요.';
+    }
+}
+
+function buildSelectedProductGuideSummary(purposes) {
+    if (!Array.isArray(purposes) || !purposes.length) return null;
+
+    const primary = purposes.find((purpose) => purpose.fitKey !== 'insufficient') || purposes[0];
+    const secondary = purposes.find((purpose) => (
+        purpose.key !== primary.key && (purpose.fitKey === 'good' || purpose.fitKey === 'caution')
+    )) || null;
+    const lowConfidenceCount = purposes.filter((purpose) => (
+        purpose.key !== primary.key
+        && (!secondary || purpose.key !== secondary.key)
+        && (purpose.fitKey === 'weak' || purpose.fitKey === 'insufficient')
+    )).length;
+
+    let headline = '이 상품은 목적을 하나로 바로 밀기보다 기초 데이터부터 더 보는 편이 좋아요.';
+    let toneKey = 'insufficient';
+    if (primary.fitKey === 'good') {
+        headline = `이 상품은 지금 ${primary.title} 쪽을 먼저 보는 편이 좋아요.`;
+        toneKey = 'good';
+    } else if (primary.fitKey === 'caution') {
+        headline = `이 상품은 지금 ${primary.title}부터 가볍게 확인해보세요.`;
+        toneKey = 'caution';
+    } else if (primary.fitKey === 'weak') {
+        headline = `이 상품은 특정 목적 하나를 바로 밀기보다 ${primary.title}부터 조심스럽게 확인해보세요.`;
+        toneKey = 'weak';
+    }
+
+    const secondaryText = secondary
+        ? `${secondary.title}는 보조적으로 함께 보세요.`
+        : lowConfidenceCount > 0
+            ? '다른 목적은 아직 강하게 보이지 않아 보조 참고 정도로만 보세요.'
+            : '한 목적만 과하게 넓혀 읽지 않는 편이 좋아요.';
+
+    const noteText = primary.fitKey === 'good'
+        ? '먼저 보기와 함께 보기만 잡아도 지금 어디에 쓸지 훨씬 빨리 정리돼요.'
+        : primary.fitKey === 'caution'
+            ? '강한 단독 용도보다는 1순위 참고 목적을 먼저 정하는 데 써보세요.'
+            : '지금은 강한 확신보다 보수적인 해석이 더 안전해요.';
+
+    return {
+        headline,
+        secondaryText,
+        noteText,
+        toneKey
+    };
+}
+
+function buildPurposeAnalysisModel(model) {
+    if (!model?.selected || !Array.isArray(model.points) || model.points.length < 1) return [];
+
+    const selectedId = String(model.selected.id || '').trim();
+    const transitionSignals = buildTransitionSignalMap();
+    const returnSignals = buildReturnSignalMap();
+    const basketSignals = buildBasketSignalMap();
+    const points = model.points || [];
+    const purposeConfigs = getPurposeConfigs(transitionSignals, returnSignals, basketSignals);
+
+    return purposeConfigs.map((config) => {
+        const signalMeta = {};
+        config.signals.forEach((signal) => {
+            const values = points
+                .map((point) => toNumber(signal.accessor(point), NaN))
+                .filter((value) => Number.isFinite(value));
+            signalMeta[signal.key] = getPurposeSignalMeta(values);
+        });
+
+        const candidates = points.map((point) => {
+            const signalStates = config.signals.map((signal) => getPurposeCandidateSignalState(
+                signal,
+                point,
+                signalMeta[signal.key] || getPurposeSignalMeta([])
+            ));
+            const score = signalStates.reduce((sum, signal) => (
+                sum + ((signal.isUsable ? signal.rank * signal.scoreWeightMultiplier : 0) * signal.weight)
+            ), 0);
+            const availableSignalCount = signalStates.filter((signal) => signal.isUsable).length;
+            const directSignalCount = signalStates.filter((signal) => signal.direct && signal.isUsable).length;
+            const strongSignalCount = signalStates.filter((signal) => signal.isStrong).length;
+            const directStrongSignalCount = signalStates.filter((signal) => signal.direct && signal.isStrong).length;
+            const connectionSignalCount = signalStates.filter((signal) => signal.connection && signal.isUsable).length;
+            const strongConnectionSignalCount = signalStates.filter((signal) => signal.connection && signal.isStrong).length;
+            const spreadReadySignalCount = signalStates.filter((signal) => signal.isUsable && signal.spreadAdequate).length;
+            const spreadReadyDirectSignalCount = signalStates.filter((signal) => signal.direct && signal.isUsable && signal.spreadAdequate).length;
+            const usableWeight = signalStates.reduce((sum, signal) => (
+                sum + (signal.isUsable ? signal.weight : 0)
+            ), 0);
+            const directUsableWeight = signalStates.reduce((sum, signal) => (
+                sum + (signal.direct && signal.isUsable ? signal.weight : 0)
+            ), 0);
+            const strongSignals = signalStates
+                .filter((signal) => signal.isUsable)
+                .sort((a, b) => {
+                    if (Number(b.isStrong) !== Number(a.isStrong)) return Number(b.isStrong) - Number(a.isStrong);
+                    if (Number(b.direct) !== Number(a.direct)) return Number(b.direct) - Number(a.direct);
+                    return b.rank - a.rank;
+                })
+                .slice(0, 2);
+            return {
+                point,
+                score,
+                availableSignalCount,
+                directSignalCount,
+                strongSignalCount,
+                directStrongSignalCount,
+                connectionSignalCount,
+                strongConnectionSignalCount,
+                spreadReadySignalCount,
+                spreadReadyDirectSignalCount,
+                usableWeight,
+                directUsableWeight,
+                signalStates,
+                strongSignals
+            };
+        }).sort((a, b) => {
+            const scoreDiff = b.score - a.score;
+            if (Math.abs(scoreDiff) > 1e-9) return scoreDiff;
+            return toNumber(b.point.revenue90d, 0) - toNumber(a.point.revenue90d, 0);
+        });
+
+        const minUsableSignals = Math.max(2, config.minDirectSignals + 1);
+        const requiresConnectionEvidence = config.signals.some((signal) => signal.connection);
+        const selectedCandidate = candidates.find((candidate) => String(candidate.point.id || '').trim() === selectedId) || null;
+        const signalCandidateCoverage = {};
+        config.signals.forEach((signal) => {
+            signalCandidateCoverage[signal.key] = candidates.filter((candidate) => (
+                candidate.signalStates.find((state) => state.key === signal.key)?.isUsable
+            )).length;
+        });
+        const meaningfulDirectSignals = config.signals
+            .filter((signal) => signal.direct && (signalCandidateCoverage[signal.key] || 0) >= 2)
+            .length;
+        const comparisonReadyDirectSignals = config.signals
+            .filter((signal) => {
+                if (!signal.direct) return false;
+                if ((signalCandidateCoverage[signal.key] || 0) < 2) return false;
+                return getPurposeSignalSpreadProfile(signal, signalMeta[signal.key] || getPurposeSignalMeta([])).spreadAdequate;
+            })
+            .length;
+        const supportedCandidates = candidates.filter((candidate) => (
+            isPurposeCandidateSupported(candidate, config, minUsableSignals, requiresConnectionEvidence)
+        ));
+        const rankedCandidates = supportedCandidates.length ? supportedCandidates : candidates;
+        const primary = rankedCandidates[0] || null;
+        const primaryDirectWeak = !primary || primary.directSignalCount < config.minDirectSignals;
+        const isDataInsufficient = (
+            points.length < 2
+            || supportedCandidates.length < 2
+            || meaningfulDirectSignals < config.minDirectSignals
+            || comparisonReadyDirectSignals < 1
+            || primaryDirectWeak
+        );
+
+        if (isDataInsufficient) {
+            const flatDirectEvidence = comparisonReadyDirectSignals < 1 && meaningfulDirectSignals >= 1;
+            return {
+                config,
+                key: config.key,
+                title: config.title,
+                status: 'insufficient',
+                minUsableSignals,
+                requiresConnectionEvidence,
+                selectedCandidate,
+                primary: null,
+                alternative: null,
+                reasonText: '데이터가 부족합니다',
+                strengthText: flatDirectEvidence
+                    ? '후보들 사이 차이가 크지 않아 지금은 목적별 우선 후보를 가르기 어려워요.'
+                    : '목적별 우선 후보를 나눌 만큼 직접 연결 근거가 충분하지 않아요.',
+                tradeoffText: flatDirectEvidence
+                    ? '작은 차이를 크게 해석하지 않도록 지금은 비교를 보수적으로 보는 편이 안전해요.'
+                    : '추가 패턴 데이터가 쌓일 때까지는 목적별 비교를 보수적으로 보는 편이 안전해요.',
+                evidenceLabel: '데이터가 부족합니다',
+                comparisonNote: '',
+                effectiveComparisonHoldGap: PURPOSE_REVIEW_MIN_COMPARE_GAP,
+                usedSignals: config.signals.map((signal) => signal.label)
+            };
+        }
+
+        const alternative = rankedCandidates.find((candidate) => (
+            String(candidate.point.id || '').trim() !== String(primary?.point?.id || '').trim()
+        )) || null;
+        const topSignalLabels = getPurposeCandidateSignalLabels(primary);
+        const reasonText = topSignalLabels.length
+            ? `${joinKoreanLabels(topSignalLabels)} 기준에서 상대적으로 앞서 있어 먼저 비교해볼 만해요.`
+            : '보이는 근거 수가 가장 많아 먼저 비교해볼 만해요.';
+        const altAdvantage = alternative
+            ? alternative.signalStates
+                .map((signal) => ({
+                    label: signal.label,
+                    gap: (signal.isUsable ? signal.rank : 0) - ((primary.signalStates.find((item) => item.key === signal.key)?.isUsable)
+                        ? (primary.signalStates.find((item) => item.key === signal.key)?.rank || 0)
+                        : 0)
+                }))
+                .sort((a, b) => b.gap - a.gap)[0]
+            : null;
+        const strengthText = topSignalLabels.length
+            ? `${joinKoreanLabels(topSignalLabels)} 기준에서 상대적으로 앞서 ${config.outcomeText}`
+            : config.outcomeText;
+        const tradeoffText = alternative && altAdvantage && altAdvantage.gap > 0.12
+            ? `다른 후보가 ${altAdvantage.label} 쪽에서는 더 나을 수 있어 함께 비교해야 해요.`
+            : config.fallbackTradeoff;
+        const scoreGap = primary && alternative ? Math.max(0, primary.score - alternative.score) : 1;
+        const primaryWeak = !isPurposeCandidateSupported(primary, config, minUsableSignals, requiresConnectionEvidence);
+        const alternativeWeak = !alternative
+            || alternative.availableSignalCount < 2
+            || alternative.directSignalCount < Math.max(1, config.minDirectSignals)
+            || (requiresConnectionEvidence && alternative.connectionSignalCount < 1);
+        const leadSummary = summarizePurposeLead(primary, alternative, config, signalMeta);
+        const effectiveComparisonHoldGap = getPurposeComparisonHoldGap(
+            config,
+            primary,
+            alternative,
+            requiresConnectionEvidence
+        );
+        const comparisonNote = !alternative
+            ? '비교 보류'
+            : primaryWeak || alternativeWeak || scoreGap < effectiveComparisonHoldGap || !leadSummary.hasAdequateDirectLead
+                ? '비교 보류'
+                : '';
+        const evidenceLabel = getPurposeGlobalEvidenceLabel(
+            primary,
+            config,
+            minUsableSignals,
+            requiresConnectionEvidence,
+            comparisonNote,
+            scoreGap,
+            effectiveComparisonHoldGap,
+            leadSummary
+        );
+
+        return {
+            config,
+            key: config.key,
+            title: config.title,
+            status: 'ready',
+            minUsableSignals,
+            requiresConnectionEvidence,
+            selectedCandidate,
+            primary,
+            alternative,
+            reasonText,
+            strengthText,
+            tradeoffText,
+            evidenceLabel,
+            comparisonNote,
+            effectiveComparisonHoldGap,
+            usedSignals: config.signals.map((signal) => signal.label)
+        };
+    });
+}
+
+function getPurposeAnalysisModel(model) {
+    if (!model) return [];
+    if (!Array.isArray(model._purposeAnalysis)) {
+        model._purposeAnalysis = buildPurposeAnalysisModel(model);
+    }
+    return model._purposeAnalysis;
+}
+
+function buildSelectedProductUsePanelModel(model) {
+    const purposes = getPurposeAnalysisModel(model);
+    return purposes.map((purpose) => {
+        const { config, selectedCandidate, primary, minUsableSignals, requiresConnectionEvidence } = purpose;
+        const signalLabels = getPurposeCandidateSignalLabels(selectedCandidate);
+        const comparisonHeld = purpose.comparisonNote === '비교 보류';
+        let evidenceLabel = purpose.status === 'insufficient'
+            ? '데이터가 부족합니다'
+            : getPurposeSelectedEvidenceLabel(selectedCandidate, config, minUsableSignals, requiresConnectionEvidence);
+        if (comparisonHeld && evidenceLabel === '높음') {
+            evidenceLabel = '보통';
+        }
+        const selectedGapToPrimary = primary && selectedCandidate
+            ? Math.max(0, primary.score - selectedCandidate.score)
+            : 0;
+        const closeGapThreshold = Math.max(PURPOSE_REVIEW_COMPARE_HOLD_GAP, purpose.effectiveComparisonHoldGap - 0.06);
+        const selectedSupported = isPurposeCandidateSupported(
+            selectedCandidate,
+            config,
+            minUsableSignals,
+            requiresConnectionEvidence
+        );
+        const selectedPartiallySupported = Boolean(
+            selectedCandidate
+            && selectedCandidate.availableSignalCount >= 2
+            && selectedCandidate.directSignalCount >= Math.max(1, config.minDirectSignals - 1)
+            && (!requiresConnectionEvidence || selectedCandidate.connectionSignalCount >= 1)
+        );
+        const isPrimary = Boolean(
+            primary
+            && selectedCandidate
+            && String(primary.point.id || '').trim() === String(selectedCandidate.point.id || '').trim()
+        );
+        let fitKey = 'insufficient';
+        if (
+            purpose.status !== 'insufficient'
+            && evidenceLabel !== '데이터가 부족합니다'
+            && selectedCandidate
+        ) {
+            if (selectedSupported && (isPrimary || selectedGapToPrimary <= closeGapThreshold) && evidenceLabel !== '낮음') {
+                fitKey = 'good';
+            } else if (selectedPartiallySupported || selectedCandidate.strongSignalCount >= 1 || selectedCandidate.directSignalCount >= 1) {
+                fitKey = 'caution';
+            } else {
+                fitKey = 'weak';
+            }
+        }
+
+        const baseFitKey = fitKey;
+        const wasCappedByComparisonHold = comparisonHeld && baseFitKey === 'good';
+        if (wasCappedByComparisonHold) {
+            fitKey = 'caution';
+        }
+
+        const fitLabel = fitKey === 'good'
+            ? '활용 가능'
+            : fitKey === 'caution'
+                ? '보조 활용 가능'
+                : fitKey === 'weak'
+                    ? '주의 필요'
+                    : '데이터 부족';
+        const summaryText = fitKey === 'good'
+            ? config.selectedGoodText
+            : fitKey === 'caution'
+                ? config.selectedCautionText
+                : fitKey === 'weak'
+                    ? config.selectedWeakText
+                    : config.selectedDataText;
+        const reasonText = fitKey === 'insufficient'
+            ? describePurposeDataGap(selectedCandidate, config, requiresConnectionEvidence)
+            : signalLabels.length
+                ? fitKey === 'good'
+                    ? `${joinKoreanLabels(signalLabels)} 기준이 먼저 보여요.`
+                    : fitKey === 'caution'
+                        ? (wasCappedByComparisonHold
+                            ? `${joinKoreanLabels(signalLabels)} 기준이 보여 참고 용도로는 볼 수 있어요.`
+                            : `${joinKoreanLabels(signalLabels)} 기준이 일부 보여 보조 참고용으로는 볼 수 있어요.`)
+                        : `${joinKoreanLabels(signalLabels)} 기준은 일부 있지만 직접 근거 폭은 아직 좁아요.`
+                : '확인된 신호 수가 많지 않아 해석 폭을 좁게 잡는 편이 안전해요.';
+        const cautionText = fitKey === 'insufficient'
+            ? purpose.tradeoffText
+            : comparisonHeld && (fitKey === 'good' || fitKey === 'caution')
+                ? '같은 목적 안에서는 이 상품만 단독으로 보지 말고 다른 후보와 함께 비교해보는 편이 좋아요.'
+                : fitKey === 'good'
+                    ? (isPrimary
+                        ? '이 목적 강점을 다른 목적까지 함께 확대 해석하지 않는 편이 좋아요.'
+                        : '같은 목적 안에서 더 선명한 후보가 있는지는 별도로 비교해야 해요.')
+                    : fitKey === 'caution'
+                        ? (selectedGapToPrimary > purpose.effectiveComparisonHoldGap
+                            ? '같은 목적 안에서 더 강한 후보가 있을 수 있어 이 상품 단독 강점으로 단정하긴 어려워요.'
+                            : '직접 연결 근거가 더 쌓이면 판단이 달라질 수 있어요.')
+                        : '이 목적 하나만 보고 바로 밀기보다 다른 활용 맥락과 함께 보는 편이 안전해요.';
+        const bridgeText = comparisonHeld && (fitKey === 'good' || fitKey === 'caution')
+            ? '이 목적에 활용은 가능하지만, 다른 후보 대비 우선이라고 확정할 정도로 차이가 크진 않아요.'
+            : '';
+
+        return {
+            key: purpose.key,
+            title: purpose.title,
+            fitKey,
+            fitLabel,
+            summaryText,
+            reasonText,
+            actionText: getPurposeSelectedActionText(purpose.key, fitKey),
+            expectedEffectText: getPurposeSelectedExpectedEffectText(purpose.key, fitKey),
+            cautionText,
+            bridgeText,
+            evidenceLabel,
+            score: selectedCandidate?.score || 0
+        };
+    }).sort((a, b) => {
+        const order = { good: 0, caution: 1, weak: 2, insufficient: 3 };
+        const diff = (order[a.fitKey] ?? 9) - (order[b.fitKey] ?? 9);
+        if (diff !== 0) return diff;
+        return b.score - a.score;
+    }).map((purpose, index) => ({
+        ...purpose,
+        priorityClass: index === 0
+            ? 'is-priority-primary'
+            : index === 1
+                ? 'is-priority-secondary'
+                : 'is-priority-rest',
+        priorityLabel: index === 0
+            ? '먼저 보기'
+            : index === 1
+                ? '함께 보기'
+                : (purpose.fitKey === 'weak' || purpose.fitKey === 'insufficient')
+                    ? '지금은 약함'
+                    : '후순위 확인'
+    }));
+}
+
+function renderPurposeCandidate(candidate, selectedId, label, fallbackText) {
+    if (!candidate?.point) {
+        return `
+            <div class="pgm-purpose-option is-empty">
+                <label>${escapeHtml(label)}</label>
+                <p>${escapeHtml(fallbackText || '비교 보류')}</p>
+            </div>
+        `;
+    }
+
+    const isCurrent = String(candidate.point.id || '').trim() === String(selectedId || '').trim();
+    const signalLabels = getPurposeCandidateSignalLabels(candidate);
+    const optionNote = signalLabels.length
+        ? label === '함께 볼 후보'
+            ? `${joinKoreanLabels(signalLabels)} 기준도 같이 보여 비교용으로 보기 좋아요.`
+            : `${joinKoreanLabels(signalLabels)} 기준이 먼저 보여요.`
+        : label === '함께 볼 후보'
+            ? '비교용으로 같이 볼 후보예요.'
+            : '상대 비교용 후보예요.';
+
+    return `
+        <div class="pgm-purpose-option">
+            <label>${escapeHtml(label)}</label>
+            <div class="pgm-purpose-option-row">
+                <strong title="${escapeHtml(candidate.point.name)}">${escapeHtml(candidate.point.name)}</strong>
+                ${isCurrent ? '<span class="pgm-purpose-option-badge is-current">현재 보고 있는 상품</span>' : ''}
+            </div>
+            <p>${escapeHtml(optionNote)}</p>
+        </div>
+    `;
+}
+
+function renderSelectedProductUsePanel(model) {
+    const purposes = buildSelectedProductUsePanelModel(model);
+    if (!purposes.length) return '';
+    const summary = buildSelectedProductGuideSummary(purposes);
+
+    return `
+        <section class="pgm-side-section-card pgm-side-section-card--selected-use">
+            <div class="pgm-side-section-head">
+                <h4>선택 상품 활용 가이드</h4>
+                <p class="pgm-selected-use-helper">현재 보고 있는 상품을 각 목적에 활용할 수 있는지 읽는 레이어예요.</p>
+            </div>
+            ${summary ? `
+                <div class="pgm-selected-use-summary is-${summary.toneKey}">
+                    <p class="pgm-selected-use-summary-eyebrow">한눈에 보기</p>
+                    <strong>${escapeHtml(summary.headline)}</strong>
+                    <p class="pgm-selected-use-summary-sub">${escapeHtml(summary.secondaryText)}</p>
+                    <p class="pgm-selected-use-summary-note">${escapeHtml(summary.noteText)}</p>
+                </div>
+            ` : ''}
+            <div class="pgm-selected-use-list">
+                ${purposes.map((purpose) => `
+                    <article class="pgm-selected-use-card is-${purpose.fitKey} ${purpose.priorityClass}">
+                        <div class="pgm-selected-use-head">
+                            <div class="pgm-selected-use-head-copy">
+                                <h5>${escapeHtml(purpose.title)}</h5>
+                                <p>${escapeHtml(purpose.summaryText)}</p>
+                            </div>
+                            <div class="pgm-selected-use-head-meta">
+                                <span class="pgm-selected-use-rank">${escapeHtml(purpose.priorityLabel)}</span>
+                                <span class="pgm-selected-use-badge is-${purpose.fitKey}">${escapeHtml(purpose.fitLabel)}</span>
+                            </div>
+                        </div>
+                        ${purpose.priorityClass === 'is-priority-rest' ? `
+                            <div class="pgm-selected-use-compact-list">
+                                <p><strong>먼저 해볼 일</strong><span>${escapeHtml(purpose.actionText)}</span></p>
+                                <p><strong>왜 이렇게 보나</strong><span>${escapeHtml(purpose.reasonText)}</span></p>
+                                <p><strong>주의</strong><span>${escapeHtml(purpose.cautionText)}</span></p>
+                            </div>
+                            <p class="pgm-selected-use-evidence">근거 수준 · ${escapeHtml(purpose.evidenceLabel)}</p>
+                            ${purpose.bridgeText ? `<p class="pgm-selected-use-bridge">${escapeHtml(purpose.bridgeText)}</p>` : ''}
+                        ` : `
+                            <div class="pgm-selected-use-detail-grid">
+                                <div class="pgm-action-row pgm-action-row--highlight">
+                                    <label>먼저 해볼 일</label>
+                                    <p>${escapeHtml(purpose.actionText)}</p>
+                                </div>
+                                <div class="pgm-action-row">
+                                    <label>보는 근거</label>
+                                    <p>${escapeHtml(purpose.reasonText)}</p>
+                                </div>
+                                <div class="pgm-action-row">
+                                    <label>기대하는 활용</label>
+                                    <p>${escapeHtml(purpose.expectedEffectText)}</p>
+                                </div>
+                                <div class="pgm-action-row">
+                                    <label>주의할 점</label>
+                                    <p>${escapeHtml(purpose.cautionText)}</p>
+                                </div>
+                                <div class="pgm-action-row">
+                                    <label>근거 수준</label>
+                                    <p>${escapeHtml(purpose.evidenceLabel)}</p>
+                                </div>
+                                ${purpose.bridgeText ? `
+                                    <div class="pgm-action-row">
+                                        <label>전체 비교와 같이 보면</label>
+                                        <p>${escapeHtml(purpose.bridgeText)}</p>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `}
+                    </article>
+                `).join('')}
+            </div>
+        </section>
+    `;
+}
+
+function renderPurposeCandidateComparisonLayer(model) {
+    const purposes = getPurposeAnalysisModel(model);
+    if (!purposes.length) return '';
+
+    const selectedId = String(model?.selected?.id || '').trim();
+    return `
+        <section class="pgm-products-purpose-layer">
+            <div class="pgm-products-purpose-layer-head">
+                <div class="pgm-core-demand-head">
+                    <h3>전체 구조 기준 목적별 비교 후보</h3>
+                    <p class="pgm-core-desc">현재 선택 상품과 별개로, 전체 구조에서 목적별로 먼저 볼 후보와 함께 볼 후보를 정리한 레이어예요.</p>
+                </div>
+            </div>
+            <div class="pgm-purpose-review-list pgm-purpose-review-list--global">
+                ${purposes.map((purpose) => {
+                    const comparisonHeld = purpose.comparisonNote === '비교 보류';
+                    const primaryLabel = comparisonHeld ? '참고 후보' : '우선 후보';
+                    const alternativeLabel = comparisonHeld ? '함께 볼 후보' : '대안 후보';
+                    const alternativeFallbackText = comparisonHeld
+                        ? '지금은 한쪽만 고르기보다 함께 비교해보세요.'
+                        : '비교 보류';
+                    return `
+                    <article class="pgm-purpose-review-card ${purpose.status === 'insufficient' ? 'is-insufficient' : ''}">
+                        <div class="pgm-purpose-review-head">
+                            <div>
+                                <h5>${escapeHtml(purpose.title)}</h5>
+                                ${purpose.comparisonNote ? `<p class="pgm-purpose-review-status">${escapeHtml(purpose.comparisonNote)}</p>` : ''}
+                            </div>
+                            <span class="pgm-purpose-evidence-badge ${purpose.evidenceLabel === '높음' ? 'is-high' : purpose.evidenceLabel === '보통' ? 'is-medium' : ''}">${escapeHtml(purpose.evidenceLabel)}</span>
+                        </div>
+                        ${purpose.status === 'insufficient' ? `
+                            <div class="pgm-purpose-review-empty">데이터가 부족합니다</div>
+                            <div class="pgm-purpose-review-detail-grid">
+                                <div class="pgm-action-row">
+                                    <label>왜 지금은 보류하나</label>
+                                    <p>${escapeHtml(purpose.strengthText)}</p>
+                                </div>
+                                <div class="pgm-action-row">
+                                    <label>판단 시 주의할 점</label>
+                                    <p>${escapeHtml(purpose.tradeoffText)}</p>
+                                </div>
+                            </div>
+                        ` : `
+                            <div class="pgm-purpose-review-option-grid">
+                                ${renderPurposeCandidate(purpose.primary, selectedId, primaryLabel, comparisonHeld ? '지금은 참고 후보만 보여요.' : '비교 보류')}
+                                ${renderPurposeCandidate(
+                                    purpose.alternative,
+                                    selectedId,
+                                    alternativeLabel,
+                                    alternativeFallbackText
+                                )}
+                            </div>
+                            <div class="pgm-purpose-review-detail-grid">
+                                <div class="pgm-action-row">
+                                    <label>${comparisonHeld ? '왜 참고 후보로 보나' : '왜 이 후보를 먼저 보나'}</label>
+                                    <p>${escapeHtml(purpose.reasonText)}</p>
+                                </div>
+                                <div class="pgm-action-row">
+                                    <label>${comparisonHeld ? '같이 볼 점' : '주의할 점'}</label>
+                                    <p>${escapeHtml(purpose.tradeoffText)}</p>
+                                </div>
+                                <div class="pgm-action-row">
+                                    <label>근거 수준</label>
+                                    <p>${escapeHtml(purpose.evidenceLabel)}${purpose.comparisonNote ? ` · ${escapeHtml(purpose.comparisonNote)}` : ''}</p>
+                                </div>
+                            </div>
+                        `}
+                    </article>
+                `;}).join('')}
+            </div>
+        </section>
+    `;
+}
+
 function getRoleLevelLabel(level) {
     if (level === '높음') return '강함';
     if (level === '낮음') return '약함';
@@ -2292,6 +3589,8 @@ function renderQuadrantPanel(model) {
                     </div>
                 </div>
             </section>
+
+            ${renderSelectedProductUsePanel(model)}
 
             <!-- 5. 장바구니 확장 힌트 -->
             <section class="pgm-side-section-card">
@@ -3385,20 +4684,29 @@ function renderCoreDemandSortTabs(currentSortKey) {
     `;
 }
 
-function renderProductsTableOnly(model = null) {
+function renderProductsTableOnly(model = null, quadrantModel = null) {
     if (document.body.id !== 'page-products') return;
     const summaryCard = document.getElementById('products-summary-card');
     if (!summaryCard) return;
 
     const resolvedModel = model || buildCoreDemandTableModel();
+    const resolvedQuadrantModel = quadrantModel || buildQuadrantModel(
+        getScopedProductsData(),
+        AppState.viewState.products?.quadrant?.selectedId,
+        AppState.viewState.products?.quadrant?.scaleMode || 'focus',
+        AppState.viewState.products?.quadrant?.scope || 'retention-emphasis',
+        AppState.viewState.products?.quadrant?.edgeMode || 'representative'
+    );
     const qSelectedId = String(AppState.viewState.products?.quadrant?.selectedId || '').trim();
     const focusEntityId = String(AppState.helpers.focusEntityId || qSelectedId).trim();
     const emphasisMode = getProductsScopeMode();
     const currentSortKey = resolvedModel.currentSortKey;
     const rows = buildCoreDemandRowsHtml(resolvedModel.rows, focusEntityId, emphasisMode, currentSortKey);
     const rankColumnLabel = getProductsCoreRankColumnLabel(currentSortKey);
+    const purposeLayer = resolvedQuadrantModel ? renderPurposeCandidateComparisonLayer(resolvedQuadrantModel) : '';
 
     summaryCard.innerHTML = `
+        ${purposeLayer}
         <div class="pgm-product-table-card">
             <div class="pgm-product-table-top">
                 <div class="pgm-core-demand-head">
@@ -3467,7 +4775,7 @@ function renderProducts() {
         ensureDemandGraphResizeHandler();
         scheduleDemandGraphEdgeLayout();
     }
-    renderProductsTableOnly(coreDemandModel);
+    renderProductsTableOnly(coreDemandModel, quadrantModel);
 
     const restoreProductsScrollPosition = (scrollX, scrollY) => {
         const restore = () => window.scrollTo(scrollX, scrollY);
@@ -3538,7 +4846,7 @@ function renderProducts() {
             ensureDemandGraphResizeHandler();
             scheduleDemandGraphEdgeLayout();
         }
-        renderProductsTableOnly(nextCoreDemandModel);
+        renderProductsTableOnly(nextCoreDemandModel, nextQuadrantModel);
         if (preserveScroll) {
             restoreProductsScrollPosition(scrollX, scrollY);
         }
