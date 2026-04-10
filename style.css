@@ -9325,8 +9325,7 @@ body {
     cursor: pointer;
 }
 
-.pgm-usage-candidate-chip:hover,
-.pgm-usage-candidate-chip.is-selected {
+.pgm-usage-candidate-chip:hover {
     border-color: #b7c3d0;
     background: #f7fafc;
 }
@@ -9387,7 +9386,7 @@ body {
 }
 
 .pgm-usage-table {
-    min-width: 1100px;
+    min-width: 1220px;
 }
 
 .pgm-usage-table th {
@@ -9476,6 +9475,34 @@ body {
     color: var(--dark-100);
 }
 
+.pgm-usage-row-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.pgm-usage-row-actions button,
+.pgm-usage-action-toggle {
+    min-height: 30px;
+    padding: 0 10px;
+    border: 1px solid var(--gray-200);
+    border-radius: 6px;
+    background: #ffffff;
+    color: var(--dark-600);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.35;
+    cursor: pointer;
+}
+
+.pgm-usage-row-actions button:hover,
+.pgm-usage-action-toggle:hover,
+.pgm-usage-action-toggle.is-on {
+    border-color: #b7c3d0;
+    background: #f7fafc;
+    color: var(--dark-800);
+}
+
 .pgm-usage-selected-panel {
     position: sticky;
     top: 0;
@@ -9491,6 +9518,17 @@ body {
     gap: 8px;
     align-items: end;
     margin-bottom: 14px;
+}
+
+.pgm-usage-compare-slot {
+    grid-column: 1;
+}
+
+.pgm-usage-selector-hint {
+    align-self: center;
+    color: var(--dark-100);
+    font-size: 12px;
+    line-height: 1.4;
 }
 
 .pgm-usage-product-selector button {
@@ -9631,6 +9669,128 @@ body {
     line-height: 1.35;
 }
 
+.pgm-usage-context-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.pgm-usage-context-list p {
+    display: grid;
+    grid-template-columns: 74px minmax(0, 1fr);
+    gap: 8px;
+    margin: 0;
+    padding: 8px;
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    background: #fbfcfd;
+}
+
+.pgm-usage-context-list strong {
+    color: var(--dark-600);
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.pgm-usage-context-list span {
+    color: var(--dark-800);
+    font-size: 12px;
+    line-height: 1.45;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.pgm-usage-action-review,
+.pgm-usage-action-compare {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    padding: 10px;
+    border: 1px solid #dce3ea;
+    border-radius: 8px;
+    background: #fbfcfd;
+}
+
+.pgm-usage-action-review.is-missing {
+    border-style: dashed;
+    background: #ffffff;
+}
+
+.pgm-usage-action-review.is-compact {
+    height: 100%;
+}
+
+.pgm-usage-action-review strong,
+.pgm-usage-action-compare > strong {
+    color: var(--dark-800);
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.35;
+}
+
+.pgm-usage-action-review p {
+    margin: 0;
+    color: var(--dark-800);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.pgm-usage-action-review p span {
+    display: block;
+    margin-bottom: 2px;
+    color: var(--dark-100);
+    font-weight: 700;
+}
+
+.pgm-usage-action-review small {
+    color: var(--dark-100);
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.pgm-usage-compare-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.pgm-usage-compare-column,
+.pgm-usage-compare-action-column {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    padding: 10px;
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    background: #ffffff;
+}
+
+.pgm-usage-compare-column h5,
+.pgm-usage-compare-action-column h5 {
+    overflow: hidden;
+    color: var(--dark-800);
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.35;
+    letter-spacing: 0;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pgm-usage-pair-read {
+    padding: 9px 10px;
+    border-radius: 8px;
+    background: #f7fafc;
+    color: var(--dark-800) !important;
+}
+
+.pgm-usage-muted-copy {
+    color: var(--dark-100) !important;
+    font-size: 12px !important;
+    line-height: 1.45 !important;
+}
+
 @media (max-width: 1280px) {
     .pgm-usage-workspace {
         grid-template-columns: minmax(0, 1fr);
@@ -9670,11 +9830,13 @@ body {
     .pgm-usage-filter-grid,
     .pgm-usage-summary-strip,
     .pgm-usage-purpose-board-grid,
-    .pgm-usage-product-selector {
+    .pgm-usage-product-selector,
+    .pgm-usage-compare-grid {
         grid-template-columns: minmax(0, 1fr);
     }
 
-    .pgm-usage-search-label {
+    .pgm-usage-search-label,
+    .pgm-usage-compare-slot {
         grid-column: auto;
     }
 
@@ -9685,6 +9847,10 @@ body {
     }
 
     .pgm-usage-purpose-facts {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .pgm-usage-context-list p {
         grid-template-columns: minmax(0, 1fr);
     }
 }

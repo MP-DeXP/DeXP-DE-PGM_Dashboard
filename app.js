@@ -113,6 +113,11 @@ const REQUIRED_FILES = {
         key: 'product_purpose_effects',
         filename: 'pgm_product_purpose_effects.csv',
         aliases: ['product_purpose_effects.csv']
+    },
+    productPurposeActionCandidates: {
+        key: 'product_purpose_action_candidates',
+        filename: 'pgm_product_purpose_action_candidates.csv',
+        aliases: ['product_purpose_action_candidates.csv']
     }
 };
 
@@ -140,7 +145,8 @@ const AppState = {
         brandStructureTimeseries: [],
         apfActionRules: [],
         productGroupMap: [],
-        productPurposeEffects: []
+        productPurposeEffects: [],
+        productPurposeActionCandidates: []
     },
     rawData: {
         brandScore: null,
@@ -164,7 +170,8 @@ const AppState = {
         brandStructureTimeseries: [],
         apfActionRules: [],
         productGroupMap: [],
-        productPurposeEffects: []
+        productPurposeEffects: [],
+        productPurposeActionCandidates: []
     },
     viewState: {
         brand: {
@@ -3713,7 +3720,11 @@ async function init() {
             AppState.rawData.productPurposeEffects = keys.length
                 ? await loadOptionalDataFromDB(REQUIRED_FILES.productPurposeEffects, [])
                 : [];
+            AppState.rawData.productPurposeActionCandidates = keys.length
+                ? await loadOptionalDataFromDB(REQUIRED_FILES.productPurposeActionCandidates, [])
+                : [];
             AppState.data.productPurposeEffects = AppState.rawData.productPurposeEffects;
+            AppState.data.productPurposeActionCandidates = AppState.rawData.productPurposeActionCandidates;
             renderPgmUsage();
             applyFriendlyUi(document.body);
             return;

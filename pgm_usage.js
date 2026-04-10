@@ -14,16 +14,16 @@ const PGM_USAGE_PURPOSES = [
         guide: '첫 구매 이후의 연결 가능성을 검토합니다.'
     },
     {
-        key: 'return-strength',
-        label: '다시 찾는 구매 강화',
-        shortLabel: '재방문 구매',
-        guide: '반복 구매나 회귀 흐름의 근거를 검토합니다.'
-    },
-    {
         key: 'basket-expansion',
         label: '함께 담기 확장',
         shortLabel: '함께 담기',
         guide: '동시 구매와 장바구니 확장 가능성을 검토합니다.'
+    },
+    {
+        key: 'return-strength',
+        label: '다시 찾는 구매 강화',
+        shortLabel: '재방문 구매',
+        guide: '반복 구매나 회귀 흐름의 근거를 검토합니다.'
     }
 ];
 
@@ -61,32 +61,80 @@ const PGM_USAGE_ELIGIBILITY_LABELS = {
 };
 
 const PGM_USAGE_ROLE_LABELS = {
-    core_merchandise: '핵심 상품',
-    bundle_or_set: '세트/번들',
+    gift_or_freebie: '사은품/증정',
+    threshold_or_reward: '조건부 리워드',
+    service_or_non_merch: '비상품성 항목',
     trial_or_entry_kit: '체험/유입 키트',
-    gift_or_promo: '증정/프로모션',
-    accessory_or_refill: '액세서리/리필'
+    accessory_or_addon: '액세서리/추가구성',
+    bundle_or_set: '세트/번들',
+    core_merchandise: '일반 상품',
+    unknown: '분류 미상'
 };
 
 const PGM_USAGE_METRIC_LABELS = {
+    first_customer_cnt: '첫 구매 고객수',
+    first_customer_ratio: '첫 구매 고객 비중',
+    incoming_transition_customer_cnt_90d: '유입 전이 고객수',
+    transition_rate_sum_effective_90d: '전이율 합계',
     attach_rate: '함께 담김률',
     breadth_lift: '확장 폭',
     entry_customer_ratio: '첫 구매 고객 비중',
     entry_demand_share: '신규 수요 비중',
     transition_rate: '다음 구매 전환율',
     return_customer_rate: '재구매 고객 비중',
+    return_customer_rate_90d: '재구매 고객 비중',
     return_demand_share: '재구매 수요 비중',
+    return_loop_rate_90d: '리턴 루프 비율',
     repeat_rate: '반복 구매율',
-    revenue_90d: '최근 90일 매출'
+    revenue_90d: '최근 90일 매출',
+    effect_signal_score: '신호 점수',
+    effect_maturity_score: '성숙도 점수'
 };
 
 const PGM_USAGE_RATIONALE_LABELS = {
-    basket_signal_present: '함께 담김 근거가 관측됨',
+    eligibility_excluded: '적격성 정책상 목적 후보에서 제외됨',
+    entry_evidence_insufficient: '신규 유입 목적 근거가 부족함',
+    entry_signal_emerging: '신규 유입 신호가 초기 수준',
+    entry_signal_present: '신규 유입 신호가 관측됨',
+    entry_signal_strong: '신규 유입 신호가 강함',
+    entry_hold_weak: '첫 구매 이후 유지 근거가 약함',
+    transition_evidence_insufficient: '다음 구매 전이 근거가 부족함',
+    transition_signal_emerging: '다음 구매 전이 신호가 초기 수준',
+    transition_signal_present: '다음 구매 전이 신호가 관측됨',
+    transition_signal_strong: '다음 구매 전이 신호가 강함',
+    transition_compare_weak: '전이 경로 비교 구조가 약함',
+    transition_slow: '관측 전이 속도가 느림',
+    basket_evidence_insufficient: '함께 담기 근거가 부족함',
     basket_signal_emerging: '함께 담김 신호가 초기 수준',
+    basket_signal_present: '함께 담김 근거가 관측됨',
+    basket_signal_strong: '함께 담김 신호가 강함',
     basket_pattern_not_typed: '구체 조합 유형은 추가 확인 필요',
     basket_compare_weak: '비교 우위는 제한적',
-    basket_evidence_insufficient: '함께 담김 근거가 부족함',
-    downweighted_candidate: '후보 가중치가 낮게 반영됨'
+    return_evidence_insufficient: '리턴 강화 근거가 부족함',
+    return_signal_emerging: '리턴 강화 신호가 초기 수준',
+    return_signal_present: '리턴 강화 신호가 관측됨',
+    return_signal_strong: '리턴 강화 신호가 강함',
+    return_compare_weak: '리턴 비교 구조가 약함',
+    return_cycle_long: '리턴 주기가 길어 선행 확인이 필요함',
+    downweighted_candidate: '후보 가중치가 낮게 반영됨',
+    evidence_supported: '관측 근거가 판정에 반영됨'
+};
+
+const PGM_USAGE_RATIONALE_PREFIX_LABELS = {
+    gift_or_freebie: '사은품/증정 제외 규칙',
+    threshold_or_reward: '조건부 리워드 제외 규칙',
+    service_or_non_merch: '비상품성 항목 제외 규칙',
+    trial_or_entry_kit: '체험/유입 키트 보수 반영 규칙',
+    accessory_or_addon: '액세서리/추가구성 보수 반영 규칙',
+    bundle_or_set: '세트/번들 분류 규칙',
+    core_merchandise: '일반 상품 기본 규칙',
+    unknown: '상품명 분류 미상'
+};
+
+const PGM_USAGE_RELATED_CONTEXT_LABELS = {
+    transition_source: '주요 유입 전이 상품',
+    basket_companion: '주요 동반구매 상품',
+    return_source: '주요 리턴 연관 상품'
 };
 
 const PGM_USAGE_SCOPE_ORDER = {
@@ -144,6 +192,14 @@ function pgmUsageNormalizeKey(value) {
     return String(value || '').trim();
 }
 
+function pgmUsageJoinKey(snapshotName, productId, purposeKey) {
+    return [
+        pgmUsageNormalizeKey(snapshotName),
+        pgmUsageNormalizeKey(productId),
+        pgmUsageNormalizeKey(purposeKey)
+    ].join('::');
+}
+
 function pgmUsageNormalizeBoolean(value) {
     const normalized = String(value ?? '').trim().toLowerCase();
     return ['true', '1', 'yes', 'y'].includes(normalized);
@@ -152,6 +208,26 @@ function pgmUsageNormalizeBoolean(value) {
 function pgmUsageLabel(map, value, fallback = '-') {
     const key = pgmUsageNormalizeKey(value);
     return map[key] || key || fallback;
+}
+
+function pgmUsageSplitPipe(value) {
+    return String(value || '')
+        .split('|')
+        .map((token) => token.trim())
+        .filter(Boolean);
+}
+
+function pgmUsageRationaleLabel(code) {
+    const raw = pgmUsageNormalizeKey(code);
+    if (!raw) return '';
+    if (PGM_USAGE_RATIONALE_LABELS[raw]) return PGM_USAGE_RATIONALE_LABELS[raw];
+    const [prefix, detail] = raw.split(':', 2);
+    if (PGM_USAGE_RATIONALE_PREFIX_LABELS[prefix]) {
+        return detail
+            ? `${PGM_USAGE_RATIONALE_PREFIX_LABELS[prefix]} · ${detail}`
+            : PGM_USAGE_RATIONALE_PREFIX_LABELS[prefix];
+    }
+    return `추가 근거 코드 · ${raw}`;
 }
 
 function pgmUsagePurposeMeta(key) {
@@ -188,10 +264,50 @@ function pgmUsageNormalizeRow(row) {
         rationaleCode: pgmUsageNormalizeKey(normalized.effect_rationale_code),
         signalScore,
         maturityScore,
+        observedAvgDaysToTransition90d: normalized.observed_avg_days_to_transition_90d ?? normalized.incoming_avg_days_to_transition_90d,
+        transitionSourceProductIdsTop3: pgmUsageNormalizeKey(normalized.transition_source_product_ids_top3),
+        transitionSourceProductNamesTop3: pgmUsageNormalizeKey(normalized.transition_source_product_names_top3),
+        basketRelatedProductIdsTop3: pgmUsageNormalizeKey(normalized.basket_related_product_ids_top3),
+        basketRelatedProductNamesTop3: pgmUsageNormalizeKey(normalized.basket_related_product_names_top3),
+        returnSourceProductIdsTop3: pgmUsageNormalizeKey(normalized.return_source_product_ids_top3),
+        returnSourceProductNamesTop3: pgmUsageNormalizeKey(normalized.return_source_product_names_top3),
         merchandiseRole: pgmUsageNormalizeKey(normalized.merchandise_role),
         eligibility: pgmUsageNormalizeKey(normalized.purpose_candidate_eligibility),
         weightMultiplier: normalized.purpose_candidate_weight_multiplier,
-        eligibilityRuleMatched: pgmUsageNormalizeKey(normalized.eligibility_rule_matched)
+        eligibilityRuleMatched: pgmUsageNormalizeKey(normalized.eligibility_rule_matched),
+        action: null
+    };
+}
+
+function pgmUsageNormalizeActionRow(row) {
+    const normalized = typeof normalizeCsvRows === 'function'
+        ? normalizeCsvRows([row])[0]
+        : (row || {});
+    return {
+        snapshotName: pgmUsageNormalizeKey(normalized.snapshot_name),
+        productId: pgmUsageNormalizeKey(normalized.product_id),
+        productName: pgmUsageNormalizeKey(normalized.product_name_latest),
+        purposeKey: pgmUsageNormalizeKey(normalized.purpose_key),
+        status: pgmUsageNormalizeKey(normalized.effect_status),
+        scope: pgmUsageNormalizeKey(normalized.effect_scope),
+        confidence: pgmUsageNormalizeKey(normalized.effect_confidence),
+        recommendedActionType: pgmUsageNormalizeKey(normalized.recommended_action_type),
+        recommendedActionKo: pgmUsageNormalizeKey(normalized.recommended_action_ko),
+        expectedEffectKo: pgmUsageNormalizeKey(normalized.expected_effect_ko),
+        expectedEffectMetric: pgmUsageNormalizeKey(normalized.expected_effect_metric),
+        expectedEffectDirection: pgmUsageNormalizeKey(normalized.expected_effect_direction),
+        expectedEffectConfidence: pgmUsageNormalizeKey(normalized.expected_effect_confidence),
+        actionPriority: pgmUsageNumber(normalized.action_priority, NaN),
+        actionRationaleCode: pgmUsageNormalizeKey(normalized.action_rationale_code),
+        guardrailKo: pgmUsageNormalizeKey(normalized.guardrail_ko),
+        basketRelatedProductsTop3Ko: pgmUsageNormalizeKey(normalized.basket_related_products_top3_ko),
+        relatedProductContextType: pgmUsageNormalizeKey(normalized.related_product_context_type),
+        relatedProductIdsTop3: pgmUsageNormalizeKey(normalized.related_product_ids_top3),
+        relatedProductNamesTop3: pgmUsageNormalizeKey(normalized.related_product_names_top3),
+        sourceEffectPrimaryMetric: pgmUsageNormalizeKey(normalized.source_effect_primary_metric),
+        sourceEffectPrimaryMetricValue: normalized.source_effect_primary_metric_value,
+        sourceEffectSecondaryMetric: pgmUsageNormalizeKey(normalized.source_effect_secondary_metric),
+        sourceEffectSecondaryMetricValue: normalized.source_effect_secondary_metric_value
     };
 }
 
@@ -220,9 +336,33 @@ function pgmUsageCompareRows(a, b) {
 
 function pgmUsageRows() {
     const source = AppState?.data?.productPurposeEffects || AppState?.rawData?.productPurposeEffects || [];
+    const actionIndex = pgmUsageActionIndex();
     return (source || [])
         .map(pgmUsageNormalizeRow)
-        .filter((row) => row.productId && row.purposeKey);
+        .filter((row) => row.productId && row.purposeKey)
+        .map((row) => ({
+            ...row,
+            action: actionIndex.get(pgmUsageJoinKey(row.snapshotName, row.productId, row.purposeKey)) || null
+        }));
+}
+
+function pgmUsageActionRows() {
+    const source = AppState?.data?.productPurposeActionCandidates || AppState?.rawData?.productPurposeActionCandidates || [];
+    return (source || [])
+        .map(pgmUsageNormalizeActionRow)
+        .filter((row) => row.snapshotName && row.productId && row.purposeKey);
+}
+
+function pgmUsageActionIndex() {
+    const index = new Map();
+    pgmUsageActionRows().forEach((row) => {
+        const key = pgmUsageJoinKey(row.snapshotName, row.productId, row.purposeKey);
+        const existing = index.get(key);
+        if (!existing || pgmUsageNumber(row.actionPriority, -1) > pgmUsageNumber(existing.actionPriority, -1)) {
+            index.set(key, row);
+        }
+    });
+    return index;
 }
 
 function pgmUsageProducts(rows) {
@@ -260,8 +400,25 @@ function pgmUsageCurrentState() {
             eligibilityFilter: 'all',
             productSearch: '',
             selectedProductId: '',
-            selectedPurposeKey: ''
+            compareProductId: '',
+            selectedPurposeKey: '',
+            actionReviewOpen: true
         };
+    }
+    if (typeof AppState.viewState.pgmUsage.compareProductId !== 'string') {
+        AppState.viewState.pgmUsage.compareProductId = '';
+    }
+    if (typeof AppState.viewState.pgmUsage.selectedPurposeKey !== 'string') {
+        AppState.viewState.pgmUsage.selectedPurposeKey = '';
+    }
+    if (typeof AppState.viewState.pgmUsage.actionReviewOpen !== 'boolean') {
+        AppState.viewState.pgmUsage.actionReviewOpen = true;
+    }
+    if (
+        AppState.viewState.pgmUsage.compareProductId
+        && AppState.viewState.pgmUsage.compareProductId === AppState.viewState.pgmUsage.selectedProductId
+    ) {
+        AppState.viewState.pgmUsage.compareProductId = '';
     }
     return AppState.viewState.pgmUsage;
 }
@@ -295,26 +452,39 @@ function pgmUsageSummary(rows) {
     };
 }
 
-function pgmUsageBuildModel() {
-    const state = pgmUsageCurrentState();
-    const rows = pgmUsageRows();
-    const filteredRows = pgmUsageApplyFilters(rows, state).sort(pgmUsageCompareRows);
-    const products = pgmUsageProducts(rows);
-    const selectedProduct = products.find((product) => product.productId === state.selectedProductId) || null;
-    const selectedRows = rows
-        .filter((row) => row.productId === state.selectedProductId)
+function pgmUsageRowsForProduct(rows, productId) {
+    return rows
+        .filter((row) => row.productId === productId)
         .sort((a, b) => {
             const aIndex = PGM_USAGE_PURPOSES.findIndex((purpose) => purpose.key === a.purposeKey);
             const bIndex = PGM_USAGE_PURPOSES.findIndex((purpose) => purpose.key === b.purposeKey);
             return (aIndex === -1 ? 99 : aIndex) - (bIndex === -1 ? 99 : bIndex);
         });
+}
+
+function pgmUsageBuildModel() {
+    const state = pgmUsageCurrentState();
+    const rows = pgmUsageRows();
+    const actionRows = pgmUsageActionRows();
+    const filteredRows = pgmUsageApplyFilters(rows, state).sort(pgmUsageCompareRows);
+    const products = pgmUsageProducts(rows);
+    const selectedProduct = products.find((product) => product.productId === state.selectedProductId) || null;
+    const compareProduct = products.find((product) => product.productId === state.compareProductId) || null;
+    if (!selectedProduct && state.selectedProductId) state.selectedProductId = '';
+    if (!compareProduct && state.compareProductId) state.compareProductId = '';
+    const selectedRows = selectedProduct ? pgmUsageRowsForProduct(rows, selectedProduct.productId) : [];
+    const compareRows = compareProduct ? pgmUsageRowsForProduct(rows, compareProduct.productId) : [];
 
     return {
         rows,
+        actionRows,
         filteredRows,
         products,
         selectedProduct,
+        compareProduct,
         selectedRows,
+        compareRows,
+        selectedCount: [selectedProduct, compareProduct].filter(Boolean).length,
         snapshotLabel: pgmUsageSnapshotLabel(rows),
         summary: pgmUsageSummary(filteredRows),
         state
@@ -415,6 +585,7 @@ function pgmUsageRenderContext(model) {
         <div class="pgm-usage-context">
             <span>스냅샷: <strong>${pgmUsageEscape(model.snapshotLabel)}</strong></span>
             <span>행: <strong>${pgmUsageFormatNumber(model.rows.length)}</strong></span>
+            <span>액션 후보: <strong>${pgmUsageFormatNumber(model.actionRows.length)}</strong></span>
             <span>상품: <strong>${pgmUsageFormatNumber(model.products.length)}</strong></span>
             <span>현재 표시: <strong>${pgmUsageFormatNumber(model.filteredRows.length)}</strong></span>
         </div>
@@ -505,7 +676,7 @@ function pgmUsageRenderPurposeBoards(model) {
                         </div>
                         <div class="pgm-usage-purpose-list">
                             ${topRows.length ? topRows.map((row) => `
-                                <button type="button" class="pgm-usage-candidate-chip ${model.state.selectedProductId === row.productId ? 'is-selected' : ''}"
+                                <button type="button" class="pgm-usage-candidate-chip"
                                     onclick="selectPgmUsageProduct('${pgmUsageEscapeJsAttr(row.productId)}', '${pgmUsageEscapeJsAttr(row.purposeKey)}')">
                                     <span>${pgmUsageEscape(row.productName || row.productId)}</span>
                                     <small>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_SCOPE_LABELS, row.scope))} · ${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_LEVEL_LABELS, row.confidence))}</small>
@@ -549,12 +720,12 @@ function pgmUsageRenderCandidateTable(model) {
                             <th>근거</th>
                             <th>주의</th>
                             <th>상품 역할</th>
+                            <th>선택</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${rows.length ? rows.map((row) => `
-                            <tr class="clickable ${model.state.selectedProductId === row.productId ? 'row-focused' : ''}"
-                                onclick="selectPgmUsageProduct('${pgmUsageEscapeJsAttr(row.productId)}', '${pgmUsageEscapeJsAttr(row.purposeKey)}')">
+                            <tr>
                                 <td>
                                     <div class="pgm-usage-product-cell">
                                         <strong>${pgmUsageEscape(row.productName || row.productId)}</strong>
@@ -574,10 +745,16 @@ function pgmUsageRenderCandidateTable(model) {
                                 </td>
                                 <td><div class="pgm-usage-badge-stack">${pgmUsageFlagBadges(row)}</div></td>
                                 <td>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_ROLE_LABELS, row.merchandiseRole))}</td>
+                                <td>
+                                    <div class="pgm-usage-row-actions">
+                                        <button type="button" onclick="selectPgmUsageProduct('${pgmUsageEscapeJsAttr(row.productId)}', '${pgmUsageEscapeJsAttr(row.purposeKey)}')">가이드 보기</button>
+                                        <button type="button" onclick="addPgmUsageCompareProduct('${pgmUsageEscapeJsAttr(row.productId)}', '${pgmUsageEscapeJsAttr(row.purposeKey)}')">비교 추가</button>
+                                    </div>
+                                </td>
                             </tr>
                         `).join('') : `
                             <tr>
-                                <td colspan="8" class="pgm-usage-empty-cell">현재 필터에서 표시할 후보가 없습니다.</td>
+                                <td colspan="9" class="pgm-usage-empty-cell">현재 필터에서 표시할 후보가 없습니다.</td>
                             </tr>
                         `}
                     </tbody>
@@ -606,7 +783,7 @@ function pgmUsageRenderProductSelector(model) {
     return `
         <div class="pgm-usage-product-selector">
             <label>
-                <span>상품 선택</span>
+                <span>기준 상품</span>
                 <select onchange="selectPgmUsageProduct(this.value, '')">
                     <option value="">상품을 선택하세요</option>
                     ${model.products.map((product) => `
@@ -619,8 +796,157 @@ function pgmUsageRenderProductSelector(model) {
             ${model.state.selectedProductId ? `
                 <button type="button" onclick="clearPgmUsageSelectedProduct()">선택 해제</button>
             ` : ''}
+            ${model.state.selectedProductId ? `
+                <label class="pgm-usage-compare-slot">
+                    <span>비교 추가</span>
+                    <select onchange="addPgmUsageCompareProduct(this.value, '')">
+                        <option value="">두 번째 상품을 선택하세요</option>
+                        ${model.products
+                            .filter((product) => product.productId !== model.state.selectedProductId)
+                            .map((product) => `
+                                <option value="${pgmUsageEscape(product.productId)}" ${model.state.compareProductId === product.productId ? 'selected' : ''}>
+                                    ${pgmUsageEscape(product.productName)} (${pgmUsageEscape(product.productId)})
+                                </option>
+                            `).join('')}
+                    </select>
+                </label>
+                ${model.state.compareProductId ? `
+                    <button type="button" onclick="clearPgmUsageCompareProduct()">비교 해제</button>
+                ` : '<span class="pgm-usage-selector-hint">두 상품까지만 비교할 수 있습니다.</span>'}
+            ` : ''}
         </div>
     `;
+}
+
+function pgmUsageRowsByPurpose(rows) {
+    return new Map((rows || []).map((row) => [row.purposeKey, row]));
+}
+
+function pgmUsageFormatRelatedProducts(idsText, namesText, maxItems = 3) {
+    const ids = pgmUsageSplitPipe(idsText);
+    const names = pgmUsageSplitPipe(namesText);
+    const items = [];
+    for (let i = 0; i < maxItems; i += 1) {
+        const name = names[i] || '';
+        const id = ids[i] || '';
+        if (name && id) items.push(`${name}(${id})`);
+        else if (name) items.push(name);
+        else if (id) items.push(id);
+    }
+    return items.join(', ');
+}
+
+function pgmUsageEffectRelatedContext(row) {
+    if (!row) return null;
+    if (row.purposeKey === 'next-purchase') {
+        const text = pgmUsageFormatRelatedProducts(row.transitionSourceProductIdsTop3, row.transitionSourceProductNamesTop3);
+        return text ? { label: '전이 유입 상품', text } : null;
+    }
+    if (row.purposeKey === 'basket-expansion') {
+        const text = pgmUsageFormatRelatedProducts(row.basketRelatedProductIdsTop3, row.basketRelatedProductNamesTop3);
+        return text ? { label: '동반구매 상품', text } : null;
+    }
+    if (row.purposeKey === 'return-strength') {
+        const text = pgmUsageFormatRelatedProducts(row.returnSourceProductIdsTop3, row.returnSourceProductNamesTop3);
+        return text ? { label: '리턴 연관 상품', text } : null;
+    }
+    return null;
+}
+
+function pgmUsageTransitionDaysText(row) {
+    if (!row || row.purposeKey !== 'next-purchase') return '';
+    const days = pgmUsageNumber(row.observedAvgDaysToTransition90d, NaN);
+    if (!Number.isFinite(days) || days <= 0) return '';
+    return `관측 평균 전이 약 ${Math.round(days)}일`;
+}
+
+function pgmUsageRenderRationale(row) {
+    const labels = pgmUsageSplitPipe(row?.rationaleCode)
+        .map(pgmUsageRationaleLabel)
+        .filter(Boolean);
+    if (!labels.length) return '';
+    return `
+        <div class="pgm-usage-rationale" aria-label="근거 코드">
+            ${labels.slice(0, 4).map((label) => `<span>${pgmUsageEscape(label)}</span>`).join('')}
+        </div>
+    `;
+}
+
+function pgmUsageRenderEffectContext(row) {
+    if (!row) return '';
+    const related = pgmUsageEffectRelatedContext(row);
+    const transitionDays = pgmUsageTransitionDaysText(row);
+    const eligibilityText = row.eligibilityRuleMatched || row.eligibility
+        ? `${pgmUsageLabel(PGM_USAGE_ELIGIBILITY_LABELS, row.eligibility, '적격성 미상')}${row.eligibilityRuleMatched ? ` · ${row.eligibilityRuleMatched}` : ''}`
+        : '';
+    return `
+        <div class="pgm-usage-purpose-facts">
+            <span>상태 <strong>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_STATUS_LABELS, row.status))}</strong></span>
+            <span>검토 범위 <strong>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_SCOPE_LABELS, row.scope))}</strong></span>
+            <span>강도 <strong>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_LEVEL_LABELS, row.strength))}</strong></span>
+            <span>근거 <strong>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_LEVEL_LABELS, row.confidence))}</strong></span>
+        </div>
+        <div class="pgm-usage-metric-stack">
+            <span>${pgmUsageEscape(pgmUsageMetricText(row.primaryMetric, row.primaryMetricValue))}</span>
+            <small>${pgmUsageEscape(pgmUsageMetricText(row.secondaryMetric, row.secondaryMetricValue))}</small>
+            <small>신호 ${pgmUsageFormatNumber(row.signalScore, 2)} · 성숙도 ${pgmUsageFormatNumber(row.maturityScore, 2)}</small>
+        </div>
+        <div class="pgm-usage-context-list">
+            ${eligibilityText ? `<p><strong>적격성</strong><span>${pgmUsageEscape(eligibilityText)}</span></p>` : ''}
+            ${transitionDays ? `<p><strong>전이일수</strong><span>${pgmUsageEscape(transitionDays)}</span></p>` : ''}
+            ${related ? `<p><strong>${pgmUsageEscape(related.label)}</strong><span>${pgmUsageEscape(related.text)}</span></p>` : ''}
+        </div>
+        <div class="pgm-usage-badge-stack">${pgmUsageFlagBadges(row)}</div>
+        ${pgmUsageRenderRationale(row)}
+    `;
+}
+
+function pgmUsageRenderActionReview(row, mode = 'single') {
+    if (!row) return '';
+    const action = row.action;
+    if (!action) {
+        return `
+            <div class="pgm-usage-action-review is-missing">
+                <strong>액션 검토</strong>
+                <p>액션 후보 CSV에 이 상품-목적 행이 없습니다. 효과 판정만 기준으로 검토합니다.</p>
+            </div>
+        `;
+    }
+    const relatedText = action.basketRelatedProductsTop3Ko
+        || pgmUsageFormatRelatedProducts(action.relatedProductIdsTop3, action.relatedProductNamesTop3);
+    const relatedLabel = PGM_USAGE_RELATED_CONTEXT_LABELS[action.relatedProductContextType] || '연관 상품';
+    return `
+        <div class="pgm-usage-action-review ${mode === 'compare' ? 'is-compact' : ''}">
+            <strong>액션 검토</strong>
+            <p>${pgmUsageEscape(action.recommendedActionKo || '추천 액션 문구 없음')}</p>
+            ${action.expectedEffectKo ? `<p><span>기대효과</span>${pgmUsageEscape(action.expectedEffectKo)}</p>` : ''}
+            ${action.guardrailKo ? `<p><span>주의</span>${pgmUsageEscape(action.guardrailKo)}</p>` : ''}
+            ${relatedText ? `<p><span>${pgmUsageEscape(relatedLabel)}</span>${pgmUsageEscape(relatedText)}</p>` : ''}
+            <small>우선순위 ${pgmUsageFormatNumber(action.actionPriority)} · 기대 지표 ${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_METRIC_LABELS, action.expectedEffectMetric, action.expectedEffectMetric || '-'))}</small>
+        </div>
+    `;
+}
+
+function pgmUsageEffectScore(row) {
+    if (!row) return -1;
+    return ((PGM_USAGE_SCOPE_ORDER[row.scope] || 0) * 100)
+        + ((PGM_USAGE_LEVEL_ORDER[row.confidence] || 0) * 20)
+        + ((PGM_USAGE_LEVEL_ORDER[row.strength] || 0) * 10)
+        + Math.round(pgmUsageNumber(row.signalScore, 0) * 10);
+}
+
+function pgmUsagePairInterpretation(rowA, productA, rowB, productB) {
+    if (!rowA && !rowB) return '두 상품 모두 이 목적의 산출 행이 아직 없습니다.';
+    if (rowA && !rowB) return `${productA.productName || productA.productId}만 이 목적의 산출 행이 있습니다.`;
+    if (!rowA && rowB) return `${productB.productName || productB.productId}만 이 목적의 산출 행이 있습니다.`;
+    const scoreA = pgmUsageEffectScore(rowA);
+    const scoreB = pgmUsageEffectScore(rowB);
+    if (Math.abs(scoreA - scoreB) < 12) {
+        return '현재 선택한 두 상품 사이에서는 효과 신호가 비슷합니다. 범위, 플래그, 근거 지표를 함께 확인합니다.';
+    }
+    const winner = scoreA > scoreB ? productA : productB;
+    const loser = scoreA > scoreB ? productB : productA;
+    return `${winner.productName || winner.productId} 쪽이 ${loser.productName || loser.productId}보다 이 목적에서는 더 강함으로 읽힙니다. 전체 상품 순위가 아니라 현재 두 상품 사이의 해석입니다.`;
 }
 
 function pgmUsageRenderSelectedPurposeCards(model) {
@@ -628,7 +954,7 @@ function pgmUsageRenderSelectedPurposeCards(model) {
         return `
             <div class="pgm-usage-selected-empty">
                 <i class="ph ph-cursor-click"></i>
-                <p>왼쪽 후보를 선택하거나 상품을 선택하면 목적별 비교를 볼 수 있습니다.</p>
+                <p>후보 테이블에서 가이드 보기를 누르거나 기준 상품을 선택하면 활용 가이드가 열립니다.</p>
             </div>
         `;
     }
@@ -651,19 +977,9 @@ function pgmUsageRenderSelectedPurposeCards(model) {
                             ${row ? pgmUsageBadge(pgmUsageLabel(PGM_USAGE_SCOPE_LABELS, row.scope), pgmUsageScopeTone(row.scope)) : pgmUsageBadge('행 없음', 'muted')}
                         </div>
                         ${row ? `
-                            <div class="pgm-usage-purpose-facts">
-                                <span>상태 <strong>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_STATUS_LABELS, row.status))}</strong></span>
-                                <span>강도 <strong>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_LEVEL_LABELS, row.strength))}</strong></span>
-                                <span>근거 <strong>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_LEVEL_LABELS, row.confidence))}</strong></span>
-                                <span>방향 <strong>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_DIRECTION_LABELS, row.direction))}</strong></span>
-                            </div>
-                            <div class="pgm-usage-metric-stack">
-                                <span>${pgmUsageEscape(pgmUsageMetricText(row.primaryMetric, row.primaryMetricValue))}</span>
-                                <small>${pgmUsageEscape(pgmUsageMetricText(row.secondaryMetric, row.secondaryMetricValue))}</small>
-                            </div>
-                            <div class="pgm-usage-badge-stack">${pgmUsageFlagBadges(row)}</div>
                             <p>${pgmUsageEscape(pgmUsageInterpretation(row))}</p>
-                            ${pgmUsageRenderRationale(row)}
+                            ${pgmUsageRenderEffectContext(row)}
+                            ${model.state.actionReviewOpen ? pgmUsageRenderActionReview(row) : ''}
                         ` : `
                             <p>이 상품에는 해당 목적의 산출 행이 아직 없습니다.</p>
                         `}
@@ -674,30 +990,115 @@ function pgmUsageRenderSelectedPurposeCards(model) {
     `;
 }
 
-function pgmUsageRenderRationale(row) {
-    const labels = String(row?.rationaleCode || '')
-        .split('|')
-        .map((code) => PGM_USAGE_RATIONALE_LABELS[code])
-        .filter(Boolean);
-    if (!labels.length) return '';
+function pgmUsageRenderCompareColumn(product, row) {
+    if (!row) {
+        return `
+            <div class="pgm-usage-compare-column">
+                <h5>${pgmUsageEscape(product.productName || product.productId)}</h5>
+                <p class="pgm-usage-muted-copy">이 목적의 산출 행이 없습니다.</p>
+            </div>
+        `;
+    }
     return `
-        <div class="pgm-usage-rationale">
-            ${labels.slice(0, 3).map((label) => `<span>${pgmUsageEscape(label)}</span>`).join('')}
+        <div class="pgm-usage-compare-column">
+            <h5>${pgmUsageEscape(product.productName || product.productId)}</h5>
+            ${pgmUsageBadge(pgmUsageLabel(PGM_USAGE_SCOPE_LABELS, row.scope), pgmUsageScopeTone(row.scope))}
+            <div class="pgm-usage-metric-stack">
+                <span>${pgmUsageEscape(pgmUsageMetricText(row.primaryMetric, row.primaryMetricValue))}</span>
+                <small>${pgmUsageEscape(pgmUsageMetricText(row.secondaryMetric, row.secondaryMetricValue))}</small>
+                <small>상태 ${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_STATUS_LABELS, row.status))} · 근거 ${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_LEVEL_LABELS, row.confidence))}</small>
+            </div>
+            <div class="pgm-usage-badge-stack">${pgmUsageFlagBadges(row)}</div>
+            ${pgmUsageRenderRationale(row)}
         </div>
     `;
 }
 
+function pgmUsageRenderCompareActionColumn(product, row) {
+    return `
+        <div class="pgm-usage-compare-action-column">
+            <h5>${pgmUsageEscape(product.productName || product.productId)}</h5>
+            ${row ? pgmUsageRenderActionReview(row, 'compare') : '<p class="pgm-usage-muted-copy">효과 행이 없어 액션 후보를 연결하지 않았습니다.</p>'}
+        </div>
+    `;
+}
+
+function pgmUsageRenderComparisonCards(model) {
+    if (!model.selectedProduct || !model.compareProduct) return pgmUsageRenderSelectedPurposeCards(model);
+    const primaryByPurpose = pgmUsageRowsByPurpose(model.selectedRows);
+    const compareByPurpose = pgmUsageRowsByPurpose(model.compareRows);
+    return `
+        <div class="pgm-usage-selected-head">
+            <div>
+                <h3>${pgmUsageEscape(model.selectedProduct.productName || model.selectedProduct.productId)} ↔ ${pgmUsageEscape(model.compareProduct.productName || model.compareProduct.productId)}</h3>
+                <p>${pgmUsageEscape(model.snapshotLabel)} · 현재 선택한 두 상품의 목적별 효과만 비교합니다.</p>
+            </div>
+        </div>
+        <div class="pgm-usage-selected-card-grid">
+            ${PGM_USAGE_PURPOSES.map((purpose) => {
+                const rowA = primaryByPurpose.get(purpose.key);
+                const rowB = compareByPurpose.get(purpose.key);
+                return `
+                    <article class="pgm-usage-selected-purpose-card ${model.state.selectedPurposeKey === purpose.key ? 'is-active' : ''}">
+                        <div class="pgm-usage-selected-purpose-title">
+                            <h4>${pgmUsageEscape(purpose.label)}</h4>
+                            <span class="pgm-usage-badge is-plain">쌍 비교</span>
+                        </div>
+                        <p class="pgm-usage-pair-read">${pgmUsageEscape(pgmUsagePairInterpretation(rowA, model.selectedProduct, rowB, model.compareProduct))}</p>
+                        <div class="pgm-usage-compare-grid">
+                            ${pgmUsageRenderCompareColumn(model.selectedProduct, rowA)}
+                            ${pgmUsageRenderCompareColumn(model.compareProduct, rowB)}
+                        </div>
+                        <div class="pgm-usage-context-list">
+                            ${rowA ? pgmUsageRenderCompactPairContext(model.selectedProduct, rowA) : ''}
+                            ${rowB ? pgmUsageRenderCompactPairContext(model.compareProduct, rowB) : ''}
+                        </div>
+                        ${model.state.actionReviewOpen ? `
+                            <div class="pgm-usage-action-compare">
+                                <strong>지원 액션 검토</strong>
+                                <div class="pgm-usage-compare-grid">
+                                    ${pgmUsageRenderCompareActionColumn(model.selectedProduct, rowA)}
+                                    ${pgmUsageRenderCompareActionColumn(model.compareProduct, rowB)}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </article>
+                `;
+            }).join('')}
+        </div>
+    `;
+}
+
+function pgmUsageRenderCompactPairContext(product, row) {
+    const bits = [];
+    const transitionDays = pgmUsageTransitionDaysText(row);
+    const related = pgmUsageEffectRelatedContext(row);
+    if (row.eligibilityRuleMatched) bits.push(`적격성 ${row.eligibilityRuleMatched}`);
+    if (transitionDays) bits.push(transitionDays);
+    if (related) bits.push(`${related.label} ${related.text}`);
+    if (!bits.length) return '';
+    return `<p><strong>${pgmUsageEscape(product.productName || product.productId)}</strong><span>${pgmUsageEscape(bits.join(' · '))}</span></p>`;
+}
+
 function pgmUsageRenderSelectedArea(model) {
+    const isCompare = model.selectedProduct && model.compareProduct;
+    const title = isCompare ? '선택 상품 효과 비교' : '선택 상품 활용 가이드';
+    const copy = isCompare
+        ? '두 상품 사이의 목적별 효과 차이만 해석합니다. 전체 후보 순위로 읽지 않습니다.'
+        : '선택한 상품의 목적별 효과, 조건, 지원 액션을 함께 확인합니다.';
     return `
         <aside class="pgm-usage-panel pgm-usage-selected-panel">
             <div class="pgm-usage-section-head">
                 <div>
-                    <h3>선택 상품 목적별 비교</h3>
-                    <p>선택한 상품 안에서 목적별 상태와 주의점을 비교합니다.</p>
+                    <h3>${pgmUsageEscape(title)}</h3>
+                    <p>${pgmUsageEscape(copy)}</p>
                 </div>
+                <button type="button" class="pgm-usage-action-toggle ${model.state.actionReviewOpen ? 'is-on' : ''}" onclick="togglePgmUsageActionReview()">
+                    액션 검토 ${model.state.actionReviewOpen ? 'ON' : 'OFF'}
+                </button>
             </div>
             ${pgmUsageRenderProductSelector(model)}
-            ${pgmUsageRenderSelectedPurposeCards(model)}
+            ${isCompare ? pgmUsageRenderComparisonCards(model) : pgmUsageRenderSelectedPurposeCards(model)}
         </aside>
     `;
 }
@@ -758,12 +1159,46 @@ window.selectPgmUsageProduct = (productId, purposeKey = '') => {
     const state = pgmUsageCurrentState();
     state.selectedProductId = String(productId || '').trim();
     state.selectedPurposeKey = String(purposeKey || '').trim();
+    if (!state.selectedProductId || state.compareProductId === state.selectedProductId) {
+        state.compareProductId = '';
+    }
+    renderPgmUsage();
+};
+
+window.addPgmUsageCompareProduct = (productId, purposeKey = '') => {
+    const state = pgmUsageCurrentState();
+    const nextId = String(productId || '').trim();
+    if (!nextId) {
+        state.compareProductId = '';
+        renderPgmUsage();
+        return;
+    }
+    if (!state.selectedProductId) {
+        state.selectedProductId = nextId;
+        state.compareProductId = '';
+    } else if (nextId !== state.selectedProductId) {
+        state.compareProductId = nextId;
+    }
+    state.selectedPurposeKey = String(purposeKey || state.selectedPurposeKey || '').trim();
+    renderPgmUsage();
+};
+
+window.clearPgmUsageCompareProduct = () => {
+    const state = pgmUsageCurrentState();
+    state.compareProductId = '';
+    renderPgmUsage();
+};
+
+window.togglePgmUsageActionReview = () => {
+    const state = pgmUsageCurrentState();
+    state.actionReviewOpen = !state.actionReviewOpen;
     renderPgmUsage();
 };
 
 window.clearPgmUsageSelectedProduct = () => {
     const state = pgmUsageCurrentState();
     state.selectedProductId = '';
+    state.compareProductId = '';
     state.selectedPurposeKey = '';
     renderPgmUsage();
 };
