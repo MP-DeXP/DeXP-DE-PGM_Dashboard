@@ -485,23 +485,6 @@ function pgmUsageSearchProducts(products, search, excludedProductId = '', preser
     });
 }
 
-function pgmUsageRowsForPurposeBoard(rows, selectedProductId = '') {
-    const topRows = (rows || []).slice(0, 5);
-    const normalizedSelectedId = String(selectedProductId || '').trim();
-    if (!normalizedSelectedId) return topRows;
-
-    const selectedRow = (rows || []).find((row) => row.productId === normalizedSelectedId);
-    if (!selectedRow) return topRows;
-
-    const alreadyIncluded = topRows.some((row) => (
-        row.productId === selectedRow.productId && row.purposeKey === selectedRow.purposeKey
-    ));
-    if (alreadyIncluded) return topRows;
-
-    if (topRows.length < 5) return [...topRows, selectedRow];
-    return [...topRows.slice(0, 4), selectedRow];
-}
-
 function pgmUsageBuildModel() {
     const state = pgmUsageCurrentState();
     const rows = pgmUsageRows();
@@ -708,7 +691,7 @@ function pgmUsageRenderPurposeBoards(model) {
             ${PGM_USAGE_PURPOSES.map((purpose) => {
                 const rows = model.filteredRows.filter((row) => row.purposeKey === purpose.key);
                 const reviewableCount = rows.filter(pgmUsageIsReviewable).length;
-                const topRows = pgmUsageRowsForPurposeBoard(rows, model.state.selectedProductId);
+                const topRows = rows.slice(0, 5);
                 return `
                     <article class="pgm-usage-purpose-card">
                         <div class="pgm-usage-purpose-card-head">
