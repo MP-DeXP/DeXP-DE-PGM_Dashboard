@@ -9696,32 +9696,65 @@ body {
 .pgm-usage-context-list {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
 }
 
-.pgm-usage-context-list p {
-    display: grid;
-    grid-template-columns: 74px minmax(0, 1fr);
-    gap: 8px;
+.pgm-usage-context-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
     margin: 0;
-    padding: 8px;
+    padding: 10px 11px;
     border: 1px solid var(--gray-200);
     border-radius: 8px;
     background: #fbfcfd;
 }
 
-.pgm-usage-context-list strong {
-    color: var(--dark-600);
-    font-size: 12px;
-    line-height: 1.4;
+.pgm-usage-context-item.is-product {
+    padding: 11px 12px;
+    background: #ffffff;
 }
 
-.pgm-usage-context-list span {
+.pgm-usage-context-label {
+    color: var(--dark-100);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: 0;
+}
+
+.pgm-usage-context-heading {
+    margin: 0;
+    color: var(--dark-800);
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.35;
+    letter-spacing: 0;
+    overflow-wrap: anywhere;
+}
+
+.pgm-usage-context-value,
+.pgm-usage-context-value-list {
+    min-width: 0;
     color: var(--dark-800);
     font-size: 12px;
-    line-height: 1.45;
-    min-width: 0;
+    line-height: 1.55;
     overflow-wrap: anywhere;
+}
+
+.pgm-usage-context-value {
+    margin: 0;
+}
+
+.pgm-usage-context-value-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.pgm-usage-context-value-list span {
+    display: block;
 }
 
 .pgm-usage-action-review,
@@ -9871,10 +9904,6 @@ body {
     }
 
     .pgm-usage-purpose-facts {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    .pgm-usage-context-list p {
         grid-template-columns: minmax(0, 1fr);
     }
 }

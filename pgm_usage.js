@@ -1,5 +1,8 @@
 // Purpose usage review page logic
 
+const PGM_USAGE_COMPARE_SEARCH_DEBOUNCE_MS = 180;
+let pgmUsageCompareSearchTimer = null;
+
 const PGM_USAGE_PURPOSES = [
     {
         key: 'entry-growth',
@@ -198,6 +201,31 @@ function pgmUsageFormatNumber(value, decimals = 0) {
 
 function pgmUsageNormalizeKey(value) {
     return String(value || '').trim();
+}
+
+function pgmUsageNormalizeSearchText(value) {
+    return String(value ?? '')
+        .toLowerCase()
+        .replace(/\u00a0/g, ' ');
+}
+
+function pgmUsageTokenizeSearchText(value) {
+    return pgmUsageNormalizeSearchText(value)
+        .replace(/\s+/g, ' ')
+        .trim()
+        .split(' ')
+        .filter(Boolean);
+}
+
+function pgmUsageMatchesSearchText(haystack, search) {
+    const tokens = pgmUsageTokenizeSearchText(search);
+    if (!tokens.length) return true;
+    const normalizedHaystack = pgmUsageNormalizeSearchText(haystack).replace(/\s+/g, ' ');
+    const compactHaystack = normalizedHaystack.replace(/\s+/g, '');
+    return tokens.every((token) => {
+        const compactToken = token.replace(/\s+/g, '');
+        return normalizedHaystack.includes(token) || compactHaystack.includes(compactToken);
+    });
 }
 
 function pgmUsageJoinKey(snapshotName, productId, purposeKey) {
@@ -423,6 +451,9 @@ function pgmUsageCurrentState() {
     if (typeof AppState.viewState.pgmUsage.compareSearch !== 'string') {
         AppState.viewState.pgmUsage.compareSearch = '';
     }
+    if (typeof AppState.viewState.pgmUsage.compareSearchComposing !== 'boolean') {
+        AppState.viewState.pgmUsage.compareSearchComposing = false;
+    }
     if (typeof AppState.viewState.pgmUsage.actionReviewOpen !== 'boolean') {
         AppState.viewState.pgmUsage.actionReviewOpen = true;
     }
@@ -435,8 +466,68 @@ function pgmUsageCurrentState() {
     return AppState.viewState.pgmUsage;
 }
 
+function pgmUsageCompareMetaText(state, compareCandidates = []) {
+    const compareSearch = String(state?.compareSearch || '').trim();
+    if (!state?.selectedProductId) return '';
+    if (!compareCandidates.length) {
+        return '검색 결과가 없어요. 검색어를 바꾸거나 왼쪽 후보 테이블의 비교 추가 버튼을 사용할 수 있어요.';
+    }
+    if (compareSearch) {
+        return `검색 결과 ${pgmUsageFormatNumber(compareCandidates.length)}개 · 선택하면 바로 비교가 열립니다.`;
+    }
+    return `비교 가능한 다른 상품 ${pgmUsageFormatNumber(compareCandidates.length)}개 · 검색해서 빠르게 찾을 수 있어요.`;
+}
+
+function pgmUsageCompareOptionMarkup(compareCandidates = [], compareProductId = '', compareSearch = '') {
+    const placeholder = compareSearch && String(compareSearch).trim()
+        ? '검색 결과에서 상품을 선택하세요'
+        : '두 번째 상품을 선택하세요';
+    return `
+        <option value="">${pgmUsageEscape(placeholder)}</option>
+        ${compareCandidates.map((product) => `
+            <option value="${pgmUsageEscape(product.productId)}" ${compareProductId === product.productId ? 'selected' : ''}>
+                ${pgmUsageEscape(product.productName)} (${pgmUsageEscape(product.productId)})
+            </option>
+        `).join('')}
+    `;
+}
+
+function pgmUsageClearCompareSearchTimer() {
+    if (pgmUsageCompareSearchTimer) {
+        window.clearTimeout(pgmUsageCompareSearchTimer);
+        pgmUsageCompareSearchTimer = null;
+    }
+}
+
+function pgmUsageRefreshCompareSearchUi() {
+    const slot = document.querySelector('.pgm-usage-compare-slot');
+    if (!slot) return;
+    const model = pgmUsageBuildModel();
+    const select = slot.querySelector('select');
+    const meta = slot.querySelector('.pgm-usage-compare-search-meta');
+    if (select) {
+        select.innerHTML = pgmUsageCompareOptionMarkup(
+            model.compareCandidates || [],
+            model.state.compareProductId,
+            model.state.compareSearch
+        );
+        select.value = model.state.compareProductId || '';
+    }
+    if (meta) {
+        meta.textContent = pgmUsageCompareMetaText(model.state, model.compareCandidates || []);
+    }
+}
+
+function pgmUsageScheduleCompareSearchRefresh() {
+    pgmUsageClearCompareSearchTimer();
+    pgmUsageCompareSearchTimer = window.setTimeout(() => {
+        pgmUsageCompareSearchTimer = null;
+        pgmUsageRefreshCompareSearchUi();
+    }, PGM_USAGE_COMPARE_SEARCH_DEBOUNCE_MS);
+}
+
 function pgmUsageApplyFilters(rows, state) {
-    const search = String(state.productSearch || '').trim().toLowerCase();
+    const search = state.productSearch;
     return rows.filter((row) => {
         if (state.purposeFilter !== 'all' && row.purposeKey !== state.purposeFilter) return false;
         if (state.scopeFilter !== 'all' && row.scope !== state.scopeFilter) return false;
@@ -446,10 +537,7 @@ function pgmUsageApplyFilters(rows, state) {
         if (state.flagFilter === 'risk' && !row.riskFlag) return false;
         if (state.flagFilter === 'precondition' && !row.preconditionFlag) return false;
         if (state.flagFilter === 'clean' && (row.riskFlag || row.preconditionFlag)) return false;
-        if (search) {
-            const haystack = `${row.productId} ${row.productName}`.toLowerCase();
-            if (!haystack.includes(search)) return false;
-        }
+        if (!pgmUsageMatchesSearchText(`${row.productId} ${row.productName}`, search)) return false;
         return true;
     });
 }
@@ -475,13 +563,10 @@ function pgmUsageRowsForProduct(rows, productId) {
 }
 
 function pgmUsageSearchProducts(products, search, excludedProductId = '', preservedProductId = '') {
-    const query = String(search || '').trim().toLowerCase();
     return (products || []).filter((product) => {
         if (product.productId === excludedProductId) return false;
         if (product.productId === preservedProductId) return true;
-        if (!query) return true;
-        const haystack = `${product.productName || ''} ${product.productId || ''}`.toLowerCase();
-        return haystack.includes(query);
+        return pgmUsageMatchesSearchText(`${product.productName || ''} ${product.productId || ''}`, search);
     });
 }
 
@@ -818,15 +903,8 @@ function pgmUsageRenderGlobalArea(model) {
 }
 
 function pgmUsageRenderProductSelector(model) {
-    const compareSearch = String(model.state.compareSearch || '').trim();
     const compareCandidates = model.compareCandidates || [];
-    const compareMetaText = !model.state.selectedProductId
-        ? ''
-        : !compareCandidates.length
-            ? '검색 결과가 없어요. 검색어를 바꾸거나 왼쪽 후보 테이블의 비교 추가 버튼을 사용할 수 있어요.'
-            : compareSearch
-                ? `검색 결과 ${pgmUsageFormatNumber(compareCandidates.length)}개 · 선택하면 바로 비교가 열립니다.`
-                : `비교 가능한 다른 상품 ${pgmUsageFormatNumber(compareCandidates.length)}개 · 검색해서 빠르게 찾을 수 있어요.`;
+    const compareMetaText = pgmUsageCompareMetaText(model.state, compareCandidates);
     return `
         <div class="pgm-usage-product-selector">
             <label>
@@ -847,14 +925,11 @@ function pgmUsageRenderProductSelector(model) {
                 <label class="pgm-usage-compare-slot">
                     <span>비교 추가</span>
                     <input type="search" value="${pgmUsageEscape(model.state.compareSearch)}" placeholder="비교할 상품명 또는 ID 검색"
+                        oncompositionstart="handlePgmUsageCompareSearchCompositionStart()"
+                        oncompositionend="handlePgmUsageCompareSearchCompositionEnd(this.value)"
                         oninput="handlePgmUsageCompareSearch(this.value)">
                     <select onchange="addPgmUsageCompareProduct(this.value, '')">
-                        <option value="">${pgmUsageEscape(compareSearch ? '검색 결과에서 상품을 선택하세요' : '두 번째 상품을 선택하세요')}</option>
-                        ${compareCandidates.map((product) => `
-                            <option value="${pgmUsageEscape(product.productId)}" ${model.state.compareProductId === product.productId ? 'selected' : ''}>
-                                ${pgmUsageEscape(product.productName)} (${pgmUsageEscape(product.productId)})
-                            </option>
-                        `).join('')}
+                        ${pgmUsageCompareOptionMarkup(compareCandidates, model.state.compareProductId, model.state.compareSearch)}
                     </select>
                     <small class="pgm-usage-compare-search-meta">${pgmUsageEscape(compareMetaText)}</small>
                 </label>
@@ -920,6 +995,36 @@ function pgmUsageRenderRationale(row) {
     `;
 }
 
+function pgmUsageRenderContextItem(label, value, options = {}) {
+    const normalizedLabel = String(label ?? '').trim();
+    if (!normalizedLabel) return '';
+
+    const normalizedValues = Array.isArray(value)
+        ? value.flat().map((item) => String(item ?? '').trim()).filter(Boolean)
+        : [String(value ?? '').trim()].filter(Boolean);
+
+    if (!normalizedValues.length) return '';
+
+    const classNames = ['pgm-usage-context-item'];
+    if (options.variant) classNames.push(`is-${options.variant}`);
+    if (options.className) classNames.push(options.className);
+
+    const labelMarkup = options.heading
+        ? `<h5 class="pgm-usage-context-heading">${pgmUsageEscape(normalizedLabel)}</h5>`
+        : `<span class="pgm-usage-context-label">${pgmUsageEscape(normalizedLabel)}</span>`;
+
+    const valueMarkup = normalizedValues.length > 1
+        ? `<div class="pgm-usage-context-value-list">${normalizedValues.map((item) => `<span>${pgmUsageEscape(item)}</span>`).join('')}</div>`
+        : `<div class="pgm-usage-context-value">${pgmUsageEscape(normalizedValues[0])}</div>`;
+
+    return `
+        <article class="${classNames.join(' ')}">
+            ${labelMarkup}
+            ${valueMarkup}
+        </article>
+    `;
+}
+
 function pgmUsageRenderEffectContext(row) {
     if (!row) return '';
     const related = pgmUsageEffectRelatedContext(row);
@@ -940,9 +1045,9 @@ function pgmUsageRenderEffectContext(row) {
             <small>신호 ${pgmUsageFormatNumber(row.signalScore, 2)} · 성숙도 ${pgmUsageFormatNumber(row.maturityScore, 2)}</small>
         </div>
         <div class="pgm-usage-context-list">
-            ${eligibilityText ? `<p><strong>적격성</strong><span>${pgmUsageEscape(eligibilityText)}</span></p>` : ''}
-            ${transitionDays ? `<p><strong>전이일수</strong><span>${pgmUsageEscape(transitionDays)}</span></p>` : ''}
-            ${related ? `<p><strong>${pgmUsageEscape(related.label)}</strong><span>${pgmUsageEscape(related.text)}</span></p>` : ''}
+            ${pgmUsageRenderContextItem('적격성', eligibilityText)}
+            ${pgmUsageRenderContextItem('전이일수', transitionDays)}
+            ${related ? pgmUsageRenderContextItem(related.label, related.text) : ''}
         </div>
         <div class="pgm-usage-badge-stack">${pgmUsageFlagBadges(row)}</div>
         ${pgmUsageRenderRationale(row)}
@@ -1222,7 +1327,10 @@ function pgmUsageRenderCompactPairContext(product, row) {
     if (transitionDays) bits.push(transitionDays);
     if (related) bits.push(`${related.label} ${related.text}`);
     if (!bits.length) return '';
-    return `<p><strong>${pgmUsageEscape(product.productName || product.productId)}</strong><span>${pgmUsageEscape(bits.join(' · '))}</span></p>`;
+    return pgmUsageRenderContextItem(product.productName || product.productId, bits, {
+        heading: true,
+        variant: 'product'
+    });
 }
 
 function pgmUsageRenderSelectedArea(model) {
@@ -1301,7 +1409,9 @@ window.handlePgmUsageFilterChange = (field, value) => {
 };
 
 window.selectPgmUsageProduct = (productId, purposeKey = '') => {
+    pgmUsageClearCompareSearchTimer();
     const state = pgmUsageCurrentState();
+    state.compareSearchComposing = false;
     state.selectedProductId = String(productId || '').trim();
     state.selectedPurposeKey = String(purposeKey || '').trim();
     state.compareProductId = '';
@@ -1311,12 +1421,28 @@ window.selectPgmUsageProduct = (productId, purposeKey = '') => {
 
 window.handlePgmUsageCompareSearch = (value) => {
     const state = pgmUsageCurrentState();
-    state.compareSearch = String(value || '').trim();
-    renderPgmUsage();
+    state.compareSearch = String(value ?? '');
+    if (state.compareSearchComposing) return;
+    pgmUsageScheduleCompareSearchRefresh();
+};
+
+window.handlePgmUsageCompareSearchCompositionStart = () => {
+    const state = pgmUsageCurrentState();
+    state.compareSearchComposing = true;
+    pgmUsageClearCompareSearchTimer();
+};
+
+window.handlePgmUsageCompareSearchCompositionEnd = (value) => {
+    const state = pgmUsageCurrentState();
+    state.compareSearchComposing = false;
+    state.compareSearch = String(value ?? '');
+    pgmUsageScheduleCompareSearchRefresh();
 };
 
 window.addPgmUsageCompareProduct = (productId, purposeKey = '') => {
+    pgmUsageClearCompareSearchTimer();
     const state = pgmUsageCurrentState();
+    state.compareSearchComposing = false;
     const nextId = String(productId || '').trim();
     if (!nextId) {
         state.compareProductId = '';
@@ -1334,7 +1460,9 @@ window.addPgmUsageCompareProduct = (productId, purposeKey = '') => {
 };
 
 window.clearPgmUsageCompareProduct = () => {
+    pgmUsageClearCompareSearchTimer();
     const state = pgmUsageCurrentState();
+    state.compareSearchComposing = false;
     state.compareProductId = '';
     renderPgmUsage();
 };
@@ -1346,7 +1474,9 @@ window.togglePgmUsageActionReview = () => {
 };
 
 window.clearPgmUsageSelectedProduct = () => {
+    pgmUsageClearCompareSearchTimer();
     const state = pgmUsageCurrentState();
+    state.compareSearchComposing = false;
     state.selectedProductId = '';
     state.compareProductId = '';
     state.compareSearch = '';
