@@ -10125,6 +10125,16 @@ body {
     line-height: 1.45;
 }
 
+.pgm-decision-candidate-tradeoff {
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #f3f6fb;
+    color: var(--dark-700);
+    font-size: 13px;
+    line-height: 1.55;
+}
+
 .pgm-decision-candidate-group {
     display: flex;
     flex-direction: column;

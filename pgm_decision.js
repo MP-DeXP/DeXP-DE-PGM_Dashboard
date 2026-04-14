@@ -192,11 +192,11 @@ function pgmDecisionEvidenceItems(model) {
 
 function pgmDecisionSummaryText(model) {
     const purposeLabel = pgmDecisionPurposeMeta(model.state.selectedPurposeKey).shortLabel;
-    if (!model.top) return `${purposeLabel} 목적에서는 지금 바로 집중할 상품을 고르기보다 추가 근거 확보가 먼저예요.`;
+    if (!model.top) return `${purposeLabel} 목적은 아직 한 상품을 찍기보다 근거를 조금 더 모으는 편이 안전해요.`;
     if (model.focusSelected) {
-        return `${model.top.productName} 중심으로 메시지, 예산, 채널 실행을 먼저 정리해도 되는 날이에요. 다만 ${model.top.relationRiskSummary || '운영 제약은 계속 확인하세요.'}`;
+        return `${model.top.productName} 쪽으로 먼저 힘을 싣는 판단이 가장 무리가 적어요. 다만 ${model.top.relationRiskSummary || '운영 제약은 계속 같이 보세요.'}`;
     }
-    return `${purposeLabel} 목적에서는 아직 한 상품으로 몰지 말고 상위 ${model.alternatives.length}개 후보를 나란히 비교하는 편이 안전해요. 범위와 근거 차이는 작고, 주의 신호를 함께 봐야 해요.`;
+    return `${purposeLabel} 목적은 아직 한 후보로 바로 몰기보다 상위 ${model.alternatives.length}개를 나란히 놓고 보는 쪽이 더 안전해요. 지금은 차이보다 맞바꾸는 조건을 같이 봐야 합니다.`;
 }
 
 function pgmDecisionMetaLine(row) {
@@ -250,19 +250,57 @@ function pgmDecisionCandidateRows(model) {
         : (model.alternatives || []).slice(0, 3);
 }
 
-function pgmDecisionCandidateBlock(row) {
+function pgmDecisionTradeoffText(row, peers) {
+    const others = (peers || []).filter((peer) => peer.productId !== row.productId);
+    if (!others.length) {
+        return row.relationRiskSummary
+            ? `이 후보를 고르면 ${row.relationSummary || '실행 방향은 비교적 또렷해집니다'}. 대신 ${row.relationRiskSummary}`
+            : '이 후보를 고르면 바로 움직이기엔 무리가 적고, 대신 비교 기준은 더 쌓아봐야 합니다.';
+    }
+
+    const scopeRank = PGM_DECISION_SCOPE_ORDER[row.effectScope] || 0;
+    const confidenceRank = PGM_DECISION_LEVEL_ORDER[row.effectConfidence] || 0;
+    const strengthRank = PGM_DECISION_LEVEL_ORDER[row.effectStrength] || 0;
+    const safetyPenalty = pgmDecisionIsCautionHeavy(row) ? 1 : 0;
+
+    const scopeAdvantage = others.every((peer) => scopeRank > (PGM_DECISION_SCOPE_ORDER[peer.effectScope] || 0));
+    const confidenceAdvantage = others.every((peer) => confidenceRank > (PGM_DECISION_LEVEL_ORDER[peer.effectConfidence] || 0));
+    const strengthAdvantage = others.every((peer) => strengthRank > (PGM_DECISION_LEVEL_ORDER[peer.effectStrength] || 0));
+    const cautionHeavier = others.some((peer) => safetyPenalty > (pgmDecisionIsCautionHeavy(peer) ? 1 : 0));
+    const cautionLighter = others.every((peer) => safetyPenalty < (pgmDecisionIsCautionHeavy(peer) ? 1 : 0));
+
+    let benefit = '판단이 가장 또렷한 쪽으로 갈 수 있습니다';
+    if (scopeAdvantage) benefit = '적용 범위를 가장 넓게 가져갈 수 있습니다';
+    else if (confidenceAdvantage) benefit = '다른 후보보다 근거가 조금 더 탄탄합니다';
+    else if (strengthAdvantage) benefit = '기대 효과를 조금 더 크게 볼 여지가 있습니다';
+    else if (cautionLighter) benefit = '다른 후보보다 운영 부담이 덜합니다';
+    else if (row.relationSummary) benefit = row.relationSummary;
+
+    let cost = '비슷한 후보와 끝까지 비교해야 합니다';
+    if (cautionHeavier) cost = row.relationRiskSummary || '운영 제약을 더 꼼꼼히 보고 들어가야 합니다';
+    else if (!scopeAdvantage && others.some((peer) => (PGM_DECISION_SCOPE_ORDER[peer.effectScope] || 0) > scopeRank)) cost = '적용 범위는 다른 후보보다 좁을 수 있습니다';
+    else if (!confidenceAdvantage && others.some((peer) => (PGM_DECISION_LEVEL_ORDER[peer.effectConfidence] || 0) > confidenceRank)) cost = '근거 우위가 아주 선명하진 않습니다';
+    else if (!strengthAdvantage && others.some((peer) => (PGM_DECISION_LEVEL_ORDER[peer.effectStrength] || 0) > strengthRank)) cost = '효과 크기는 다른 후보가 더 나아 보일 수 있습니다';
+    else if (row.relationRiskSummary) cost = row.relationRiskSummary;
+
+    return `이 후보를 고르면 ${benefit}. 대신 ${cost}.`;
+}
+
+function pgmDecisionCandidateBlock(row, peers) {
     const pros = pgmDecisionBuildPros(row);
     const cons = pgmDecisionBuildCons(row);
     const metaLine = pgmDecisionMetaLine(row);
+    const tradeoffText = pgmDecisionTradeoffText(row, peers);
     return `
         <article class="pgm-decision-candidate-block">
             <div class="pgm-decision-candidate-head">
                 <strong>${pgmDecisionEscape(row.productName)}</strong>
                 ${metaLine ? `<span>${pgmDecisionEscape(metaLine)}</span>` : ''}
             </div>
+            <p class="pgm-decision-candidate-tradeoff">${pgmDecisionEscape(tradeoffText)}</p>
             ${pros.length ? `
                 <div class="pgm-decision-candidate-group">
-                    <span class="pgm-decision-candidate-label">지금 밀 이유</span>
+                    <span class="pgm-decision-candidate-label">이쪽으로 기우는 이유</span>
                     <ul class="pgm-decision-candidate-points">
                         ${pros.map((item) => `<li>${pgmDecisionEscape(item)}</li>`).join('')}
                     </ul>
@@ -270,7 +308,7 @@ function pgmDecisionCandidateBlock(row) {
             ` : ''}
             ${cons.length ? `
                 <div class="pgm-decision-candidate-group">
-                    <span class="pgm-decision-candidate-label">망설일 이유</span>
+                    <span class="pgm-decision-candidate-label">같이 볼 점</span>
                     <ul class="pgm-decision-candidate-points">
                         ${cons.map((item) => `<li>${pgmDecisionEscape(item)}</li>`).join('')}
                     </ul>
@@ -296,14 +334,14 @@ function pgmDecisionDecisionCard(model) {
                     </div>
                     <span class="pgm-decision-badge is-strong">집중 1개</span>
                 </div>
-                <p class="pgm-decision-main-copy">오늘은 이 상품에 집중해서 마케팅 전략을 세우는 쪽이 가장 보수적으로도 설명돼요.</p>
+                <p class="pgm-decision-main-copy">오늘은 이 상품부터 먼저 잡고 움직이는 쪽이 가장 무리 없는 선택이에요.</p>
                 <div class="pgm-decision-chip-row">
                     <span class="pgm-decision-chip">${pgmDecisionEscape(PGM_DECISION_SCOPE_LABELS[model.top.effectScope] || model.top.effectScope)}</span>
                     <span class="pgm-decision-chip">근거 ${pgmDecisionEscape(model.top.effectConfidence || '-')}</span>
                     <span class="pgm-decision-chip">강도 ${pgmDecisionEscape(model.top.effectStrength || '-')}</span>
                 </div>
                 <div class="pgm-decision-candidate-grid">
-                    ${candidateRows.map((row) => pgmDecisionCandidateBlock(row)).join('')}
+                    ${candidateRows.map((row) => pgmDecisionCandidateBlock(row, candidateRows)).join('')}
                 </div>
             </section>
         `;
@@ -318,9 +356,9 @@ function pgmDecisionDecisionCard(model) {
                 </div>
                 <span class="pgm-decision-badge is-caution">2~3개 비교</span>
             </div>
-            <p class="pgm-decision-main-copy">1위 후보가 있더라도 범위 차이나 근거 우위가 충분히 선명하지 않아서, 바로 한 상품으로 고정하지 않는 편이 안전해요.</p>
+            <p class="pgm-decision-main-copy">1위처럼 보이는 후보는 있어도 얻는 점과 포기하는 점이 엇비슷해서, 오늘은 바로 고정하지 않는 편이 안전해요.</p>
             <div class="pgm-decision-candidate-grid">
-                ${candidateRows.map((row) => pgmDecisionCandidateBlock(row)).join('')}
+                ${candidateRows.map((row) => pgmDecisionCandidateBlock(row, candidateRows)).join('')}
             </div>
         </section>
     `;
