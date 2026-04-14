@@ -199,10 +199,92 @@ function pgmDecisionSummaryText(model) {
     return `${purposeLabel} 목적에서는 아직 한 상품으로 몰지 말고 상위 ${model.alternatives.length}개 후보를 나란히 비교하는 편이 안전해요. 범위와 근거 차이는 작고, 주의 신호를 함께 봐야 해요.`;
 }
 
+function pgmDecisionMetaLine(row) {
+    const parts = [];
+    if (row.effectScope) parts.push(PGM_DECISION_SCOPE_LABELS[row.effectScope] || row.effectScope);
+    if (row.effectConfidence) parts.push(`근거 ${row.effectConfidence}`);
+    return parts.join(' · ');
+}
+
+function pgmDecisionBuildPros(row) {
+    const items = [];
+    if (row.effectScope && row.effectScope !== 'not_recommended') {
+        items.push(PGM_DECISION_SCOPE_LABELS[row.effectScope] || row.effectScope);
+    }
+    if (row.effectConfidence && items.length < 2) {
+        items.push(`근거 ${row.effectConfidence}`);
+    }
+    if (row.effectStrength && items.length < 2) {
+        items.push(`효과 강도 ${row.effectStrength}`);
+    }
+    if (row.executionReadiness && row.executionReadiness !== 'not_ready' && items.length < 2) {
+        items.push(`실행 준비 ${row.executionReadiness}`);
+    }
+    if (row.relationSummary && items.length < 2) {
+        items.push(row.relationSummary);
+    }
+    return items.filter(Boolean).slice(0, 2);
+}
+
+function pgmDecisionBuildCons(row) {
+    const items = [];
+    if (row.operationalSafety && row.operationalSafety !== 'safe') {
+        items.push(PGM_DECISION_OPERATIONAL_SAFETY_LABELS[row.operationalSafety] || row.operationalSafety);
+    }
+    if (row.preconditionFlag && items.length < 2) {
+        items.push('선행 조건 확인');
+    }
+    if (row.riskFlag && items.length < 2) {
+        items.push('리스크 신호 있음');
+    }
+    if (row.relationRiskSummary && items.length < 2) {
+        items.push(row.relationRiskSummary);
+    }
+    return items.filter(Boolean).slice(0, 2);
+}
+
+function pgmDecisionCandidateRows(model) {
+    if (!model.top) return [];
+    return model.focusSelected
+        ? [model.top, ...(model.alternatives || [])].slice(0, 3)
+        : (model.alternatives || []).slice(0, 3);
+}
+
+function pgmDecisionCandidateBlock(row) {
+    const pros = pgmDecisionBuildPros(row);
+    const cons = pgmDecisionBuildCons(row);
+    const metaLine = pgmDecisionMetaLine(row);
+    return `
+        <article class="pgm-decision-candidate-block">
+            <div class="pgm-decision-candidate-head">
+                <strong>${pgmDecisionEscape(row.productName)}</strong>
+                ${metaLine ? `<span>${pgmDecisionEscape(metaLine)}</span>` : ''}
+            </div>
+            ${pros.length ? `
+                <div class="pgm-decision-candidate-group">
+                    <span class="pgm-decision-candidate-label">지금 밀 이유</span>
+                    <ul class="pgm-decision-candidate-points">
+                        ${pros.map((item) => `<li>${pgmDecisionEscape(item)}</li>`).join('')}
+                    </ul>
+                </div>
+            ` : ''}
+            ${cons.length ? `
+                <div class="pgm-decision-candidate-group">
+                    <span class="pgm-decision-candidate-label">망설일 이유</span>
+                    <ul class="pgm-decision-candidate-points">
+                        ${cons.map((item) => `<li>${pgmDecisionEscape(item)}</li>`).join('')}
+                    </ul>
+                </div>
+            ` : ''}
+        </article>
+    `;
+}
+
 function pgmDecisionDecisionCard(model) {
     if (!model.top) {
         return `<section class="pgm-decision-card is-empty"><h2>오늘 결정</h2><p>조건을 통과한 후보가 아직 없어요. 실행보다 데이터 확인이 먼저예요.</p></section>`;
     }
+    const candidateRows = pgmDecisionCandidateRows(model);
     if (model.focusSelected) {
         return `
             <section class="pgm-decision-card is-focus">
@@ -220,6 +302,9 @@ function pgmDecisionDecisionCard(model) {
                     <span class="pgm-decision-chip">근거 ${pgmDecisionEscape(model.top.effectConfidence || '-')}</span>
                     <span class="pgm-decision-chip">강도 ${pgmDecisionEscape(model.top.effectStrength || '-')}</span>
                 </div>
+                <div class="pgm-decision-candidate-grid">
+                    ${candidateRows.map((row) => pgmDecisionCandidateBlock(row)).join('')}
+                </div>
             </section>
         `;
     }
@@ -234,13 +319,8 @@ function pgmDecisionDecisionCard(model) {
                 <span class="pgm-decision-badge is-caution">2~3개 비교</span>
             </div>
             <p class="pgm-decision-main-copy">1위 후보가 있더라도 범위 차이나 근거 우위가 충분히 선명하지 않아서, 바로 한 상품으로 고정하지 않는 편이 안전해요.</p>
-            <div class="pgm-decision-hold-list">
-                ${model.alternatives.map((row, index) => `
-                    <div class="pgm-decision-hold-item">
-                        <strong>${index + 1}. ${pgmDecisionEscape(row.productName)}</strong>
-                        <span>${pgmDecisionEscape(PGM_DECISION_SCOPE_LABELS[row.effectScope] || row.effectScope)} · 근거 ${pgmDecisionEscape(row.effectConfidence || '-')}</span>
-                    </div>
-                `).join('')}
+            <div class="pgm-decision-candidate-grid">
+                ${candidateRows.map((row) => pgmDecisionCandidateBlock(row)).join('')}
             </div>
         </section>
     `;
