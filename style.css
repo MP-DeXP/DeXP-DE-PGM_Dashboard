@@ -9625,6 +9625,13 @@ body {
     line-height: 1.4;
 }
 
+.pgm-usage-helper-copy {
+    margin-top: 6px;
+    color: var(--dark-100);
+    font-size: 11px;
+    line-height: 1.45;
+}
+
 .pgm-usage-selected-card-grid {
     display: flex;
     flex-direction: column;
@@ -9763,7 +9770,7 @@ body {
     flex-direction: column;
     gap: 7px;
     padding: 10px;
-    border: 1px solid #dce3ea;
+    border: 1px dashed #dce3ea;
     border-radius: 8px;
     background: #fbfcfd;
 }

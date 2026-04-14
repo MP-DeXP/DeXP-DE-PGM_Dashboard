@@ -71,6 +71,30 @@ const PGM_USAGE_ELIGIBILITY_LABELS = {
     exclude: '제외'
 };
 
+const PGM_USAGE_STRUCTURAL_SIGNAL_LABELS = {
+    strong: '구조 신호 강함',
+    medium: '구조 신호 보통',
+    weak: '구조 신호 약함'
+};
+
+const PGM_USAGE_EXECUTION_READINESS_LABELS = {
+    ready: '실행 준비됨',
+    exploratory: '탐색 필요',
+    not_ready: '준비 전'
+};
+
+const PGM_USAGE_OPERATIONAL_SAFETY_LABELS = {
+    safe: '운영 안전',
+    guarded: '주의 필요',
+    fragile: '취약'
+};
+
+const PGM_USAGE_PURPOSE_SUBTYPE_LABELS = {
+    'basket-breadth': '장바구니 확장형',
+    'checkout-cross-sell': '체크아웃 교차추천형',
+    'bundle-anchor': '번들 앵커형'
+};
+
 const PGM_USAGE_ROLE_LABELS = {
     gift_or_freebie: '사은품/증정',
     threshold_or_reward: '조건부 리워드',
@@ -159,6 +183,24 @@ const PGM_USAGE_LEVEL_ORDER = {
     high: 3,
     medium: 2,
     low: 1
+};
+
+const PGM_USAGE_STRUCTURAL_SIGNAL_ORDER = {
+    strong: 3,
+    medium: 2,
+    weak: 1
+};
+
+const PGM_USAGE_EXECUTION_READINESS_ORDER = {
+    ready: 3,
+    exploratory: 2,
+    not_ready: 1
+};
+
+const PGM_USAGE_OPERATIONAL_SAFETY_ORDER = {
+    safe: 3,
+    guarded: 2,
+    fragile: 1
 };
 
 function pgmUsageEscape(value) {
@@ -295,6 +337,14 @@ function pgmUsageNormalizeRow(row) {
         strength: pgmUsageNormalizeKey(normalized.effect_strength),
         confidence: pgmUsageNormalizeKey(normalized.effect_confidence),
         scope: pgmUsageNormalizeKey(normalized.effect_scope),
+        structuralSignal: pgmUsageNormalizeKey(normalized.structural_signal),
+        executionReadiness: pgmUsageNormalizeKey(normalized.execution_readiness),
+        operationalSafety: pgmUsageNormalizeKey(normalized.operational_safety),
+        explanationConfidence: pgmUsageNormalizeKey(normalized.explanation_confidence || normalized.effect_confidence),
+        purposeSubtype: pgmUsageNormalizeKey(normalized.purpose_subtype),
+        compoundCandidateHint: pgmUsageNormalizeKey(normalized.compound_candidate_hint),
+        relationSummaryKo: pgmUsageNormalizeKey(normalized.relation_summary_ko),
+        relationRiskSummaryKo: pgmUsageNormalizeKey(normalized.relation_risk_summary_ko),
         preconditionFlag: pgmUsageNormalizeBoolean(normalized.effect_precondition_flag),
         riskFlag: pgmUsageNormalizeBoolean(normalized.effect_risk_flag),
         rationaleCode: pgmUsageNormalizeKey(normalized.effect_rationale_code),
@@ -327,6 +377,14 @@ function pgmUsageNormalizeActionRow(row) {
         status: pgmUsageNormalizeKey(normalized.effect_status),
         scope: pgmUsageNormalizeKey(normalized.effect_scope),
         confidence: pgmUsageNormalizeKey(normalized.effect_confidence),
+        structuralSignal: pgmUsageNormalizeKey(normalized.structural_signal),
+        executionReadiness: pgmUsageNormalizeKey(normalized.execution_readiness),
+        operationalSafety: pgmUsageNormalizeKey(normalized.operational_safety),
+        explanationConfidence: pgmUsageNormalizeKey(normalized.explanation_confidence || normalized.expected_effect_confidence || normalized.effect_confidence),
+        purposeSubtype: pgmUsageNormalizeKey(normalized.purpose_subtype),
+        compoundCandidateHint: pgmUsageNormalizeKey(normalized.compound_candidate_hint),
+        relationSummaryKo: pgmUsageNormalizeKey(normalized.relation_summary_ko),
+        relationRiskSummaryKo: pgmUsageNormalizeKey(normalized.relation_risk_summary_ko),
         recommendedActionType: pgmUsageNormalizeKey(normalized.recommended_action_type),
         recommendedActionKo: pgmUsageNormalizeKey(normalized.recommended_action_ko),
         expectedEffectKo: pgmUsageNormalizeKey(normalized.expected_effect_ko),
@@ -357,10 +415,18 @@ function pgmUsageIsInsufficient(row) {
 }
 
 function pgmUsageCompareRows(a, b) {
+    const structuralDiff = (PGM_USAGE_STRUCTURAL_SIGNAL_ORDER[b.structuralSignal] || 0) - (PGM_USAGE_STRUCTURAL_SIGNAL_ORDER[a.structuralSignal] || 0);
+    if (structuralDiff) return structuralDiff;
+    const readinessDiff = (PGM_USAGE_EXECUTION_READINESS_ORDER[b.executionReadiness] || 0) - (PGM_USAGE_EXECUTION_READINESS_ORDER[a.executionReadiness] || 0);
+    if (readinessDiff) return readinessDiff;
+    const safetyDiff = (PGM_USAGE_OPERATIONAL_SAFETY_ORDER[b.operationalSafety] || 0) - (PGM_USAGE_OPERATIONAL_SAFETY_ORDER[a.operationalSafety] || 0);
+    if (safetyDiff) return safetyDiff;
+    const explanationDiff = (PGM_USAGE_LEVEL_ORDER[b.explanationConfidence || b.confidence] || 0) - (PGM_USAGE_LEVEL_ORDER[a.explanationConfidence || a.confidence] || 0);
+    if (explanationDiff) return explanationDiff;
     const scopeDiff = (PGM_USAGE_SCOPE_ORDER[b.scope] || 0) - (PGM_USAGE_SCOPE_ORDER[a.scope] || 0);
     if (scopeDiff) return scopeDiff;
-    const confidenceDiff = (PGM_USAGE_LEVEL_ORDER[b.confidence] || 0) - (PGM_USAGE_LEVEL_ORDER[a.confidence] || 0);
-    if (confidenceDiff) return confidenceDiff;
+    const statusDiff = (PGM_USAGE_STATUS_ORDER[b.status] || 0) - (PGM_USAGE_STATUS_ORDER[a.status] || 0);
+    if (statusDiff) return statusDiff;
     const strengthDiff = (PGM_USAGE_LEVEL_ORDER[b.strength] || 0) - (PGM_USAGE_LEVEL_ORDER[a.strength] || 0);
     if (strengthDiff) return strengthDiff;
     const signalDiff = pgmUsageNumber(b.signalScore, -1) - pgmUsageNumber(a.signalScore, -1);
@@ -439,7 +505,7 @@ function pgmUsageCurrentState() {
             selectedProductId: '',
             compareProductId: '',
             selectedPurposeKey: '',
-            actionReviewOpen: true
+            actionReviewOpen: false
         };
     }
     if (typeof AppState.viewState.pgmUsage.compareProductId !== 'string') {
@@ -455,7 +521,7 @@ function pgmUsageCurrentState() {
         AppState.viewState.pgmUsage.compareSearchComposing = false;
     }
     if (typeof AppState.viewState.pgmUsage.actionReviewOpen !== 'boolean') {
-        AppState.viewState.pgmUsage.actionReviewOpen = true;
+        AppState.viewState.pgmUsage.actionReviewOpen = false;
     }
     if (
         AppState.viewState.pgmUsage.compareProductId
@@ -544,11 +610,11 @@ function pgmUsageApplyFilters(rows, state) {
 
 function pgmUsageSummary(rows) {
     return {
-        reviewable: rows.filter(pgmUsageIsReviewable).length,
-        smallTest: rows.filter((row) => row.scope === 'small_test').length,
-        rollout: rows.filter((row) => ['limited_rollout', 'broad_rollout'].includes(row.scope)).length,
-        flagged: rows.filter((row) => row.riskFlag || row.preconditionFlag).length,
-        insufficient: rows.filter(pgmUsageIsInsufficient).length
+        strongSignal: rows.filter((row) => row.structuralSignal === 'strong').length,
+        ready: rows.filter((row) => row.executionReadiness === 'ready').length,
+        constrained: rows.filter((row) => ['guarded', 'fragile'].includes(row.operationalSafety) || row.riskFlag || row.preconditionFlag).length,
+        lowConfidence: rows.filter((row) => row.explanationConfidence === 'low').length,
+        hold: rows.filter((row) => pgmUsageIsInsufficient(row) || row.executionReadiness === 'not_ready').length
     };
 }
 
@@ -706,11 +772,11 @@ function pgmUsageRenderContext(model) {
 
 function pgmUsageRenderSummary(model) {
     const cards = [
-        ['검토 가능 후보', model.summary.reviewable, '운영/실험 또는 적용 범위가 있는 행'],
-        ['작은 실험 후보', model.summary.smallTest, '작게 확인할 수 있는 후보'],
-        ['제한/넓은 적용 후보', model.summary.rollout, '제한 또는 넓은 적용 검토 범위'],
-        ['주의 필요 후보', model.summary.flagged, '리스크나 전제조건 플래그 포함'],
-        ['근거 부족/비대상', model.summary.insufficient, '지금 판단을 보류할 행']
+        ['구조 신호 강한 후보', model.summary.strongSignal, '구조적으로 목적 해석 가치가 높은 행'],
+        ['실행 준비된 후보', model.summary.ready, '바로 검토를 시작할 수 있는 행'],
+        ['제약 포함 후보', model.summary.constrained, '리스크나 전제조건을 먼저 확인해야 하는 행'],
+        ['설명 불확실 후보', model.summary.lowConfidence, '해석 신뢰도가 낮아 보수적으로 읽어야 하는 행'],
+        ['판단 보류 후보', model.summary.hold, '지금 판단을 미루는 편이 맞는 행']
     ];
     return `
         <section class="pgm-usage-summary-strip" aria-label="검토 요약">
@@ -758,16 +824,22 @@ function pgmUsageMetricText(metric, value) {
 
 function pgmUsageInterpretation(row) {
     if (!row) return '해당 목적의 행이 아직 없습니다.';
-    if (row.scope === 'not_recommended' || ['insufficient', 'not_applicable'].includes(row.status)) {
-        return '현재 데이터에서는 활용 판단을 보류하는 편이 적절합니다.';
+    if (row.executionReadiness === 'not_ready' || row.scope === 'not_recommended' || ['insufficient', 'not_applicable'].includes(row.status)) {
+        return '지금은 실행보다 해석 보강과 추가 확인이 먼저인 행입니다.';
     }
-    if (row.riskFlag || row.preconditionFlag) {
-        return '활용 가능성은 검토하되, 전제조건과 리스크를 먼저 확인해야 합니다.';
+    if (row.operationalSafety === 'fragile' || row.riskFlag) {
+        return '구조 신호가 있더라도 운영 리스크가 커서 보호장치부터 확인해야 합니다.';
     }
-    if (row.scope === 'broad_rollout') return '넓은 적용 검토 범위에 있으나 실행 결론은 별도 검토가 필요합니다.';
-    if (row.scope === 'limited_rollout') return '제한된 범위에서 운영 검토를 시작할 수 있는 후보입니다.';
-    if (row.scope === 'small_test') return '작은 실험으로 가설을 확인하는 후보입니다.';
-    return '표시된 상태와 근거 수준을 기준으로 추가 검토가 필요합니다.';
+    if (row.preconditionFlag || row.operationalSafety === 'guarded') {
+        return '가능성은 보이지만 전제조건과 운영 제약을 먼저 점검해야 합니다.';
+    }
+    if (row.executionReadiness === 'ready' && row.structuralSignal === 'strong') {
+        return '구조 신호와 실행 준비도가 함께 보여 우선 검토 가치가 높은 행입니다.';
+    }
+    if (row.executionReadiness === 'exploratory') {
+        return '해석은 가능하지만 바로 실행하기보다 작은 확인 단계를 두는 편이 좋습니다.';
+    }
+    return '표시된 구조 신호와 설명 신뢰도를 기준으로 추가 해석이 필요합니다.';
 }
 
 function pgmUsageRenderPurposeBoards(model) {
@@ -799,7 +871,7 @@ function pgmUsageRenderPurposeBoards(model) {
                                 <button type="button" class="${chipClassNames}"
                                     onclick="selectPgmUsageProduct('${pgmUsageEscapeJsAttr(row.productId)}', '${pgmUsageEscapeJsAttr(row.purposeKey)}')">
                                     <span>${pgmUsageEscape(row.productName || row.productId)}</span>
-                                    <small>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_SCOPE_LABELS, row.scope))} · ${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_LEVEL_LABELS, row.confidence))}</small>
+                                    <small>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_STRUCTURAL_SIGNAL_LABELS, row.structuralSignal))} · ${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_EXECUTION_READINESS_LABELS, row.executionReadiness))}</small>
                                     <span class="pgm-usage-mini-flags">
                                         ${isSelectedFocus ? pgmUsageBadge('현재 보고 있음', 'medium') : ''}
                                         ${!isSelectedFocus && isSelectedProduct ? pgmUsageBadge('같은 상품', 'strong') : ''}
@@ -827,7 +899,7 @@ function pgmUsageRenderCandidateTable(model) {
             <div class="pgm-usage-section-head">
                 <div>
                     <h3>후보 테이블</h3>
-                    <p>정렬은 검토 범위, 근거 수준, 효과 강도, 보조 점수 순서로 적용됩니다.</p>
+                    <p>지금 볼 가치가 있는 후보를 구조 신호, 실행 준비도, 운영 안전성 기준으로 정렬해 보여줍니다.</p>
                 </div>
                 ${remaining ? `<span>${pgmUsageFormatNumber(remaining)}개 행은 필터를 좁히면 볼 수 있습니다.</span>` : ''}
             </div>
@@ -837,12 +909,11 @@ function pgmUsageRenderCandidateTable(model) {
                         <tr>
                             <th>제품</th>
                             <th>목적</th>
-                            <th>검토 범위</th>
-                            <th>상태</th>
-                            <th>방향/강도</th>
-                            <th>근거</th>
-                            <th>주의</th>
-                            <th>상품 역할</th>
+                            <th>구조 신호</th>
+                            <th>실행 준비도</th>
+                            <th>운영 안전성</th>
+                            <th>설명 신뢰도</th>
+                            <th>관계 해석</th>
                             <th>선택</th>
                         </tr>
                     </thead>
@@ -856,28 +927,26 @@ function pgmUsageRenderCandidateTable(model) {
                                     </div>
                                 </td>
                                 <td>${pgmUsageEscape(pgmUsagePurposeMeta(row.purposeKey).shortLabel)}</td>
-                                <td>${pgmUsageBadge(pgmUsageLabel(PGM_USAGE_SCOPE_LABELS, row.scope), pgmUsageScopeTone(row.scope))}</td>
-                                <td>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_STATUS_LABELS, row.status))}</td>
-                                <td>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_DIRECTION_LABELS, row.direction))}<br><span>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_LEVEL_LABELS, row.strength))}</span></td>
+                                <td>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_STRUCTURAL_SIGNAL_LABELS, row.structuralSignal))}</td>
+                                <td>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_EXECUTION_READINESS_LABELS, row.executionReadiness))}</td>
+                                <td>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_OPERATIONAL_SAFETY_LABELS, row.operationalSafety))}</td>
+                                <td>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_LEVEL_LABELS, row.explanationConfidence || row.confidence))}</td>
                                 <td>
                                     <div class="pgm-usage-metric-stack">
-                                        <span>${pgmUsageEscape(pgmUsageMetricText(row.primaryMetric, row.primaryMetricValue))}</span>
-                                        <small>${pgmUsageEscape(pgmUsageMetricText(row.secondaryMetric, row.secondaryMetricValue))}</small>
-                                        <small>근거 수준 ${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_LEVEL_LABELS, row.confidence))}</small>
+                                        <span>${pgmUsageEscape(row.relationSummaryKo || '관계 해석 정보 없음')}</span>
+                                        <small>${pgmUsageEscape(row.relationRiskSummaryKo || pgmUsageInterpretation(row))}</small>
                                     </div>
                                 </td>
-                                <td><div class="pgm-usage-badge-stack">${pgmUsageFlagBadges(row)}</div></td>
-                                <td>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_ROLE_LABELS, row.merchandiseRole))}</td>
                                 <td>
                                     <div class="pgm-usage-row-actions">
-                                        <button type="button" onclick="selectPgmUsageProduct('${pgmUsageEscapeJsAttr(row.productId)}', '${pgmUsageEscapeJsAttr(row.purposeKey)}')">가이드 보기</button>
+                                        <button type="button" onclick="selectPgmUsageProduct('${pgmUsageEscapeJsAttr(row.productId)}', '${pgmUsageEscapeJsAttr(row.purposeKey)}')">해석 보기</button>
                                         <button type="button" onclick="addPgmUsageCompareProduct('${pgmUsageEscapeJsAttr(row.productId)}', '${pgmUsageEscapeJsAttr(row.purposeKey)}')">비교 추가</button>
                                     </div>
                                 </td>
                             </tr>
                         `).join('') : `
                             <tr>
-                                <td colspan="9" class="pgm-usage-empty-cell">현재 필터에서 표시할 후보가 없습니다.</td>
+                                <td colspan="8" class="pgm-usage-empty-cell">현재 필터에서 표시할 후보가 없습니다.</td>
                             </tr>
                         `}
                     </tbody>
@@ -1102,6 +1171,30 @@ function pgmUsagePairGuardrailText(row) {
 function pgmUsagePairComparison(rowA, rowB) {
     const fields = [
         {
+            key: 'structuralSignal',
+            label: '구조 신호',
+            rankA: PGM_USAGE_STRUCTURAL_SIGNAL_ORDER[rowA?.structuralSignal] || 0,
+            rankB: PGM_USAGE_STRUCTURAL_SIGNAL_ORDER[rowB?.structuralSignal] || 0
+        },
+        {
+            key: 'executionReadiness',
+            label: '실행 준비도',
+            rankA: PGM_USAGE_EXECUTION_READINESS_ORDER[rowA?.executionReadiness] || 0,
+            rankB: PGM_USAGE_EXECUTION_READINESS_ORDER[rowB?.executionReadiness] || 0
+        },
+        {
+            key: 'operationalSafety',
+            label: '운영 안전성',
+            rankA: PGM_USAGE_OPERATIONAL_SAFETY_ORDER[rowA?.operationalSafety] || 0,
+            rankB: PGM_USAGE_OPERATIONAL_SAFETY_ORDER[rowB?.operationalSafety] || 0
+        },
+        {
+            key: 'explanationConfidence',
+            label: '설명 신뢰도',
+            rankA: PGM_USAGE_LEVEL_ORDER[rowA?.explanationConfidence || rowA?.confidence] || 0,
+            rankB: PGM_USAGE_LEVEL_ORDER[rowB?.explanationConfidence || rowB?.confidence] || 0
+        },
+        {
             key: 'scope',
             label: '검토 범위',
             rankA: PGM_USAGE_SCOPE_ORDER[rowA?.scope] || 0,
@@ -1112,18 +1205,6 @@ function pgmUsagePairComparison(rowA, rowB) {
             label: '상태',
             rankA: PGM_USAGE_STATUS_ORDER[rowA?.status] || 0,
             rankB: PGM_USAGE_STATUS_ORDER[rowB?.status] || 0
-        },
-        {
-            key: 'confidence',
-            label: '근거 수준',
-            rankA: PGM_USAGE_LEVEL_ORDER[rowA?.confidence] || 0,
-            rankB: PGM_USAGE_LEVEL_ORDER[rowB?.confidence] || 0
-        },
-        {
-            key: 'strength',
-            label: '효과 강도',
-            rankA: PGM_USAGE_LEVEL_ORDER[rowA?.strength] || 0,
-            rankB: PGM_USAGE_LEVEL_ORDER[rowB?.strength] || 0
         }
     ];
     const firstDiffIndex = fields.findIndex((field) => field.rankA !== field.rankB);
@@ -1146,19 +1227,25 @@ function pgmUsagePairComparison(rowA, rowB) {
 }
 
 function pgmUsagePairReason(fieldKey, winnerRow) {
+    if (fieldKey === 'structuralSignal') {
+        return `구조 신호가 ${pgmUsageLabel(PGM_USAGE_STRUCTURAL_SIGNAL_LABELS, winnerRow.structuralSignal)} 쪽으로 더 선명해 보여`;
+    }
+    if (fieldKey === 'executionReadiness') {
+        return `실행 준비도가 ${pgmUsageLabel(PGM_USAGE_EXECUTION_READINESS_LABELS, winnerRow.executionReadiness)} 쪽으로 더 앞서 보여`;
+    }
+    if (fieldKey === 'operationalSafety') {
+        return `운영 안전성이 ${pgmUsageLabel(PGM_USAGE_OPERATIONAL_SAFETY_LABELS, winnerRow.operationalSafety)} 쪽으로 더 안정적으로 보여`;
+    }
+    if (fieldKey === 'explanationConfidence') {
+        return '구조 신호와 실행 준비도는 비슷하지만 설명 신뢰도 표기가 더 높아';
+    }
     if (fieldKey === 'scope') {
         return `검토 범위가 ${pgmUsageLabel(PGM_USAGE_SCOPE_LABELS, winnerRow.scope)} 쪽으로 더 앞서 보여`;
     }
     if (fieldKey === 'status') {
         return `상태가 ${pgmUsageLabel(PGM_USAGE_STATUS_LABELS, winnerRow.status)} 쪽으로 더 앞서 보여`;
     }
-    if (fieldKey === 'confidence') {
-        return '검토 범위와 상태는 비슷하지만 근거 수준 표기가 더 높아';
-    }
-    if (fieldKey === 'strength') {
-        return '검토 범위·상태·근거 수준은 비슷하지만 효과 강도 표기가 더 높아';
-    }
-    return '표시된 계약 필드 기준으로 조금 더 앞서 보여';
+    return '표시된 해석 필드 기준으로 조금 더 앞서 보여';
 }
 
 function pgmUsagePairInterpretation(rowA, productA, rowB, productB) {
@@ -1169,9 +1256,9 @@ function pgmUsagePairInterpretation(rowA, productA, rowB, productB) {
     if (comparison.kind === 'same') {
         const cautionGap = Math.abs(pgmUsagePairCautionScore(rowA) - pgmUsagePairCautionScore(rowB));
         if (cautionGap) {
-            return '현재 두 상품은 검토 범위·상태·근거 수준·효과 강도가 비슷합니다. 다만 전제조건·리스크 또는 적격성 차이가 있어 주의 조건까지 같이 확인하는 편이 안전합니다. 전체 상품 순위가 아니라 현재 두 상품 사이의 해석입니다.';
+            return '현재 두 상품은 구조 신호·실행 준비도·운영 안전성·설명 신뢰도가 비슷합니다. 다만 전제조건·리스크 또는 적격성 차이가 있어 주의 조건까지 같이 확인하는 편이 안전합니다. 전체 상품 순위가 아니라 현재 두 상품 사이의 해석입니다.';
         }
-        return '현재 두 상품은 검토 범위·상태·근거 수준·효과 강도가 비슷하게 읽힙니다. 세부 지표와 플래그를 함께 확인합니다. 전체 상품 순위가 아니라 현재 두 상품 사이의 해석입니다.';
+        return '현재 두 상품은 구조 신호·실행 준비도·운영 안전성·설명 신뢰도가 비슷하게 읽힙니다. 세부 근거와 플래그를 함께 확인합니다. 전체 상품 순위가 아니라 현재 두 상품 사이의 해석입니다.';
     }
 
     const winner = comparison.winnerKey === 'a' ? productA : productB;
@@ -1204,7 +1291,7 @@ function pgmUsageRenderSelectedPurposeCards(model) {
         return `
             <div class="pgm-usage-selected-empty">
                 <i class="ph ph-cursor-click"></i>
-                <p>후보 테이블에서 가이드 보기를 누르거나 기준 상품을 선택하면 활용 가이드가 열립니다.</p>
+                <p>후보 테이블에서 해석 보기를 누르거나 기준 상품을 선택하면 purpose dossier가 열립니다.</p>
             </div>
         `;
     }
@@ -1215,6 +1302,7 @@ function pgmUsageRenderSelectedPurposeCards(model) {
             <div>
                 <h3>${pgmUsageEscape(model.selectedProduct.productName || model.selectedProduct.productId)}</h3>
                 <p>${pgmUsageEscape(model.selectedProduct.productId)} · ${pgmUsageEscape(model.snapshotLabel)} · 목적 행 ${pgmUsageFormatNumber(model.selectedRows.length)}개</p>
+                <p class="pgm-usage-helper-copy">이 영역은 선택한 상품 기준으로만 바뀌며, 액션보다 해석과 제약을 먼저 보여줍니다.</p>
             </div>
         </div>
         <div class="pgm-usage-selected-card-grid">
@@ -1224,11 +1312,24 @@ function pgmUsageRenderSelectedPurposeCards(model) {
                     <article class="pgm-usage-selected-purpose-card ${model.state.selectedPurposeKey === purpose.key ? 'is-active' : ''}">
                         <div class="pgm-usage-selected-purpose-title">
                             <h4>${pgmUsageEscape(purpose.label)}</h4>
-                            ${row ? pgmUsageBadge(pgmUsageLabel(PGM_USAGE_SCOPE_LABELS, row.scope), pgmUsageScopeTone(row.scope)) : pgmUsageBadge('행 없음', 'muted')}
+                            ${row ? pgmUsageBadge(pgmUsageLabel(PGM_USAGE_STRUCTURAL_SIGNAL_LABELS, row.structuralSignal), 'medium') : pgmUsageBadge('행 없음', 'muted')}
                         </div>
                         ${row ? `
-                            <p>${pgmUsageEscape(pgmUsageInterpretation(row))}</p>
-                            ${pgmUsageRenderEffectContext(row)}
+                            <div class="pgm-usage-purpose-facts">
+                                <span><strong>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_EXECUTION_READINESS_LABELS, row.executionReadiness))}</strong></span>
+                                <span><strong>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_OPERATIONAL_SAFETY_LABELS, row.operationalSafety))}</strong></span>
+                                <span>설명 <strong>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_LEVEL_LABELS, row.explanationConfidence || row.confidence))}</strong></span>
+                            </div>
+                            <p>${pgmUsageEscape(row.relationRiskSummaryKo || pgmUsageInterpretation(row))}</p>
+                            <div class="pgm-usage-context-list">
+                                ${pgmUsageRenderContextItem('주요 근거', pgmUsageMetricText(row.primaryMetric, row.primaryMetricValue))}
+                                ${pgmUsageRenderContextItem('보조 근거', pgmUsageMetricText(row.secondaryMetric, row.secondaryMetricValue))}
+                                ${pgmUsageRenderContextItem('관계 해석', row.relationSummaryKo || '관계 해석 정보 없음')}
+                                ${row.purposeSubtype ? pgmUsageRenderContextItem('Subtype', pgmUsageLabel(PGM_USAGE_PURPOSE_SUBTYPE_LABELS, row.purposeSubtype)) : ''}
+                                ${row.compoundCandidateHint ? pgmUsageRenderContextItem('Compound', row.compoundCandidateHint) : ''}
+                                ${row.relationRiskSummaryKo ? pgmUsageRenderContextItem('제약', row.relationRiskSummaryKo) : ''}
+                            </div>
+                            <div class="pgm-usage-badge-stack">${pgmUsageFlagBadges(row)}</div>
                             ${model.state.actionReviewOpen ? pgmUsageRenderActionReview(row) : ''}
                         ` : `
                             <p>이 상품에는 해당 목적의 산출 행이 아직 없습니다.</p>
@@ -1252,14 +1353,17 @@ function pgmUsageRenderCompareColumn(product, row) {
     return `
         <div class="pgm-usage-compare-column">
             <h5>${pgmUsageEscape(product.productName || product.productId)}</h5>
-            ${pgmUsageBadge(pgmUsageLabel(PGM_USAGE_SCOPE_LABELS, row.scope), pgmUsageScopeTone(row.scope))}
+            <div class="pgm-usage-badge-stack">
+                ${pgmUsageBadge(pgmUsageLabel(PGM_USAGE_STRUCTURAL_SIGNAL_LABELS, row.structuralSignal), 'medium')}
+                ${pgmUsageBadge(pgmUsageLabel(PGM_USAGE_EXECUTION_READINESS_LABELS, row.executionReadiness), 'plain')}
+                ${pgmUsageBadge(pgmUsageLabel(PGM_USAGE_OPERATIONAL_SAFETY_LABELS, row.operationalSafety), row.operationalSafety === 'fragile' ? 'risk' : (row.operationalSafety === 'guarded' ? 'caution' : 'plain'))}
+            </div>
             <div class="pgm-usage-metric-stack">
-                <span>${pgmUsageEscape(pgmUsageMetricText(row.primaryMetric, row.primaryMetricValue))}</span>
-                <small>${pgmUsageEscape(pgmUsageMetricText(row.secondaryMetric, row.secondaryMetricValue))}</small>
-                <small>상태 ${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_STATUS_LABELS, row.status))} · 근거 ${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_LEVEL_LABELS, row.confidence))}</small>
+                <span>${pgmUsageEscape(row.relationSummaryKo || '관계 해석 정보 없음')}</span>
+                <small>설명 신뢰도 ${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_LEVEL_LABELS, row.explanationConfidence || row.confidence))}</small>
+                <small>${pgmUsageEscape(pgmUsageMetricText(row.primaryMetric, row.primaryMetricValue))}</small>
             </div>
             <div class="pgm-usage-badge-stack">${pgmUsageFlagBadges(row)}</div>
-            ${pgmUsageRenderRationale(row)}
         </div>
     `;
 }
@@ -1281,7 +1385,8 @@ function pgmUsageRenderComparisonCards(model) {
         <div class="pgm-usage-selected-head">
             <div>
                 <h3>${pgmUsageEscape(model.selectedProduct.productName || model.selectedProduct.productId)} ↔ ${pgmUsageEscape(model.compareProduct.productName || model.compareProduct.productId)}</h3>
-                <p>${pgmUsageEscape(model.snapshotLabel)} · 현재 선택한 두 상품의 목적별 효과만 비교합니다.</p>
+                <p>${pgmUsageEscape(model.snapshotLabel)} · 현재 두 상품 사이의 해석이며 전체 순위가 아닙니다.</p>
+                <p class="pgm-usage-helper-copy">비교는 구조 신호, 실행 준비도, 운영 안전성, 설명 신뢰도 차이를 우선 읽습니다.</p>
             </div>
         </div>
         <div class="pgm-usage-selected-card-grid">
@@ -1335,10 +1440,10 @@ function pgmUsageRenderCompactPairContext(product, row) {
 
 function pgmUsageRenderSelectedArea(model) {
     const isCompare = model.selectedProduct && model.compareProduct;
-    const title = isCompare ? '선택 상품 효과 비교' : '선택 상품 활용 가이드';
+    const title = isCompare ? '선택 상품 효과 비교' : '선택 상품 해석';
     const copy = isCompare
-        ? '두 상품 사이의 목적별 효과 차이만 해석합니다. 전체 후보 순위로 읽지 않습니다.'
-        : '선택한 상품의 목적별 효과, 조건, 지원 액션을 함께 확인합니다.';
+        ? '두 상품 사이의 목적별 해석 차이만 봅니다. 전체 후보 순위로 읽지 않습니다.'
+        : '선택한 상품의 목적별 구조 신호, 제약, 후속 실행 메모를 함께 봅니다.';
     return `
         <aside class="pgm-usage-panel pgm-usage-selected-panel">
             <div class="pgm-usage-section-head">
