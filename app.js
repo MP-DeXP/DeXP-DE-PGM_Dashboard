@@ -3542,20 +3542,41 @@ function initSidebarCollapse() {
     };
 }
 
-function ensurePgmUsageNavItem(pageId) {
+function ensurePgmDecisionNavItems(pageId) {
     const navLinks = document.querySelector('.nav-links');
-    if (!navLinks || navLinks.querySelector('[data-nav-id="pgm-usage"]')) return;
-    const li = document.createElement('li');
-    li.dataset.navId = 'pgm-usage';
-    li.className = pageId === 'page-pgm-usage' ? 'active' : '';
-    li.onclick = () => {
-        window.location.href = pageId === 'page-pgm-usage' ? './' : '../pgm_usage/';
-    };
-    li.innerHTML = `
-        <span class="nav-icon"><i class="ph ph-clipboard-text"></i></span>
-        <span>목적별 활용 검토</span>
-    `;
-    navLinks.appendChild(li);
+    if (!navLinks) return;
+
+    const items = [
+        {
+            id: 'pgm-decision',
+            activePage: 'page-pgm-decision',
+            href: pageId === 'page-pgm-decision' ? './' : '../pgm_decision/',
+            icon: 'ph-compass-tool',
+            label: '오늘 집중 상품 결정'
+        },
+        {
+            id: 'pgm-usage',
+            activePage: 'page-pgm-usage',
+            href: pageId === 'page-pgm-usage' ? './' : '../pgm_usage/',
+            icon: 'ph-clipboard-text',
+            label: '목적별 활용 검토'
+        }
+    ];
+
+    items.forEach((item) => {
+        if (navLinks.querySelector(`[data-nav-id="${item.id}"]`)) return;
+        const li = document.createElement('li');
+        li.dataset.navId = item.id;
+        li.className = pageId === item.activePage ? 'active' : '';
+        li.onclick = () => {
+            window.location.href = item.href;
+        };
+        li.innerHTML = `
+            <span class="nav-icon"><i class="ph ${item.icon}"></i></span>
+            <span>${item.label}</span>
+        `;
+        navLinks.appendChild(li);
+    });
 }
 
 window.renderSettingsModal = () => {
@@ -3712,11 +3733,11 @@ async function init() {
         settingsTrigger.onclick = () => showSettingsModal();
     }
     initSidebarCollapse();
-    ensurePgmUsageNavItem(pageId);
+    ensurePgmDecisionNavItems(pageId);
 
     try {
         const keys = await DB.getAllKeys();
-        if (pageId === 'page-pgm-usage') {
+        if (pageId === 'page-pgm-usage' || pageId === 'page-pgm-decision') {
             AppState.rawData.productPurposeEffects = keys.length
                 ? await loadOptionalDataFromDB(REQUIRED_FILES.productPurposeEffects, [])
                 : [];
@@ -3725,7 +3746,8 @@ async function init() {
                 : [];
             AppState.data.productPurposeEffects = AppState.rawData.productPurposeEffects;
             AppState.data.productPurposeActionCandidates = AppState.rawData.productPurposeActionCandidates;
-            renderPgmUsage();
+            if (pageId === 'page-pgm-decision') renderPgmDecision();
+            if (pageId === 'page-pgm-usage') renderPgmUsage();
             applyFriendlyUi(document.body);
             return;
         }
