@@ -415,17 +415,17 @@ function pgmUsageIsInsufficient(row) {
 }
 
 function pgmUsageCompareRows(a, b) {
-    const structuralDiff = (PGM_USAGE_STRUCTURAL_SIGNAL_ORDER[b.structuralSignal] || 0) - (PGM_USAGE_STRUCTURAL_SIGNAL_ORDER[a.structuralSignal] || 0);
+    const structuralDiff = (PGM_USAGE_STRUCTURAL_SIGNAL_ORDER[pgmUsageStructuralSignalValue(b)] || 0) - (PGM_USAGE_STRUCTURAL_SIGNAL_ORDER[pgmUsageStructuralSignalValue(a)] || 0);
     if (structuralDiff) return structuralDiff;
-    const readinessDiff = (PGM_USAGE_EXECUTION_READINESS_ORDER[b.executionReadiness] || 0) - (PGM_USAGE_EXECUTION_READINESS_ORDER[a.executionReadiness] || 0);
+    const readinessDiff = (PGM_USAGE_EXECUTION_READINESS_ORDER[pgmUsageExecutionReadinessValue(b)] || 0) - (PGM_USAGE_EXECUTION_READINESS_ORDER[pgmUsageExecutionReadinessValue(a)] || 0);
     if (readinessDiff) return readinessDiff;
-    const safetyDiff = (PGM_USAGE_OPERATIONAL_SAFETY_ORDER[b.operationalSafety] || 0) - (PGM_USAGE_OPERATIONAL_SAFETY_ORDER[a.operationalSafety] || 0);
+    const safetyDiff = (PGM_USAGE_OPERATIONAL_SAFETY_ORDER[pgmUsageOperationalSafetyValue(b)] || 0) - (PGM_USAGE_OPERATIONAL_SAFETY_ORDER[pgmUsageOperationalSafetyValue(a)] || 0);
     if (safetyDiff) return safetyDiff;
-    const explanationDiff = (PGM_USAGE_LEVEL_ORDER[b.explanationConfidence || b.confidence] || 0) - (PGM_USAGE_LEVEL_ORDER[a.explanationConfidence || a.confidence] || 0);
+    const explanationDiff = (PGM_USAGE_LEVEL_ORDER[pgmUsageExplanationValue(b)] || 0) - (PGM_USAGE_LEVEL_ORDER[pgmUsageExplanationValue(a)] || 0);
     if (explanationDiff) return explanationDiff;
     const scopeDiff = (PGM_USAGE_SCOPE_ORDER[b.scope] || 0) - (PGM_USAGE_SCOPE_ORDER[a.scope] || 0);
     if (scopeDiff) return scopeDiff;
-    const statusDiff = (PGM_USAGE_STATUS_ORDER[b.status] || 0) - (PGM_USAGE_STATUS_ORDER[a.status] || 0);
+    const statusDiff = (PGM_USAGE_STATUS_ORDER[pgmUsageStatusValue(b)] || 0) - (PGM_USAGE_STATUS_ORDER[pgmUsageStatusValue(a)] || 0);
     if (statusDiff) return statusDiff;
     const strengthDiff = (PGM_USAGE_LEVEL_ORDER[b.strength] || 0) - (PGM_USAGE_LEVEL_ORDER[a.strength] || 0);
     if (strengthDiff) return strengthDiff;
@@ -493,43 +493,51 @@ function pgmUsageSnapshotLabel(rows) {
 
 function pgmUsageCurrentState() {
     if (!AppState.viewState.pgmUsage) {
-        AppState.viewState.pgmUsage = {
-            purposeFilter: 'all',
-            scopeFilter: 'all',
-            confidenceFilter: 'all',
-            strengthFilter: 'all',
-            flagFilter: 'all',
-            eligibilityFilter: 'all',
-            productSearch: '',
-            compareSearch: '',
-            selectedProductId: '',
-            compareProductId: '',
-            selectedPurposeKey: '',
-            actionReviewOpen: false
-        };
+        AppState.viewState.pgmUsage = {};
     }
-    if (typeof AppState.viewState.pgmUsage.compareProductId !== 'string') {
-        AppState.viewState.pgmUsage.compareProductId = '';
+    const state = AppState.viewState.pgmUsage;
+    const defaults = {
+        purposeFilter: 'all',
+        statusFilter: 'all',
+        structuralSignalFilter: 'all',
+        executionReadinessFilter: 'all',
+        operationalSafetyFilter: 'all',
+        explanationFilter: 'all',
+        reviewLaneFilter: 'all',
+        productSearch: '',
+        compareSearch: '',
+        selectedProductId: '',
+        compareProductId: '',
+        selectedPurposeKey: '',
+        actionReviewOpen: false
+    };
+    Object.entries(defaults).forEach(([key, defaultValue]) => {
+        if (typeof state[key] === 'undefined') state[key] = defaultValue;
+    });
+    if (typeof state.compareProductId !== 'string') {
+        state.compareProductId = '';
     }
-    if (typeof AppState.viewState.pgmUsage.selectedPurposeKey !== 'string') {
-        AppState.viewState.pgmUsage.selectedPurposeKey = '';
+    if (typeof state.selectedPurposeKey !== 'string') {
+        state.selectedPurposeKey = '';
     }
-    if (typeof AppState.viewState.pgmUsage.compareSearch !== 'string') {
-        AppState.viewState.pgmUsage.compareSearch = '';
+    if (typeof state.compareSearch !== 'string') {
+        state.compareSearch = '';
     }
-    if (typeof AppState.viewState.pgmUsage.compareSearchComposing !== 'boolean') {
-        AppState.viewState.pgmUsage.compareSearchComposing = false;
+    if (typeof state.compareSearchComposing !== 'boolean') {
+        state.compareSearchComposing = false;
     }
-    if (typeof AppState.viewState.pgmUsage.actionReviewOpen !== 'boolean') {
-        AppState.viewState.pgmUsage.actionReviewOpen = false;
+    if (typeof state.actionReviewOpen !== 'boolean') {
+        state.actionReviewOpen = false;
     }
-    if (
-        AppState.viewState.pgmUsage.compareProductId
-        && AppState.viewState.pgmUsage.compareProductId === AppState.viewState.pgmUsage.selectedProductId
-    ) {
-        AppState.viewState.pgmUsage.compareProductId = '';
+    if (state.compareProductId && state.compareProductId === state.selectedProductId) {
+        state.compareProductId = '';
     }
-    return AppState.viewState.pgmUsage;
+    delete state.scopeFilter;
+    delete state.confidenceFilter;
+    delete state.strengthFilter;
+    delete state.flagFilter;
+    delete state.eligibilityFilter;
+    return state;
 }
 
 function pgmUsageCompareMetaText(state, compareCandidates = []) {
@@ -592,17 +600,68 @@ function pgmUsageScheduleCompareSearchRefresh() {
     }, PGM_USAGE_COMPARE_SEARCH_DEBOUNCE_MS);
 }
 
+function pgmUsageStatusValue(row) {
+    if (row?.status) return row.status;
+    if (row?.scope === 'broad_rollout' || row?.scope === 'limited_rollout') return 'operational_candidate';
+    if (row?.scope === 'small_test') return 'testable';
+    if (row?.scope === 'not_recommended') return row?.eligibility === 'exclude' ? 'not_applicable' : 'insufficient';
+    return '';
+}
+
+function pgmUsageStructuralSignalValue(row) {
+    if (row?.structuralSignal) return row.structuralSignal;
+    if (row?.strength) return row.strength;
+    const score = pgmUsageNumber(row?.signalScore, NaN);
+    if (Number.isFinite(score)) {
+        if (score >= 0.7) return 'strong';
+        if (score >= 0.4) return 'medium';
+        return 'weak';
+    }
+    return '';
+}
+
+function pgmUsageExecutionReadinessValue(row) {
+    if (row?.executionReadiness) return row.executionReadiness;
+    const status = pgmUsageStatusValue(row);
+    if (row?.scope === 'broad_rollout' || status === 'operational_candidate') return 'ready';
+    if (row?.scope === 'limited_rollout' || row?.scope === 'small_test' || ['testable', 'hypothesis_only'].includes(status)) return 'exploratory';
+    if (row?.scope === 'not_recommended' || ['insufficient', 'not_applicable'].includes(status)) return 'not_ready';
+    return '';
+}
+
+function pgmUsageOperationalSafetyValue(row) {
+    if (row?.operationalSafety) return row.operationalSafety;
+    if (row?.eligibility === 'exclude' || row?.riskFlag || row?.scope === 'not_recommended') return 'fragile';
+    if (row?.eligibility === 'downweight' || row?.preconditionFlag || row?.scope === 'limited_rollout') return 'guarded';
+    return 'safe';
+}
+
+function pgmUsageExplanationValue(row) {
+    return row?.explanationConfidence || row?.confidence || '';
+}
+
+function pgmUsageReviewLaneValue(row) {
+    const status = pgmUsageStatusValue(row);
+    const readiness = pgmUsageExecutionReadinessValue(row);
+    const safety = pgmUsageOperationalSafetyValue(row);
+    if (row?.eligibility === 'exclude' || status === 'not_applicable') return 'excluded';
+    if (row?.scope === 'not_recommended' && ['fragile'].includes(safety)) return 'excluded';
+    if (['insufficient'].includes(status) || readiness === 'not_ready' || row?.scope === 'not_recommended') return 'hold';
+    if (['guarded', 'fragile'].includes(safety) || row?.riskFlag || row?.preconditionFlag || row?.eligibility === 'downweight') return 'guarded';
+    if (pgmUsageIsReviewable({ ...row, status, scope: row?.scope || (readiness === 'ready' ? 'broad_rollout' : '') })) return 'candidate';
+    return 'candidate';
+}
+
 function pgmUsageApplyFilters(rows, state) {
     const search = state.productSearch;
     return rows.filter((row) => {
         if (state.purposeFilter !== 'all' && row.purposeKey !== state.purposeFilter) return false;
-        if (state.scopeFilter !== 'all' && row.scope !== state.scopeFilter) return false;
-        if (state.confidenceFilter !== 'all' && row.confidence !== state.confidenceFilter) return false;
-        if (state.strengthFilter !== 'all' && row.strength !== state.strengthFilter) return false;
-        if (state.eligibilityFilter !== 'all' && row.eligibility !== state.eligibilityFilter) return false;
-        if (state.flagFilter === 'risk' && !row.riskFlag) return false;
-        if (state.flagFilter === 'precondition' && !row.preconditionFlag) return false;
-        if (state.flagFilter === 'clean' && (row.riskFlag || row.preconditionFlag)) return false;
+        if (state.statusFilter !== 'all' && pgmUsageStatusValue(row) !== state.statusFilter) return false;
+        if (state.structuralSignalFilter !== 'all' && pgmUsageStructuralSignalValue(row) !== state.structuralSignalFilter) return false;
+        if (state.executionReadinessFilter !== 'all' && pgmUsageExecutionReadinessValue(row) !== state.executionReadinessFilter) return false;
+        if (state.operationalSafetyFilter !== 'all' && pgmUsageOperationalSafetyValue(row) !== state.operationalSafetyFilter) return false;
+        if (state.explanationFilter !== 'all' && pgmUsageExplanationValue(row) !== state.explanationFilter) return false;
+        if (state.reviewLaneFilter !== 'all' && pgmUsageReviewLaneValue(row) !== state.reviewLaneFilter) return false;
         if (!pgmUsageMatchesSearchText(`${row.productId} ${row.productName}`, search)) return false;
         return true;
     });
@@ -610,11 +669,11 @@ function pgmUsageApplyFilters(rows, state) {
 
 function pgmUsageSummary(rows) {
     return {
-        strongSignal: rows.filter((row) => row.structuralSignal === 'strong').length,
-        ready: rows.filter((row) => row.executionReadiness === 'ready').length,
-        constrained: rows.filter((row) => ['guarded', 'fragile'].includes(row.operationalSafety) || row.riskFlag || row.preconditionFlag).length,
-        lowConfidence: rows.filter((row) => row.explanationConfidence === 'low').length,
-        hold: rows.filter((row) => pgmUsageIsInsufficient(row) || row.executionReadiness === 'not_ready').length
+        strongSignal: rows.filter((row) => pgmUsageStructuralSignalValue(row) === 'strong').length,
+        ready: rows.filter((row) => pgmUsageExecutionReadinessValue(row) === 'ready').length,
+        constrained: rows.filter((row) => ['guarded', 'fragile'].includes(pgmUsageOperationalSafetyValue(row)) || row.riskFlag || row.preconditionFlag).length,
+        lowConfidence: rows.filter((row) => pgmUsageExplanationValue(row) === 'low').length,
+        hold: rows.filter((row) => ['insufficient', 'not_applicable'].includes(pgmUsageStatusValue(row)) || pgmUsageExecutionReadinessValue(row) === 'not_ready').length
     };
 }
 
@@ -678,30 +737,34 @@ function pgmUsageRenderOptions(options, selected) {
 function pgmUsageRenderToolbar(model) {
     const state = model.state;
     const purposeOptions = [['all', '전체 목적'], ...PGM_USAGE_PURPOSES.map((purpose) => [purpose.key, purpose.shortLabel])];
-    const scopeOptions = [
-        ['all', '전체 검토 범위'],
-        ['broad_rollout', '넓은 적용'],
-        ['limited_rollout', '제한 적용'],
-        ['small_test', '작은 실험'],
-        ['not_recommended', '현재 제외']
+    const statusOptions = [
+        ['all', '전체 판정 상태'],
+        ...Object.entries(PGM_USAGE_STATUS_LABELS)
     ];
-    const levelOptions = [
-        ['all', '전체'],
+    const structuralSignalOptions = [
+        ['all', '전체 구조 신호'],
+        ...Object.entries(PGM_USAGE_STRUCTURAL_SIGNAL_LABELS)
+    ];
+    const executionReadinessOptions = [
+        ['all', '전체 실행 준비도'],
+        ...Object.entries(PGM_USAGE_EXECUTION_READINESS_LABELS)
+    ];
+    const operationalSafetyOptions = [
+        ['all', '전체 운영 안전성'],
+        ...Object.entries(PGM_USAGE_OPERATIONAL_SAFETY_LABELS)
+    ];
+    const explanationOptions = [
+        ['all', '전체 설명 신뢰도'],
         ['high', '높음'],
         ['medium', '중간'],
         ['low', '낮음']
     ];
-    const flagOptions = [
-        ['all', '전체 플래그'],
-        ['risk', '리스크 포함'],
-        ['precondition', '전제조건 필요'],
-        ['clean', '주의 플래그 제외']
-    ];
-    const eligibilityOptions = [
-        ['all', '전체 적격성'],
-        ['allow', '검토 가능'],
-        ['downweight', '제한 반영'],
-        ['exclude', '제외']
+    const reviewLaneOptions = [
+        ['all', '전체 검토 구간'],
+        ['candidate', '우선 검토 후보'],
+        ['guarded', '주의 조건 포함'],
+        ['hold', '해석 보강 필요'],
+        ['excluded', '검토 제외']
     ];
 
     return `
@@ -709,7 +772,7 @@ function pgmUsageRenderToolbar(model) {
             <div class="pgm-usage-toolbar-copy">
                 <span class="pgm-usage-eyebrow">검토용 초기 화면</span>
                 <h2>목적별 활용 검토</h2>
-                <p>구조화된 목적별 예상 효과 산출물을 기준으로 후보를 정렬하고 비교합니다. 이 화면은 실행 결론이나 승인으로 보지 않습니다.</p>
+                <p>v2 해석 모델 기준으로 판정 상태, 구조 신호, 실행 준비도, 운영 안전성을 같이 보며 후보를 좁힙니다.</p>
             </div>
             <div class="pgm-usage-filter-grid">
                 <label>
@@ -719,33 +782,39 @@ function pgmUsageRenderToolbar(model) {
                     </select>
                 </label>
                 <label>
-                    <span>검토 범위</span>
-                    <select onchange="handlePgmUsageFilterChange('scopeFilter', this.value)">
-                        ${pgmUsageRenderOptions(scopeOptions, state.scopeFilter)}
+                    <span>판정 상태</span>
+                    <select onchange="handlePgmUsageFilterChange('statusFilter', this.value)">
+                        ${pgmUsageRenderOptions(statusOptions, state.statusFilter)}
                     </select>
                 </label>
                 <label>
-                    <span>근거 수준</span>
-                    <select onchange="handlePgmUsageFilterChange('confidenceFilter', this.value)">
-                        ${pgmUsageRenderOptions(levelOptions, state.confidenceFilter)}
+                    <span>구조 신호</span>
+                    <select onchange="handlePgmUsageFilterChange('structuralSignalFilter', this.value)">
+                        ${pgmUsageRenderOptions(structuralSignalOptions, state.structuralSignalFilter)}
                     </select>
                 </label>
                 <label>
-                    <span>효과 강도</span>
-                    <select onchange="handlePgmUsageFilterChange('strengthFilter', this.value)">
-                        ${pgmUsageRenderOptions(levelOptions, state.strengthFilter)}
+                    <span>실행 준비도</span>
+                    <select onchange="handlePgmUsageFilterChange('executionReadinessFilter', this.value)">
+                        ${pgmUsageRenderOptions(executionReadinessOptions, state.executionReadinessFilter)}
                     </select>
                 </label>
                 <label>
-                    <span>주의 플래그</span>
-                    <select onchange="handlePgmUsageFilterChange('flagFilter', this.value)">
-                        ${pgmUsageRenderOptions(flagOptions, state.flagFilter)}
+                    <span>운영 안전성</span>
+                    <select onchange="handlePgmUsageFilterChange('operationalSafetyFilter', this.value)">
+                        ${pgmUsageRenderOptions(operationalSafetyOptions, state.operationalSafetyFilter)}
                     </select>
                 </label>
                 <label>
-                    <span>후보 적격성</span>
-                    <select onchange="handlePgmUsageFilterChange('eligibilityFilter', this.value)">
-                        ${pgmUsageRenderOptions(eligibilityOptions, state.eligibilityFilter)}
+                    <span>설명 신뢰도</span>
+                    <select onchange="handlePgmUsageFilterChange('explanationFilter', this.value)">
+                        ${pgmUsageRenderOptions(explanationOptions, state.explanationFilter)}
+                    </select>
+                </label>
+                <label>
+                    <span>검토 구간</span>
+                    <select onchange="handlePgmUsageFilterChange('reviewLaneFilter', this.value)">
+                        ${pgmUsageRenderOptions(reviewLaneOptions, state.reviewLaneFilter)}
                     </select>
                 </label>
                 <label class="pgm-usage-search-label">
@@ -871,7 +940,7 @@ function pgmUsageRenderPurposeBoards(model) {
                                 <button type="button" class="${chipClassNames}"
                                     onclick="selectPgmUsageProduct('${pgmUsageEscapeJsAttr(row.productId)}', '${pgmUsageEscapeJsAttr(row.purposeKey)}')">
                                     <span>${pgmUsageEscape(row.productName || row.productId)}</span>
-                                    <small>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_STRUCTURAL_SIGNAL_LABELS, row.structuralSignal))} · ${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_EXECUTION_READINESS_LABELS, row.executionReadiness))}</small>
+                                    <small>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_STRUCTURAL_SIGNAL_LABELS, pgmUsageStructuralSignalValue(row)))} · ${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_EXECUTION_READINESS_LABELS, pgmUsageExecutionReadinessValue(row)))}</small>
                                     <span class="pgm-usage-mini-flags">
                                         ${isSelectedFocus ? pgmUsageBadge('현재 보고 있음', 'medium') : ''}
                                         ${!isSelectedFocus && isSelectedProduct ? pgmUsageBadge('같은 상품', 'strong') : ''}
@@ -927,10 +996,10 @@ function pgmUsageRenderCandidateTable(model) {
                                     </div>
                                 </td>
                                 <td>${pgmUsageEscape(pgmUsagePurposeMeta(row.purposeKey).shortLabel)}</td>
-                                <td>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_STRUCTURAL_SIGNAL_LABELS, row.structuralSignal))}</td>
-                                <td>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_EXECUTION_READINESS_LABELS, row.executionReadiness))}</td>
-                                <td>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_OPERATIONAL_SAFETY_LABELS, row.operationalSafety))}</td>
-                                <td>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_LEVEL_LABELS, row.explanationConfidence || row.confidence))}</td>
+                                <td>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_STRUCTURAL_SIGNAL_LABELS, pgmUsageStructuralSignalValue(row)))}</td>
+                                <td>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_EXECUTION_READINESS_LABELS, pgmUsageExecutionReadinessValue(row)))}</td>
+                                <td>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_OPERATIONAL_SAFETY_LABELS, pgmUsageOperationalSafetyValue(row)))}</td>
+                                <td>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_LEVEL_LABELS, pgmUsageExplanationValue(row)))}</td>
                                 <td>
                                     <div class="pgm-usage-metric-stack">
                                         <span>${pgmUsageEscape(row.relationSummaryKo || '관계 해석 정보 없음')}</span>
