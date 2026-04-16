@@ -4663,7 +4663,7 @@ function renderProductsTableSearch() {
 }
 
 function getProductsCoreRankColumnLabel(sortKey) {
-    return sortKey === 'expansion' ? '재구매 확장 순위' : '첫구매 유입 순위';
+    return sortKey === 'expansion' ? '재구매 기여 순위' : '첫구매 기여 순위';
 }
 
 function renderCoreDemandSortTabs(currentSortKey) {
@@ -4731,10 +4731,10 @@ function renderProductsTableOnly(model = null, quadrantModel = null) {
                     <thead><tr>
                         <th>제품명</th>
                         <th>${escapeHtml(rankColumnLabel)}</th>
-                        <th>첫구매 고객 비중</th>
-                        <th>재구매 고객 비중</th>
+                        <th>첫구매 기여도</th>
+                        <th>재구매 기여도</th>
                         <th>최근 90일 매출</th>
-                        <th>리텐션 상태</th>
+                        <th>후속 구매 연결</th>
                     </tr></thead>
                     <tbody>${rows || `<tr><td colspan="6" class="core-demand-empty">지금 범위에서는 표시할 핵심 제품이 없어요.</td></tr>`}</tbody>
                 </table>
