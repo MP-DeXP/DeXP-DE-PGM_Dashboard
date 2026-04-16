@@ -44,7 +44,7 @@ function withAlpha(color, alpha) {
     return normalizedColor;
 }
 
-const QUADRANT_EDGE_TOP_N = 8;
+const PRODUCT_QUADRANT_EDGE_TOP_N = 8;
 const QUADRANT_CONVERGENCE_EDGE_TOP_N = 8;
 const QUADRANT_RETURN_LOOP_TOP_N = 4;
 const QUADRANT_THUMBNAIL_SRC = '../../assets/thumbnail.png';
@@ -486,7 +486,7 @@ function buildRepresentativeQuadrantEdges(pointIdSet, selectedId) {
             if (byCustomers !== 0) return byCustomers;
             return toNumber(b.peakRate, 0) - toNumber(a.peakRate, 0);
         })
-        .slice(0, QUADRANT_EDGE_TOP_N);
+        .slice(0, PRODUCT_QUADRANT_EDGE_TOP_N);
 }
 
 function buildConvergenceQuadrantEdges(pointIdSet, selectedId) {

@@ -493,23 +493,41 @@ function pgmUsageSnapshotLabel(rows) {
 
 function pgmUsageCurrentState() {
     if (!AppState.viewState.pgmUsage) {
-        AppState.viewState.pgmUsage = {};
+        AppState.viewState.pgmUsage = {
+            purposeFilter: 'all',
+            statusFilter: 'all',
+            structuralSignalFilter: 'strong',
+            executionReadinessFilter: 'all',
+            operationalSafetyFilter: 'all',
+            explanationFilter: 'high',
+            reviewLaneFilter: 'candidate',
+            productSearch: '',
+            compareSearch: '',
+            selectedProductId: '',
+            compareProductId: '',
+            selectedPurposeKey: '',
+            actionReviewOpen: false,
+            topBundleExpanded: false,
+            candidateTableExpanded: false
+        };
     }
     const state = AppState.viewState.pgmUsage;
     const defaults = {
         purposeFilter: 'all',
         statusFilter: 'all',
-        structuralSignalFilter: 'all',
+        structuralSignalFilter: 'strong',
         executionReadinessFilter: 'all',
         operationalSafetyFilter: 'all',
-        explanationFilter: 'all',
-        reviewLaneFilter: 'all',
+        explanationFilter: 'high',
+        reviewLaneFilter: 'candidate',
         productSearch: '',
         compareSearch: '',
         selectedProductId: '',
         compareProductId: '',
         selectedPurposeKey: '',
-        actionReviewOpen: false
+        actionReviewOpen: false,
+        topBundleExpanded: false,
+        candidateTableExpanded: false
     };
     Object.entries(defaults).forEach(([key, defaultValue]) => {
         if (typeof state[key] === 'undefined') state[key] = defaultValue;
@@ -528,6 +546,12 @@ function pgmUsageCurrentState() {
     }
     if (typeof state.actionReviewOpen !== 'boolean') {
         state.actionReviewOpen = false;
+    }
+    if (typeof state.topBundleExpanded !== 'boolean') {
+        state.topBundleExpanded = false;
+    }
+    if (typeof state.candidateTableExpanded !== 'boolean') {
+        state.candidateTableExpanded = false;
     }
     if (state.compareProductId && state.compareProductId === state.selectedProductId) {
         state.compareProductId = '';
@@ -860,6 +884,57 @@ function pgmUsageRenderSummary(model) {
     `;
 }
 
+function pgmUsageRenderTopBundleBar(model, isExpanded = false) {
+    const summaryItems = [
+        ['검토 구간', model.state.reviewLaneFilter === 'all' ? '전체' : pgmUsageLabel({
+            candidate: '우선 검토 후보',
+            guarded: '주의 조건 포함',
+            hold: '해석 보강 필요',
+            excluded: '검토 제외'
+        }, model.state.reviewLaneFilter)],
+        ['구조 신호', pgmUsageLabel(PGM_USAGE_STRUCTURAL_SIGNAL_LABELS, model.state.structuralSignalFilter, '전체')],
+        ['설명 신뢰도', pgmUsageLabel(PGM_USAGE_LEVEL_LABELS, model.state.explanationFilter, '전체')],
+        ['현재 표시', `${pgmUsageFormatNumber(model.filteredRows.length)}개`]
+    ];
+    return `
+        <button
+            type="button"
+            class="pgm-usage-top-bundle-toggle"
+            onclick="togglePgmUsageTopBundle()"
+            aria-expanded="${isExpanded ? 'true' : 'false'}"
+        >
+            <span class="pgm-usage-top-bundle-summary">
+                ${summaryItems.map(([label, value]) => `
+                    <span class="pgm-usage-top-bundle-pill">
+                        <strong>${pgmUsageEscape(label)}</strong>
+                        <span>${pgmUsageEscape(value)}</span>
+                    </span>
+                `).join('')}
+            </span>
+            <span class="pgm-usage-top-bundle-action">
+                ${isExpanded ? '접기' : '펼치기'}
+                <i class="ph ${isExpanded ? 'ph-caret-up' : 'ph-caret-down'}"></i>
+            </span>
+        </button>
+    `;
+}
+
+function pgmUsageRenderTopBundle(model) {
+    const isExpanded = Boolean(model.state.topBundleExpanded);
+    return `
+        <section class="pgm-usage-top-bundle ${isExpanded ? 'is-expanded' : 'is-collapsed'}" aria-label="상단 검토 요약">
+            ${pgmUsageRenderTopBundleBar(model, isExpanded)}
+            ${isExpanded ? `
+                <div class="pgm-usage-top-bundle-body">
+                    ${pgmUsageRenderToolbar(model)}
+                    ${pgmUsageRenderContext(model)}
+                    ${pgmUsageRenderSummary(model)}
+                </div>
+            ` : ''}
+        </section>
+    `;
+}
+
 function pgmUsageBadge(label, tone = '') {
     const toneClass = tone ? ` is-${tone}` : '';
     return `<span class="pgm-usage-badge${toneClass}">${pgmUsageEscape(label)}</span>`;
@@ -919,7 +994,7 @@ function pgmUsageRenderPurposeBoards(model) {
                 const reviewableCount = rows.filter(pgmUsageIsReviewable).length;
                 const topRows = rows.slice(0, 5);
                 return `
-                    <article class="pgm-usage-purpose-card">
+                    <article class="pgm-usage-purpose-card pgm-usage-purpose-card--${pgmUsageEscape(purpose.key)}">
                         <div class="pgm-usage-purpose-card-head">
                             <div>
                                 <h4>${pgmUsageEscape(purpose.label)}</h4>
@@ -961,66 +1036,87 @@ function pgmUsageRenderPurposeBoards(model) {
 }
 
 function pgmUsageRenderCandidateTable(model) {
+    const isExpanded = Boolean(model.state.candidateTableExpanded);
     const rows = model.filteredRows.slice(0, 100);
     const remaining = Math.max(0, model.filteredRows.length - rows.length);
+    const visibleCountText = `${pgmUsageFormatNumber(rows.length)}개 행 미리보기`;
+    const remainingText = remaining ? `${pgmUsageFormatNumber(remaining)}개 행은 필터를 좁히면 볼 수 있습니다.` : '현재 필터 기준 전체 행이 표시됩니다.';
     return `
-        <div class="pgm-usage-table-card">
-            <div class="pgm-usage-section-head">
-                <div>
-                    <h3>후보 테이블</h3>
-                    <p>지금 볼 가치가 있는 후보를 구조 신호, 실행 준비도, 운영 안전성 기준으로 정렬해 보여줍니다.</p>
+        <div class="pgm-usage-table-card ${isExpanded ? 'is-expanded' : 'is-collapsed'}">
+            <button
+                type="button"
+                class="pgm-usage-table-toggle"
+                onclick="togglePgmUsageCandidateTable()"
+                aria-expanded="${isExpanded ? 'true' : 'false'}"
+            >
+                <span class="pgm-usage-table-toggle-copy">
+                    <span class="pgm-usage-table-toggle-title">후보 테이블</span>
+                    <span class="pgm-usage-table-toggle-desc">정렬은 구조 신호, 실행 준비도, 운영 안전성, 설명 신뢰도 순서로 적용됩니다.</span>
+                </span>
+                <span class="pgm-usage-table-toggle-side">
+                    <span class="pgm-usage-table-toggle-count">${pgmUsageEscape(visibleCountText)}</span>
+                    <span class="pgm-usage-table-toggle-meta">${pgmUsageEscape(remainingText)}</span>
+                    <span class="pgm-usage-table-toggle-action">
+                        ${isExpanded ? '접기' : '펼치기'}
+                        <i class="ph ${isExpanded ? 'ph-caret-up' : 'ph-caret-down'}"></i>
+                    </span>
+                </span>
+            </button>
+            ${isExpanded ? `
+                <div class="table-container pgm-usage-table-wrap">
+                    <table class="data-table pgm-usage-table">
+                        <thead>
+                            <tr>
+                                <th>제품</th>
+                                <th>목적</th>
+                                <th>구조 신호</th>
+                                <th>실행 준비도</th>
+                                <th>운영 안전성</th>
+                                <th>설명 신뢰도</th>
+                                <th>관계 해석</th>
+                                <th>선택</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rows.length ? rows.map((row) => `
+                                <tr>
+                                    <td>
+                                        <div class="pgm-usage-product-cell">
+                                            <strong>${pgmUsageEscape(row.productName || row.productId)}</strong>
+                                            <span>${pgmUsageEscape(row.productId)}</span>
+                                        </div>
+                                    </td>
+                                    <td>${pgmUsageEscape(pgmUsagePurposeMeta(row.purposeKey).shortLabel)}</td>
+                                    <td>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_STRUCTURAL_SIGNAL_LABELS, pgmUsageStructuralSignalValue(row)))}</td>
+                                    <td>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_EXECUTION_READINESS_LABELS, pgmUsageExecutionReadinessValue(row)))}</td>
+                                    <td>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_OPERATIONAL_SAFETY_LABELS, pgmUsageOperationalSafetyValue(row)))}</td>
+                                    <td>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_LEVEL_LABELS, pgmUsageExplanationValue(row)))}</td>
+                                    <td>
+                                        <div class="pgm-usage-metric-stack">
+                                            <span>${pgmUsageEscape(row.relationSummaryKo || '관계 해석 정보 없음')}</span>
+                                            <small>${pgmUsageEscape(row.relationRiskSummaryKo || pgmUsageInterpretation(row))}</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="pgm-usage-row-actions">
+                                            <button type="button" onclick="selectPgmUsageProduct('${pgmUsageEscapeJsAttr(row.productId)}', '${pgmUsageEscapeJsAttr(row.purposeKey)}')">해석 보기</button>
+                                            <button type="button" onclick="addPgmUsageCompareProduct('${pgmUsageEscapeJsAttr(row.productId)}', '${pgmUsageEscapeJsAttr(row.purposeKey)}')">비교 추가</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `).join('') : `
+                                <tr>
+                                    <td colspan="8" class="pgm-usage-empty-cell">현재 필터에서 표시할 후보가 없습니다.</td>
+                                </tr>
+                            `}
+                        </tbody>
+                    </table>
                 </div>
-                ${remaining ? `<span>${pgmUsageFormatNumber(remaining)}개 행은 필터를 좁히면 볼 수 있습니다.</span>` : ''}
-            </div>
-            <div class="table-container pgm-usage-table-wrap">
-                <table class="data-table pgm-usage-table">
-                    <thead>
-                        <tr>
-                            <th>제품</th>
-                            <th>목적</th>
-                            <th>구조 신호</th>
-                            <th>실행 준비도</th>
-                            <th>운영 안전성</th>
-                            <th>설명 신뢰도</th>
-                            <th>관계 해석</th>
-                            <th>선택</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${rows.length ? rows.map((row) => `
-                            <tr>
-                                <td>
-                                    <div class="pgm-usage-product-cell">
-                                        <strong>${pgmUsageEscape(row.productName || row.productId)}</strong>
-                                        <span>${pgmUsageEscape(row.productId)}</span>
-                                    </div>
-                                </td>
-                                <td>${pgmUsageEscape(pgmUsagePurposeMeta(row.purposeKey).shortLabel)}</td>
-                                <td>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_STRUCTURAL_SIGNAL_LABELS, pgmUsageStructuralSignalValue(row)))}</td>
-                                <td>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_EXECUTION_READINESS_LABELS, pgmUsageExecutionReadinessValue(row)))}</td>
-                                <td>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_OPERATIONAL_SAFETY_LABELS, pgmUsageOperationalSafetyValue(row)))}</td>
-                                <td>${pgmUsageEscape(pgmUsageLabel(PGM_USAGE_LEVEL_LABELS, pgmUsageExplanationValue(row)))}</td>
-                                <td>
-                                    <div class="pgm-usage-metric-stack">
-                                        <span>${pgmUsageEscape(row.relationSummaryKo || '관계 해석 정보 없음')}</span>
-                                        <small>${pgmUsageEscape(row.relationRiskSummaryKo || pgmUsageInterpretation(row))}</small>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="pgm-usage-row-actions">
-                                        <button type="button" onclick="selectPgmUsageProduct('${pgmUsageEscapeJsAttr(row.productId)}', '${pgmUsageEscapeJsAttr(row.purposeKey)}')">해석 보기</button>
-                                        <button type="button" onclick="addPgmUsageCompareProduct('${pgmUsageEscapeJsAttr(row.productId)}', '${pgmUsageEscapeJsAttr(row.purposeKey)}')">비교 추가</button>
-                                    </div>
-                                </td>
-                            </tr>
-                        `).join('') : `
-                            <tr>
-                                <td colspan="8" class="pgm-usage-empty-cell">현재 필터에서 표시할 후보가 없습니다.</td>
-                            </tr>
-                        `}
-                    </tbody>
-                </table>
-            </div>
+            ` : `
+                <div class="pgm-usage-table-collapsed-body">
+                    <p>목적 보드에서 먼저 우선 후보를 좁힌 뒤, 필요할 때만 상세 행을 펼쳐 확인할 수 있습니다.</p>
+                </div>
+            `}
         </div>
     `;
 }
@@ -1028,14 +1124,14 @@ function pgmUsageRenderCandidateTable(model) {
 function pgmUsageRenderGlobalArea(model) {
     return `
         <section class="pgm-usage-panel pgm-usage-global-panel">
-            <div class="pgm-usage-section-head">
-                <div>
-                    <h3>전체 후보 검토</h3>
-                    <p>선택 상품과 무관하게 전체 제품-목적 조합을 표시합니다.</p>
+            <div class="pgm-usage-global-stage">
+                <div class="pgm-usage-global-board-block">
+                    ${pgmUsageRenderPurposeBoards(model)}
+                </div>
+                <div class="pgm-usage-global-table-block">
+                    ${pgmUsageRenderCandidateTable(model)}
                 </div>
             </div>
-            ${pgmUsageRenderPurposeBoards(model)}
-            ${pgmUsageRenderCandidateTable(model)}
         </section>
     `;
 }
@@ -1533,7 +1629,7 @@ function pgmUsageRenderSelectedArea(model) {
 function pgmUsageRenderEmpty() {
     return `
         <div class="pgm-usage-page">
-            <section class="pgm-usage-toolbar">
+            <section class="pgm-usage-toolbar pgm-usage-toolbar-compact">
                 <div class="pgm-usage-toolbar-copy">
                     <span class="pgm-usage-eyebrow">검토용 초기 화면</span>
                     <h2>목적별 활용 검토</h2>
@@ -1563,9 +1659,7 @@ function renderPgmUsage() {
 
     container.innerHTML = `
         <div class="pgm-usage-page">
-            ${pgmUsageRenderToolbar(model)}
-            ${pgmUsageRenderContext(model)}
-            ${pgmUsageRenderSummary(model)}
+            ${pgmUsageRenderTopBundle(model)}
             <div class="pgm-usage-workspace">
                 ${pgmUsageRenderGlobalArea(model)}
                 ${pgmUsageRenderSelectedArea(model)}
@@ -1644,6 +1738,18 @@ window.clearPgmUsageCompareProduct = () => {
 window.togglePgmUsageActionReview = () => {
     const state = pgmUsageCurrentState();
     state.actionReviewOpen = !state.actionReviewOpen;
+    renderPgmUsage();
+};
+
+window.togglePgmUsageCandidateTable = () => {
+    const state = pgmUsageCurrentState();
+    state.candidateTableExpanded = !state.candidateTableExpanded;
+    renderPgmUsage();
+};
+
+window.togglePgmUsageTopBundle = () => {
+    const state = pgmUsageCurrentState();
+    state.topBundleExpanded = !state.topBundleExpanded;
     renderPgmUsage();
 };
 

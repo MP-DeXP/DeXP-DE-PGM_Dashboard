@@ -200,14 +200,20 @@ const AppState = {
         },
         pgmUsage: {
             purposeFilter: 'all',
-            scopeFilter: 'all',
-            confidenceFilter: 'all',
-            strengthFilter: 'all',
-            flagFilter: 'all',
-            eligibilityFilter: 'all',
+            statusFilter: 'all',
+            structuralSignalFilter: 'strong',
+            executionReadinessFilter: 'all',
+            operationalSafetyFilter: 'all',
+            explanationFilter: 'high',
+            reviewLaneFilter: 'candidate',
             productSearch: '',
+            compareSearch: '',
             selectedProductId: '',
-            selectedPurposeKey: ''
+            compareProductId: '',
+            selectedPurposeKey: '',
+            actionReviewOpen: false,
+            topBundleExpanded: false,
+            candidateTableExpanded: false
         }
     },
     charts: {},
