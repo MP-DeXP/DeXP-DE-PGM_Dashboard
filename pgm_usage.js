@@ -3,6 +3,27 @@
 const PGM_USAGE_COMPARE_SEARCH_DEBOUNCE_MS = 180;
 let pgmUsageCompareSearchTimer = null;
 
+const PGM_USAGE_DEFAULTS = window.PGM_USAGE_DEFAULT_STATE || Object.freeze({
+    purposeFilter: 'all',
+    statusFilter: 'all',
+    scopeFilter: 'broad_rollout',
+    confidenceFilter: 'high',
+    strengthFilter: 'high',
+    structuralSignalFilter: 'all',
+    executionReadinessFilter: 'all',
+    operationalSafetyFilter: 'all',
+    explanationFilter: 'all',
+    reviewLaneFilter: 'all',
+    productSearch: '',
+    compareSearch: '',
+    selectedProductId: '',
+    compareProductId: '',
+    selectedPurposeKey: '',
+    actionReviewOpen: false,
+    topBundleExpanded: false,
+    candidateTableExpanded: false
+});
+
 const PGM_USAGE_PURPOSES = [
     {
         key: 'entry-growth',
@@ -57,6 +78,35 @@ const PGM_USAGE_LEVEL_LABELS = {
     high: '높음',
     medium: '중간',
     low: '낮음'
+};
+
+const PGM_USAGE_TOP_BUNDLE_VALUE_LABELS = {
+    scopeFilter: {
+        all: '전체',
+        broad_rollout: '넓은 적용',
+        limited_rollout: '제한 적용',
+        small_test: '작은 실험',
+        not_recommended: '검토 제외'
+    },
+    confidenceFilter: {
+        all: '전체',
+        high: '높음',
+        medium: '중간',
+        low: '낮음'
+    },
+    strengthFilter: {
+        all: '전체',
+        high: '높음',
+        medium: '중간',
+        low: '낮음'
+    },
+    reviewLaneFilter: {
+        all: '전체',
+        candidate: '우선 검토 후보',
+        guarded: '주의 조건 포함',
+        hold: '해석 보강 필요',
+        excluded: '검토 제외'
+    }
 };
 
 const PGM_USAGE_DIRECTION_LABELS = {
@@ -493,42 +543,10 @@ function pgmUsageSnapshotLabel(rows) {
 
 function pgmUsageCurrentState() {
     if (!AppState.viewState.pgmUsage) {
-        AppState.viewState.pgmUsage = {
-            purposeFilter: 'all',
-            statusFilter: 'all',
-            structuralSignalFilter: 'strong',
-            executionReadinessFilter: 'all',
-            operationalSafetyFilter: 'all',
-            explanationFilter: 'high',
-            reviewLaneFilter: 'candidate',
-            productSearch: '',
-            compareSearch: '',
-            selectedProductId: '',
-            compareProductId: '',
-            selectedPurposeKey: '',
-            actionReviewOpen: false,
-            topBundleExpanded: false,
-            candidateTableExpanded: false
-        };
+        AppState.viewState.pgmUsage = { ...PGM_USAGE_DEFAULTS };
     }
     const state = AppState.viewState.pgmUsage;
-    const defaults = {
-        purposeFilter: 'all',
-        statusFilter: 'all',
-        structuralSignalFilter: 'strong',
-        executionReadinessFilter: 'all',
-        operationalSafetyFilter: 'all',
-        explanationFilter: 'high',
-        reviewLaneFilter: 'candidate',
-        productSearch: '',
-        compareSearch: '',
-        selectedProductId: '',
-        compareProductId: '',
-        selectedPurposeKey: '',
-        actionReviewOpen: false,
-        topBundleExpanded: false,
-        candidateTableExpanded: false
-    };
+    const defaults = PGM_USAGE_DEFAULTS;
     Object.entries(defaults).forEach(([key, defaultValue]) => {
         if (typeof state[key] === 'undefined') state[key] = defaultValue;
     });
@@ -556,9 +574,6 @@ function pgmUsageCurrentState() {
     if (state.compareProductId && state.compareProductId === state.selectedProductId) {
         state.compareProductId = '';
     }
-    delete state.scopeFilter;
-    delete state.confidenceFilter;
-    delete state.strengthFilter;
     delete state.flagFilter;
     delete state.eligibilityFilter;
     return state;
@@ -680,6 +695,9 @@ function pgmUsageApplyFilters(rows, state) {
     const search = state.productSearch;
     return rows.filter((row) => {
         if (state.purposeFilter !== 'all' && row.purposeKey !== state.purposeFilter) return false;
+        if (state.scopeFilter !== 'all' && pgmUsageScopeFilterValue(row) !== state.scopeFilter) return false;
+        if (state.confidenceFilter !== 'all' && pgmUsageConfidenceFilterValue(row) !== state.confidenceFilter) return false;
+        if (state.strengthFilter !== 'all' && pgmUsageStrengthFilterValue(row) !== state.strengthFilter) return false;
         if (state.statusFilter !== 'all' && pgmUsageStatusValue(row) !== state.statusFilter) return false;
         if (state.structuralSignalFilter !== 'all' && pgmUsageStructuralSignalValue(row) !== state.structuralSignalFilter) return false;
         if (state.executionReadinessFilter !== 'all' && pgmUsageExecutionReadinessValue(row) !== state.executionReadinessFilter) return false;
@@ -756,6 +774,23 @@ function pgmUsageRenderOptions(options, selected) {
     return options.map(([value, label]) => `
         <option value="${pgmUsageEscape(value)}" ${selected === value ? 'selected' : ''}>${pgmUsageEscape(label)}</option>
     `).join('');
+}
+
+function pgmUsageTopBundleValue(field, value) {
+    const labels = PGM_USAGE_TOP_BUNDLE_VALUE_LABELS[field] || {};
+    return pgmUsageLabel(labels, value, '전체');
+}
+
+function pgmUsageScopeFilterValue(row) {
+    return pgmUsageNormalizeKey(row?.scope);
+}
+
+function pgmUsageConfidenceFilterValue(row) {
+    return pgmUsageNormalizeKey(row?.confidence || row?.explanationConfidence);
+}
+
+function pgmUsageStrengthFilterValue(row) {
+    return pgmUsageNormalizeKey(row?.strength);
 }
 
 function pgmUsageRenderToolbar(model) {
@@ -886,14 +921,9 @@ function pgmUsageRenderSummary(model) {
 
 function pgmUsageRenderTopBundleBar(model, isExpanded = false) {
     const summaryItems = [
-        ['검토 구간', model.state.reviewLaneFilter === 'all' ? '전체' : pgmUsageLabel({
-            candidate: '우선 검토 후보',
-            guarded: '주의 조건 포함',
-            hold: '해석 보강 필요',
-            excluded: '검토 제외'
-        }, model.state.reviewLaneFilter)],
-        ['구조 신호', pgmUsageLabel(PGM_USAGE_STRUCTURAL_SIGNAL_LABELS, model.state.structuralSignalFilter, '전체')],
-        ['설명 신뢰도', pgmUsageLabel(PGM_USAGE_LEVEL_LABELS, model.state.explanationFilter, '전체')],
+        ['검토 범위', pgmUsageTopBundleValue('scopeFilter', model.state.scopeFilter)],
+        ['근거 수준', pgmUsageTopBundleValue('confidenceFilter', model.state.confidenceFilter)],
+        ['효과 강도', pgmUsageTopBundleValue('strengthFilter', model.state.strengthFilter)],
         ['현재 표시', `${pgmUsageFormatNumber(model.filteredRows.length)}개`]
     ];
     return `
@@ -1673,6 +1703,26 @@ window.handlePgmUsageFilterChange = (field, value) => {
     const state = pgmUsageCurrentState();
     if (!Object.prototype.hasOwnProperty.call(state, field)) return;
     state[field] = value;
+    if (field === 'explanationFilter') {
+        state.confidenceFilter = value;
+    }
+    if (field === 'structuralSignalFilter') {
+        state.strengthFilter = ({
+            strong: 'high',
+            medium: 'medium',
+            weak: 'low'
+        })[value] || value;
+    }
+    if (field === 'confidenceFilter') {
+        state.explanationFilter = value;
+    }
+    if (field === 'strengthFilter') {
+        state.structuralSignalFilter = ({
+            high: 'strong',
+            medium: 'medium',
+            low: 'weak'
+        })[value] || value;
+    }
     renderPgmUsage();
 };
 

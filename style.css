@@ -9325,23 +9325,16 @@ body {
 
 .pgm-usage-global-panel {
     position: relative;
-    padding: 22px;
-    border-radius: 22px;
-    border: 1px solid #c7d8ec;
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(244, 248, 253, 0.98) 100%);
-    box-shadow:
-        0 20px 44px rgba(15, 23, 42, 0.08),
-        0 1px 0 rgba(255, 255, 255, 0.75) inset;
+    padding: 18px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.82);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
     overflow: hidden;
 }
 
 .pgm-usage-global-panel::before {
-    content: '';
-    position: absolute;
-    inset: 0 0 auto 0;
-    height: 6px;
-    background: linear-gradient(90deg, #1e85fb 0%, #7fb8ff 42%, #d8e9fb 100%);
+    content: none;
 }
 
 .pgm-usage-global-stage {
@@ -10271,9 +10264,8 @@ body {
     }
 
     .pgm-usage-global-panel {
-        padding: 16px;
+        padding: 14px;
         border-radius: 16px;
-        box-shadow: 0 12px 22px rgba(15, 23, 42, 0.07);
     }
 
     .pgm-usage-global-stage {

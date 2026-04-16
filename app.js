@@ -121,6 +121,29 @@ const REQUIRED_FILES = {
     }
 };
 
+const PGM_USAGE_DEFAULT_STATE = Object.freeze({
+    purposeFilter: 'all',
+    statusFilter: 'all',
+    scopeFilter: 'broad_rollout',
+    confidenceFilter: 'high',
+    strengthFilter: 'high',
+    structuralSignalFilter: 'all',
+    executionReadinessFilter: 'all',
+    operationalSafetyFilter: 'all',
+    explanationFilter: 'all',
+    reviewLaneFilter: 'all',
+    productSearch: '',
+    compareSearch: '',
+    selectedProductId: '',
+    compareProductId: '',
+    selectedPurposeKey: '',
+    actionReviewOpen: false,
+    topBundleExpanded: false,
+    candidateTableExpanded: false
+});
+
+window.PGM_USAGE_DEFAULT_STATE = PGM_USAGE_DEFAULT_STATE;
+
 // --- App State ---
 const AppState = {
     data: {
@@ -198,23 +221,7 @@ const AppState = {
         settings: {
             activeTab: 'grouping'
         },
-        pgmUsage: {
-            purposeFilter: 'all',
-            statusFilter: 'all',
-            structuralSignalFilter: 'strong',
-            executionReadinessFilter: 'all',
-            operationalSafetyFilter: 'all',
-            explanationFilter: 'high',
-            reviewLaneFilter: 'candidate',
-            productSearch: '',
-            compareSearch: '',
-            selectedProductId: '',
-            compareProductId: '',
-            selectedPurposeKey: '',
-            actionReviewOpen: false,
-            topBundleExpanded: false,
-            candidateTableExpanded: false
-        }
+        pgmUsage: { ...PGM_USAGE_DEFAULT_STATE }
     },
     charts: {},
     helpers: {}
