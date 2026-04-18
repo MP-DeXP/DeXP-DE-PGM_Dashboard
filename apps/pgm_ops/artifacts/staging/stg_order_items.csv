@@ -1,0 +1,11 @@
+order_id,product_id,product_name,quantity,revenue,customer_id
+o-1001,p-101,Hydra Serum,1,84000,c-11
+o-1001,p-102,Barrier Toner,1,80000,c-11
+o-1002,p-103,Calm Cleanser,2,92000,c-12
+o-1003,p-101,Hydra Serum,1,86000,c-11
+o-1003,p-104,Night Repair Mask,1,35000,c-11
+o-1004,p-102,Barrier Toner,1,78000,c-14
+o-1005,p-101,Hydra Serum,1,92000,c-12
+o-1005,p-102,Barrier Toner,1,96000,c-12
+o-1006,p-103,Calm Cleanser,1,64000,c-15
+o-1007,p-104,Night Repair Mask,1,54000,c-17

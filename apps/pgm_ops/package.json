@@ -1,0 +1,12 @@
+{
+  "name": "pgm_ops",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "extract": "node ./scripts/run_extract.js",
+    "transform": "node ./scripts/run_transform.js",
+    "view-models": "node ./scripts/run_view_models.js",
+    "validate": "node ./scripts/run_validations.js",
+    "all": "node ./scripts/run_all.js"
+  }
+}

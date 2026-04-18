@@ -1,0 +1,8 @@
+snapshot_date,product_id,profile_role_primary,profile_role_secondary,profile_confidence,role_state_primary,role_state_confidence,pgm_observed_flag
+2024-05-08,p-101,entry,expansion,0.91,entry,0.88,true
+2024-05-08,p-102,expansion,entry,0.84,expansion,0.79,true
+2024-05-08,p-103,retention,return,0.73,retention,0.7,true
+2024-05-09,p-101,entry,expansion,0.91,entry,0.9,true
+2024-05-09,p-102,expansion,entry,0.84,expansion,0.82,true
+2024-05-10,p-101,entry,expansion,0.92,expansion,0.86,true
+2024-05-10,p-103,retention,return,0.74,retention,0.72,true

@@ -1,0 +1,5 @@
+period,card_key,label,value,delta,reason,as_of_date,support_window_days
+monthly,revenue_30d,직전 30일 매출,7770000,,기준일 당일 미포함 30일 rolling 매출입니다.,2024-05-10,30
+monthly,revenue_90d_reference,직전 90일 참조 매출,7770000,,Monthly는 30일을 본체로 보고 90일을 구조 비교 reference로 사용합니다.,2024-05-10,90
+monthly,top_share,상위 상품 집중도,0.47702407002188185,,집중도가 높으면 단기 매출이 좋아도 구조 리스크로 해석합니다.,2024-05-10,30
+monthly,coverage,역할 관측 안정도,0.5,,Role state blank rule은 구조적 해석 공백을 그대로 보여 주기 위한 안전장치입니다.,2024-05-10,30

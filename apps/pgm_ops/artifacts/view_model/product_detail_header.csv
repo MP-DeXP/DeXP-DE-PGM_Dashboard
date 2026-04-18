@@ -1,0 +1,5 @@
+product_id,headline,summary,priority_hint
+p-101,Hydra Serum 운영 요약,entry profile을 가진 상품이며 same-date role state는 expansion입니다.,same-date role snapshot과 revenue 구조를 함께 점검하세요.
+p-102,Barrier Toner 운영 요약,expansion profile을 가진 상품입니다. same-date role state는 blank이며 latest role로 보정하지 않았습니다.,same-date role snapshot이 없어 blank로 유지했습니다. latest role fallback 없이 revenue와 관측 누락 여부를 먼저 확인하세요.
+p-103,Calm Cleanser 운영 요약,retention profile을 가진 상품이며 same-date role state는 retention입니다.,same-date role snapshot과 revenue 구조를 함께 점검하세요.
+p-104,Night Repair Mask 운영 요약,PGM 미관측 profile을 가진 상품입니다. same-date role state는 blank이며 latest role로 보정하지 않았습니다.,same-date role snapshot이 없어 blank로 유지했습니다. latest role fallback 없이 revenue와 관측 누락 여부를 먼저 확인하세요.

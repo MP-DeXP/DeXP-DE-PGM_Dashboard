@@ -1,0 +1,6 @@
+artifact_name,required,exists,row_count,notes
+orders,true,true,7,loaded
+order_items,true,true,10,loaded
+products,true,true,3,loaded
+product_daily,true,true,40,loaded
+pgm_scored,true,true,7,loaded

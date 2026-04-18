@@ -1,0 +1,5 @@
+period,card_key,label,value,delta,reason,as_of_date,support_window_days
+weekly,revenue_7d,직전 7일 매출,6142000,2.772727272727273,기준일 당일을 제외한 직전 7일 rolling 매출입니다.,2024-05-10,7
+weekly,revenue_30d_reference,직전 30일 참조 매출,7770000,,"Daily 판단은 7일 중심, 30일은 보조 reference로 사용합니다.",2024-05-10,30
+weekly,dominant_role,매출 기여 주 역할,expansion,,"Revenue 기준 dominant role을 우선 보고, 구조 리스크는 집중도로 보정합니다.",2024-05-10,7
+weekly,status_label,주간 상태 요약,매출은 유지 중이고 구조 확인이 필요한 상태입니다.,,Revenue 변화가 크지 않으므로 role-state와 집중도에서 우선 점검 대상을 좁히는 편이 안전합니다.,2024-05-10,7

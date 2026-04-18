@@ -11,12 +11,16 @@
 ## 페이지 구성
 - `apps/brand/`: 브랜드 구조 대시보드
 - `apps/products/`: 제품 관계 인사이트 (제품 상태 4분면, 리텐션/장바구니 모달 포함)
+- `apps/pgm_ops/`: PGM 1.0 운영 상태판 (frontend-only, artifact-driven, sample fallback은 검증용 예시 전용)
 - `apps/decision-dashboard/`: 의사결정 대시보드 (mock-only 세일즈 프로토타입)
 
 ## 실행 방법
-1. 브라우저에서 `apps/products/`, `apps/brand/`, 또는 `apps/decision-dashboard/`를 직접 엽니다.
+1. 브라우저에서 `apps/products/`, `apps/brand/`, `apps/pgm_ops/`, 또는 `apps/decision-dashboard/`를 직접 엽니다.
 2. `apps/products/`와 `apps/brand/`는 앱 시작 시 `data/` 폴더 CSV를 자동으로 다시 읽습니다.
-3. 누락 파일이 있으면 사이드바 하단 `설정 > 데이터 관리 > CSV 업로드`로 추가합니다.
+3. `apps/pgm_ops/`는 `artifacts/view_model/*.csv`를 우선 읽고, 브라우저에서 읽지 못할 때만 내장 sample fallback으로 전환합니다. 빈 artifact를 sample로 대체하지는 않습니다.
+4. 누락 파일이 있으면 사이드바 하단 `설정 > 데이터 관리 > CSV 업로드`로 추가합니다.
+
+`apps/pgm_ops/README.md`와 `apps/pgm_ops/docs/`에 blank-rule, deferred scope, handoff checklist가 정리되어 있습니다.
 
 ## 의사결정 대시보드 메모
 - `apps/decision-dashboard/`는 CSV 업로드 없이 바로 열리는 mock prototype입니다.

@@ -1,0 +1,4 @@
+metric_name,metric_value,message
+product_master_fallback_usage_rate,0.25,product_name fallback usage on the latest snapshot
+pgm_observed_coverage,0.5,same-date PGM observation coverage on the latest snapshot
+role_state_blank_rate,0.5,blank role state rate on the latest snapshot; no latest-role fallback applied

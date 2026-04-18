@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PGM 대시보드 - 운영 상태판</title>
+
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="stylesheet" as="style" crossorigin
+        href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css');
+    </style>
+
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <link rel="stylesheet" href="./pgm_ops.css">
+</head>
+
+<body id="page-pgm-ops">
+    <div class="ops-shell">
+        <aside class="ops-sidebar">
+            <div class="ops-sidebar-header">
+                <img src="../../assets/CI.png" alt="mercuryX CI" class="ops-sidebar-ci">
+                <span class="ops-sidebar-title">PGM Ops</span>
+            </div>
+
+            <nav class="ops-nav">
+                <button class="ops-nav-link" type="button" data-href="../brand/">
+                    <i class="ph ph-buildings"></i>
+                    <span>구매 활성도</span>
+                </button>
+                <button class="ops-nav-link" type="button" data-href="../products/">
+                    <i class="ph ph-tag"></i>
+                    <span>제품 관계 인사이트</span>
+                </button>
+                <button class="ops-nav-link is-active" type="button" data-href="../pgm_ops/">
+                    <i class="ph ph-chart-line-up"></i>
+                    <span>운영 상태판</span>
+                </button>
+                <button class="ops-nav-link" type="button" data-href="../decision-dashboard/">
+                    <i class="ph ph-compass-tool"></i>
+                    <span>의사결정 대시보드</span>
+                </button>
+            </nav>
+
+            <div class="ops-sidebar-footer">
+                <p>Frontend-only, file-driven</p>
+                <a href="./README.md">handoff overview</a>
+                <a href="./docs/handoff_checklist.md">handoff checklist</a>
+                <a href="./docs/artifact_contract.md">artifact contract</a>
+            </div>
+        </aside>
+
+        <main class="ops-main">
+            <header class="ops-topbar">
+                <div>
+                    <p class="ops-eyebrow">PGM 1.0 운영 툴 v0</p>
+                    <h1>브랜드 운영 상태판</h1>
+                </div>
+                <div class="ops-topbar-meta">
+                    <span id="ops-data-source-badge" class="ops-badge">loading</span>
+                    <span id="ops-last-updated" class="ops-meta-text">view_model artifacts</span>
+                </div>
+            </header>
+
+            <div id="ops-app"></div>
+        </main>
+    </div>
+
+    <script type="module" src="./pgm_ops.js"></script>
+</body>
+
+</html>

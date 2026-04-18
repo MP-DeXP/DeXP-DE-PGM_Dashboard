@@ -1,0 +1,4 @@
+product_id,profile_role_primary,profile_role_secondary,profile_confidence
+p-101,entry,expansion,0.92
+p-102,expansion,entry,0.84
+p-103,retention,return,0.74

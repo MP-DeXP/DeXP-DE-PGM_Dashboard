@@ -1,0 +1,5 @@
+product_id,product_name,product_name_source,profile_role_primary,profile_role_secondary,profile_confidence,role_state_primary,role_state_confidence,pgm_observed_flag,role_state_source,revenue,order_count,quantity,revenue_share_in_brand_day,revenue_rank_in_brand_day,revenue_7d,revenue_30d,revenue_90d,revenue_day_over_day_change_rate,as_of_date
+p-101,Hydra Serum,product_master,entry,expansion,0.92,expansion,0.86,true,same_date_snapshot,436000,7,7,0.47702407002188185,1,2517000,3089000,3089000,0.0430622009569378,2024-05-10
+p-102,Barrier Toner,product_master,expansion,entry,0.84,PGM 미관측,,false,blank,296000,4,4,0.3238512035010941,2,2241000,2855000,2855000,-0.019867549668874173,2024-05-10
+p-103,Calm Cleanser,product_master,retention,return,0.74,retention,0.72,true,same_date_snapshot,126000,2,2,0.13785557986870897,3,1037000,1393000,1393000,-0.03816793893129771,2024-05-10
+p-104,Night Repair Mask,order_item_fallback,PGM 미관측,,,PGM 미관측,,false,blank,56000,1,1,0.061269146608315096,4,347000,433000,433000,0.16666666666666666,2024-05-10

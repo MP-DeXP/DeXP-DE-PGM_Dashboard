@@ -1,0 +1,2 @@
+priority_rank,priority,entity_type,entity_id,label,reason,suggested_check,evidence,rule_source
+1,medium,product,p-102,Barrier Toner role-state 공백,revenue_structure_daily 상위 기여 상품인데 product_role_state_daily same-date snapshot은 blank입니다.,PGM 관측 누락인지 실제 구조 변화인지 먼저 구분하세요.,revenue.rank=2; revenue.share=0.3238512035010941; role_state_source=blank,revenue_structure_daily.revenue_rank_in_brand_day + product_role_state_daily.role_state_source
