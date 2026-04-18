@@ -1,20 +1,20 @@
-# pgm_ops validation report
+# pgm_ops 검증 리포트
 
-## Summary
-- pass: 78
-- warn: 12
+## 요약
+- pass: 126
+- warn: 19
 - fail: 0
 
-## Coverage
-- product_master_fallback_usage_rate: 0.25 (product_name fallback usage on the latest snapshot)
-- pgm_observed_coverage: 0.5 (same-date PGM observation coverage on the latest snapshot)
-- role_state_blank_rate: 0.5 (blank role state rate on the latest snapshot; no latest-role fallback applied)
+## 커버리지
+- product_master_fallback_usage_rate: 0 (product_name fallback usage on the latest snapshot)
+- pgm_observed_coverage: 0.7 (same-date PGM observation coverage on the latest snapshot)
+- role_state_blank_rate: 0.3 (blank role state rate on the latest snapshot; no latest-role fallback applied)
 
-## Findings
+## 세부 결과
 - [pass] stg_orders / schema_check: Required columns present.
 - [pass] stg_orders / grain_check: Primary grain is unique.
-- [pass] stg_orders / null_check: Required columns are populated.
-- [pass] stg_orders / freshness_check: Latest date=2024-05-10, age=708d
+- [warn] stg_orders / null_check: Nulls in required columns: member_id:3
+- [pass] stg_orders / freshness_check: Latest date=2026-04-17, age=1d
 - [pass] stg_orders / duplication_check: No duplicate presentation rows detected.
 - [pass] stg_order_items / schema_check: Required columns present.
 - [warn] stg_order_items / grain_check: No explicit PK candidate defined for this artifact.
@@ -29,17 +29,47 @@
 - [pass] stg_product_daily / schema_check: Required columns present.
 - [pass] stg_product_daily / grain_check: Primary grain is unique.
 - [pass] stg_product_daily / null_check: Required columns are populated.
-- [pass] stg_product_daily / freshness_check: Latest date=2024-05-10, age=708d
+- [pass] stg_product_daily / freshness_check: Latest date=2026-04-17, age=1d
 - [pass] stg_product_daily / duplication_check: No duplicate presentation rows detected.
 - [pass] stg_pgm_scored / schema_check: Required columns present.
 - [pass] stg_pgm_scored / grain_check: Primary grain is unique.
 - [pass] stg_pgm_scored / null_check: Required columns are populated.
-- [pass] stg_pgm_scored / freshness_check: Latest date=2024-05-10, age=708d
+- [pass] stg_pgm_scored / freshness_check: Latest date=2026-04-17, age=1d
 - [pass] stg_pgm_scored / duplication_check: No duplicate presentation rows detected.
+- [pass] stg_product_window_metrics / schema_check: Required columns present.
+- [pass] stg_product_window_metrics / grain_check: Primary grain is unique.
+- [pass] stg_product_window_metrics / null_check: Required columns are populated.
+- [warn] stg_product_window_metrics / freshness_check: No date field available for freshness evaluation.
+- [pass] stg_product_window_metrics / duplication_check: No duplicate presentation rows detected.
+- [pass] stg_brand_window_metrics / schema_check: Required columns present.
+- [pass] stg_brand_window_metrics / grain_check: Primary grain is unique.
+- [pass] stg_brand_window_metrics / null_check: Required columns are populated.
+- [warn] stg_brand_window_metrics / freshness_check: No date field available for freshness evaluation.
+- [pass] stg_brand_window_metrics / duplication_check: No duplicate presentation rows detected.
+- [pass] stg_members / schema_check: Required columns present.
+- [pass] stg_members / grain_check: Primary grain is unique.
+- [warn] stg_members / null_check: Nulls in required columns: member_type:20
+- [warn] stg_members / freshness_check: No date field available for freshness evaluation.
+- [pass] stg_members / duplication_check: No duplicate presentation rows detected.
+- [pass] stg_order_with_utm / schema_check: Required columns present.
+- [pass] stg_order_with_utm / grain_check: Primary grain is unique.
+- [pass] stg_order_with_utm / null_check: Required columns are populated.
+- [pass] stg_order_with_utm / freshness_check: Latest date=2026-04-17, age=1d
+- [pass] stg_order_with_utm / duplication_check: No duplicate presentation rows detected.
+- [pass] stg_pgm_transition_edge / schema_check: Required columns present.
+- [pass] stg_pgm_transition_edge / grain_check: Primary grain is unique.
+- [pass] stg_pgm_transition_edge / null_check: Required columns are populated.
+- [pass] stg_pgm_transition_edge / freshness_check: Latest date=2026-04-17, age=1d
+- [pass] stg_pgm_transition_edge / duplication_check: No duplicate presentation rows detected.
+- [pass] stg_pgm_loop_detail / schema_check: Required columns present.
+- [pass] stg_pgm_loop_detail / grain_check: Primary grain is unique.
+- [pass] stg_pgm_loop_detail / null_check: Required columns are populated.
+- [pass] stg_pgm_loop_detail / freshness_check: Latest date=2026-04-17, age=1d
+- [pass] stg_pgm_loop_detail / duplication_check: No duplicate presentation rows detected.
 - [pass] product_daily_metrics / schema_check: Required columns present.
 - [pass] product_daily_metrics / grain_check: Primary grain is unique.
 - [pass] product_daily_metrics / null_check: Required columns are populated.
-- [pass] product_daily_metrics / freshness_check: Latest date=2024-05-10, age=708d
+- [pass] product_daily_metrics / freshness_check: Latest date=2026-04-17, age=1d
 - [pass] product_daily_metrics / duplication_check: No duplicate presentation rows detected.
 - [pass] product_role_profile / schema_check: Required columns present.
 - [pass] product_role_profile / grain_check: Primary grain is unique.
@@ -49,18 +79,28 @@
 - [pass] product_role_state_daily / schema_check: Required columns present.
 - [pass] product_role_state_daily / grain_check: Primary grain is unique.
 - [pass] product_role_state_daily / null_check: Required columns are populated.
-- [pass] product_role_state_daily / freshness_check: Latest date=2024-05-10, age=708d
+- [pass] product_role_state_daily / freshness_check: Latest date=2026-04-17, age=1d
 - [pass] product_role_state_daily / duplication_check: No duplicate presentation rows detected.
 - [pass] revenue_structure_daily / schema_check: Required columns present.
 - [pass] revenue_structure_daily / grain_check: Primary grain is unique.
 - [pass] revenue_structure_daily / null_check: Required columns are populated.
-- [pass] revenue_structure_daily / freshness_check: Latest date=2024-05-10, age=708d
+- [pass] revenue_structure_daily / freshness_check: Latest date=2026-04-17, age=1d
 - [pass] revenue_structure_daily / duplication_check: No duplicate presentation rows detected.
 - [pass] brand_operating_status_daily / schema_check: Required columns present.
 - [pass] brand_operating_status_daily / grain_check: Primary grain is unique.
 - [pass] brand_operating_status_daily / null_check: Required columns are populated.
-- [pass] brand_operating_status_daily / freshness_check: Latest date=2024-05-10, age=708d
+- [pass] brand_operating_status_daily / freshness_check: Latest date=2026-04-17, age=1d
 - [pass] brand_operating_status_daily / duplication_check: No duplicate presentation rows detected.
+- [pass] product_transition_summary / schema_check: Required columns present.
+- [pass] product_transition_summary / grain_check: Primary grain is unique.
+- [pass] product_transition_summary / null_check: Required columns are populated.
+- [pass] product_transition_summary / freshness_check: Latest date=2026-04-17, age=1d
+- [pass] product_transition_summary / duplication_check: No duplicate presentation rows detected.
+- [pass] product_return_loop_summary / schema_check: Required columns present.
+- [pass] product_return_loop_summary / grain_check: Primary grain is unique.
+- [pass] product_return_loop_summary / null_check: Required columns are populated.
+- [pass] product_return_loop_summary / freshness_check: Latest date=2026-04-17, age=1d
+- [pass] product_return_loop_summary / duplication_check: No duplicate presentation rows detected.
 - [pass] overview_daily_cards / schema_check: Required columns present.
 - [pass] overview_daily_cards / grain_check: Primary grain is unique.
 - [pass] overview_daily_cards / null_check: Required columns are populated.
@@ -78,7 +118,7 @@
 - [pass] overview_monthly_cards / duplication_check: No duplicate presentation rows detected.
 - [pass] product_table / schema_check: Required columns present.
 - [pass] product_table / grain_check: Primary grain is unique.
-- [pass] product_table / null_check: Required columns are populated.
+- [warn] product_table / null_check: Nulls in required columns: top_transition_target_name:12, top_transition_rate:12, qualified_return_rate:11, return_loop_rate:11, simple_repeat_rate:11
 - [warn] product_table / freshness_check: No date field available for freshness evaluation.
 - [pass] product_table / duplication_check: No duplicate presentation rows detected.
 - [pass] product_detail_header / schema_check: Required columns present.
@@ -101,3 +141,18 @@
 - [pass] priority_checks / null_check: Required columns are populated.
 - [warn] priority_checks / freshness_check: No date field available for freshness evaluation.
 - [pass] priority_checks / duplication_check: No duplicate presentation rows detected.
+- [pass] transition_summary / schema_check: Required columns present.
+- [pass] transition_summary / grain_check: Primary grain is unique.
+- [pass] transition_summary / null_check: Required columns are populated.
+- [pass] transition_summary / freshness_check: Latest date=2026-04-17, age=1d
+- [pass] transition_summary / duplication_check: No duplicate presentation rows detected.
+- [pass] return_loop_summary / schema_check: Required columns present.
+- [pass] return_loop_summary / grain_check: Primary grain is unique.
+- [pass] return_loop_summary / null_check: Required columns are populated.
+- [pass] return_loop_summary / freshness_check: Latest date=2026-04-17, age=1d
+- [pass] return_loop_summary / duplication_check: No duplicate presentation rows detected.
+- [pass] revenue_inflow_context / schema_check: Required columns present.
+- [pass] revenue_inflow_context / grain_check: Primary grain is unique.
+- [pass] revenue_inflow_context / null_check: Required columns are populated.
+- [warn] revenue_inflow_context / freshness_check: No date field available for freshness evaluation.
+- [pass] revenue_inflow_context / duplication_check: No duplicate presentation rows detected.

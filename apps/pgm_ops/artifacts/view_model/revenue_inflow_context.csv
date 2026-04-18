@@ -1,0 +1,6 @@
+context_key,label,value,detail,as_of_date
+utm_attributed_order_share_30d,최근 30일 UTM 식별 주문 비중,1,식별 주문 20건 / 전체 20건,2026-04-17
+utm_attributed_revenue_share_30d,최근 30일 UTM 식별 매출 비중,1,"식별 매출 2,947,300원",2026-04-17
+top_utm_source_30d,상위 유입 source,naver,"최근 30일 기여 매출 2,204,800원",2026-04-17
+top_utm_medium_30d,상위 유입 medium,brandsearch,"최근 30일 기여 매출 2,204,800원",2026-04-17
+top_utm_campaign_30d,상위 campaign,naver_bs,"최근 30일 기여 매출 2,204,800원",2026-04-17

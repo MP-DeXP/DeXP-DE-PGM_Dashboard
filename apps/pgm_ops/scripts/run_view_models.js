@@ -9,8 +9,12 @@ async function loadRawArtifacts() {
     const rawDir = fileURLToPath(ARTIFACT_DIR_URLS.raw_extract);
     const entries = await Promise.all(
         Object.entries(RAW_INPUT_FILES).map(async ([key, filename]) => {
-            const text = await fs.readFile(`${rawDir}/${filename}`, 'utf8');
-            return [key, parseCsv(text)];
+            try {
+                const text = await fs.readFile(`${rawDir}/${filename}`, 'utf8');
+                return [key, parseCsv(text)];
+            } catch (error) {
+                return [key, []];
+            }
         })
     );
 
@@ -28,7 +32,7 @@ export async function main() {
     const rawArtifacts = await loadRawArtifacts();
     const stagingArtifacts = buildStagingArtifacts(rawArtifacts);
     const martArtifacts = buildMartArtifacts(stagingArtifacts);
-    const viewModelArtifacts = buildViewModelArtifacts(martArtifacts);
+    const viewModelArtifacts = buildViewModelArtifacts(martArtifacts, stagingArtifacts);
 
     await writeLayer(ARTIFACT_DIR_URLS.staging, STAGING_FILES, stagingArtifacts);
     await writeLayer(ARTIFACT_DIR_URLS.mart, MART_FILES, martArtifacts);

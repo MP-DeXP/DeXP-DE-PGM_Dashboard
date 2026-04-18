@@ -5,11 +5,16 @@ import { buildBrandOperatingStatusDaily } from '../transforms/brand/operating_st
 import { buildProductRoleProfile } from '../transforms/role/role_profile.js';
 import { buildProductRoleStateDaily } from '../transforms/role/role_state.js';
 import { enrichBrandRevenueWindows, enrichProductRevenueWindows, buildBrandWindowSnapshot } from '../transforms/revenue/revenue_windows.js';
+import { buildProductTransitionSummary } from '../transforms/transition/transition_summary.js';
+import { buildProductReturnLoopSummary } from '../transforms/transition/return_loop_summary.js';
 import { buildDailyOverviewCards } from '../view_models/overview/daily_cards.js';
 import { buildWeeklyOverviewCards } from '../view_models/overview/weekly_cards.js';
 import { buildMonthlyOverviewCards } from '../view_models/overview/monthly_cards.js';
 import { buildProductTable } from '../view_models/products/product_table.js';
 import { buildProductDetailHeader } from '../view_models/products/product_detail.js';
+import { buildTransitionSummaryView } from '../view_models/products/transition_summary.js';
+import { buildReturnLoopSummaryView } from '../view_models/products/return_loop_summary.js';
+import { buildRevenueInflowContext } from '../view_models/products/revenue_inflow_context.js';
 import { buildRoleStructureChart } from '../view_models/structures/role_structure.js';
 import { buildRevenueStructureChart } from '../view_models/structures/revenue_structure.js';
 import { buildPriorityChecks } from '../view_models/alerts/priority_checks.js';
@@ -55,6 +60,40 @@ function stageRawDataset(datasetKey, rows) {
                 numberFields: ['profile_confidence', 'role_state_confidence'],
                 booleanFields: ['pgm_observed_flag']
             });
+        case 'product_window_metrics':
+            return normalizeRows(standardized, {
+                idFields: ['product_id'],
+                numberFields: ['revenue_today', 'revenue_prev_day', 'revenue_7d', 'revenue_30d', 'revenue_90d']
+            });
+        case 'brand_window_metrics':
+            return normalizeRows(standardized, {
+                dateFields: ['as_of_date'],
+                numberFields: ['revenue_today', 'revenue_prev_day', 'revenue_7d', 'revenue_7d_prev', 'revenue_30d', 'revenue_30d_prev', 'revenue_90d', 'revenue_90d_prev']
+            });
+        case 'members':
+            return normalizeRows(standardized, {
+                idFields: ['member_id', 'mx_member_id'],
+                booleanFields: ['is_sms_receive', 'is_email_receive']
+            });
+        case 'order_with_utm':
+            return normalizeRows(standardized, {
+                idFields: ['order_id', 'utm_source', 'utm_medium', 'utm_campaign'],
+                dateFields: ['date'],
+                numberFields: ['purchase_amount', 'session_count', 'valid_session_count']
+            });
+        case 'pgm_transition_edge':
+            return normalizeRows(standardized, {
+                idFields: ['source_product_id', 'target_product_id'],
+                dateFields: ['date'],
+                numberFields: ['transition_customer_cnt', 'source_cohort_customer_cnt', 'transition_rate', 'avg_days_to_transition']
+            });
+        case 'pgm_loop_detail':
+            return normalizeRows(standardized, {
+                idFields: ['customer_id', 'source_product_id', 'return_product_id', 'source_order_id', 'return_order_id', 'intermediate_path'],
+                dateFields: ['date'],
+                numberFields: ['return_days', 'intermediate_step_cnt', 'intermediate_distinct_product_cnt'],
+                booleanFields: ['qualified_return_flag', 'simple_repeat_comparison_flag']
+            });
         default:
             return standardized;
     }
@@ -66,36 +105,58 @@ export function buildStagingArtifacts(rawArtifacts) {
         stg_order_items: stageRawDataset('order_items', rawArtifacts.order_items ?? []),
         stg_products: stageRawDataset('products', rawArtifacts.products ?? []),
         stg_product_daily: stageRawDataset('product_daily', rawArtifacts.product_daily ?? []),
-        stg_pgm_scored: stageRawDataset('pgm_scored', rawArtifacts.pgm_scored ?? [])
+        stg_pgm_scored: stageRawDataset('pgm_scored', rawArtifacts.pgm_scored ?? []),
+        stg_product_window_metrics: stageRawDataset('product_window_metrics', rawArtifacts.product_window_metrics ?? []),
+        stg_brand_window_metrics: stageRawDataset('brand_window_metrics', rawArtifacts.brand_window_metrics ?? []),
+        stg_members: stageRawDataset('members', rawArtifacts.members ?? []),
+        stg_order_with_utm: stageRawDataset('order_with_utm', rawArtifacts.order_with_utm ?? []),
+        stg_pgm_transition_edge: stageRawDataset('pgm_transition_edge', rawArtifacts.pgm_transition_edge ?? []),
+        stg_pgm_loop_detail: stageRawDataset('pgm_loop_detail', rawArtifacts.pgm_loop_detail ?? [])
     };
 }
 
 export function buildMartArtifacts(stagingArtifacts) {
     const productDailyMetricsBase = buildProductDailyMetrics(stagingArtifacts);
-    const productDailyMetrics = enrichProductRevenueWindows(productDailyMetricsBase);
+    const productDailyMetrics = enrichProductRevenueWindows(productDailyMetricsBase, stagingArtifacts.stg_product_window_metrics ?? []);
     const productRoleProfile = buildProductRoleProfile(stagingArtifacts.stg_pgm_scored);
     const productRoleStateDaily = buildProductRoleStateDaily(stagingArtifacts.stg_pgm_scored, productDailyMetricsBase);
     const revenueStructureDaily = buildRevenueStructureDaily(productDailyMetricsBase);
     const brandOperatingStatusDailyBase = buildBrandOperatingStatusDaily(productDailyMetricsBase, productRoleStateDaily, revenueStructureDaily);
-    const brandOperatingStatusDaily = enrichBrandRevenueWindows(brandOperatingStatusDailyBase);
+    const brandOperatingStatusDaily = enrichBrandRevenueWindows(brandOperatingStatusDailyBase, stagingArtifacts.stg_brand_window_metrics ?? []);
+    const productTransitionSummary = buildProductTransitionSummary(
+        stagingArtifacts.stg_pgm_transition_edge,
+        stagingArtifacts.stg_products,
+        stagingArtifacts.stg_order_items
+    );
+    const productReturnLoopSummary = buildProductReturnLoopSummary(
+        stagingArtifacts.stg_pgm_loop_detail,
+        stagingArtifacts.stg_products,
+        stagingArtifacts.stg_order_items
+    );
 
     return {
         product_daily_metrics: productDailyMetrics,
         product_role_profile: productRoleProfile,
         product_role_state_daily: productRoleStateDaily,
         revenue_structure_daily: revenueStructureDaily,
-        brand_operating_status_daily: brandOperatingStatusDaily
+        brand_operating_status_daily: brandOperatingStatusDaily,
+        product_transition_summary: productTransitionSummary,
+        product_return_loop_summary: productReturnLoopSummary
     };
 }
 
-export function buildViewModelArtifacts(martArtifacts) {
-    const windowSnapshot = buildBrandWindowSnapshot(martArtifacts.brand_operating_status_daily);
+export function buildViewModelArtifacts(martArtifacts, stagingArtifacts = {}) {
+    const windowSnapshot = buildBrandWindowSnapshot(martArtifacts.brand_operating_status_daily, stagingArtifacts.stg_brand_window_metrics ?? []);
     const productTable = buildProductTable(
         martArtifacts.product_daily_metrics,
         martArtifacts.product_role_profile,
         martArtifacts.product_role_state_daily,
-        martArtifacts.revenue_structure_daily
+        martArtifacts.revenue_structure_daily,
+        martArtifacts.product_transition_summary,
+        martArtifacts.product_return_loop_summary
     );
+    const transitionSummary = buildTransitionSummaryView(martArtifacts.product_transition_summary, stagingArtifacts.stg_products ?? []);
+    const returnLoopSummary = buildReturnLoopSummaryView(martArtifacts.product_return_loop_summary, stagingArtifacts.stg_products ?? []);
 
     return {
         overview_daily_cards: buildDailyOverviewCards(martArtifacts.brand_operating_status_daily),
@@ -110,7 +171,10 @@ export function buildViewModelArtifacts(martArtifacts) {
             martArtifacts.revenue_structure_daily,
             martArtifacts.product_role_state_daily,
             productTable
-        )
+        ),
+        transition_summary: transitionSummary,
+        return_loop_summary: returnLoopSummary,
+        revenue_inflow_context: buildRevenueInflowContext(stagingArtifacts.stg_order_with_utm ?? [])
     };
 }
 
@@ -188,17 +252,17 @@ export function buildValidationReport(validationSummary, coverageReport) {
     }, new Map());
 
     const lines = [
-        '# pgm_ops validation report',
+        '# pgm_ops 검증 리포트',
         '',
-        '## Summary',
+        '## 요약',
         `- pass: ${(groupedByStatus.get('pass') ?? []).length}`,
         `- warn: ${(groupedByStatus.get('warn') ?? []).length}`,
         `- fail: ${(groupedByStatus.get('fail') ?? []).length}`,
         '',
-        '## Coverage',
+        '## 커버리지',
         ...coverageReport.map((row) => `- ${row.metric_name}: ${row.metric_value} (${row.message})`),
         '',
-        '## Findings'
+        '## 세부 결과'
     ];
 
     validationSummary.forEach((row) => {
@@ -211,7 +275,7 @@ export function buildValidationReport(validationSummary, coverageReport) {
 export function buildAllArtifacts(rawArtifacts) {
     const stagingArtifacts = buildStagingArtifacts(rawArtifacts);
     const martArtifacts = buildMartArtifacts(stagingArtifacts);
-    const viewModelArtifacts = buildViewModelArtifacts(martArtifacts);
+    const viewModelArtifacts = buildViewModelArtifacts(martArtifacts, stagingArtifacts);
     const coverageReport = buildCoverageReport(martArtifacts);
     const validationSummary = buildValidationSummary({
         staging: stagingArtifacts,
@@ -241,8 +305,8 @@ export const ARTIFACT_FILE_MAP = {
 
 export function summarizeMockedAreas() {
     return [
-        'BHI context is intentionally stubbed and not surfaced as a primary metric.',
-        `Products without same-date role snapshots stay blank in mart and are only labeled as ${ROLE_LABEL_FALLBACK} in view_model/UI.`,
-        'Member and UTM joins remain outside the v0 operating path.'
+        'BHI 컨텍스트는 여전히 stub이며 핵심 운영 지표로 노출하지 않습니다.',
+        `same-date role snapshot이 없는 상품은 mart에서 blank를 유지하고 view_model/UI에서만 ${ROLE_LABEL_FALLBACK} 라벨을 붙입니다.`,
+        'member/UTM은 보조 근거까지만 노출하며 메인 판단 프레임으로 끌어올리지 않습니다.'
     ];
 }

@@ -1,6 +1,10 @@
 artifact_name,required,exists,row_count,notes
-orders,true,true,7,loaded
-order_items,true,true,10,loaded
-products,true,true,3,loaded
-product_daily,true,true,40,loaded
-pgm_scored,true,true,7,loaded
+orders,true,true,20,loaded
+order_items,true,true,20,loaded
+products,true,true,34,loaded
+product_daily,true,true,20,loaded
+pgm_scored,true,true,20,loaded
+members,true,true,20,loaded
+order_with_utm,true,true,20,loaded
+pgm_transition_edge,true,true,20,loaded
+pgm_loop_detail,true,true,20,loaded

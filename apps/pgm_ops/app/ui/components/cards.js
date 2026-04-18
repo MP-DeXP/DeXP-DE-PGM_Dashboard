@@ -16,10 +16,15 @@ function getDeltaTone(delta) {
 
 function formatPercent(value) {
     if (value == null || value === '') {
-        return '비교불가';
+        return '데이터 없음';
     }
 
-    return `${(Number(value) * 100).toFixed(1)}%`;
+    const numeric = Number(value);
+    if (Number.isNaN(numeric)) {
+        return String(value);
+    }
+
+    return `${(numeric * 100).toFixed(1)}%`;
 }
 
 function formatValue(row) {
@@ -36,7 +41,7 @@ function formatValue(row) {
 
 export function renderCards(rows) {
     if (!rows.length) {
-        return '<div class="ops-empty"><strong>카드 데이터가 없습니다.</strong><p>view_model artifact 또는 fallback이 비어 있습니다.</p></div>';
+        return '<div class="ops-empty"><strong>표시할 카드가 없습니다.</strong><p>화면 데이터를 아직 불러오지 못했습니다.</p></div>';
     }
 
     return `

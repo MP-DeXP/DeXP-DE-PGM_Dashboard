@@ -303,5 +303,46 @@ export const SAMPLE_FALLBACKS = {
             evidence: 'revenue.rank=2; revenue.share=0.3238512035010941; role_state_source=blank',
             rule_source: 'revenue_structure_daily.revenue_rank_in_brand_day + product_role_state_daily.role_state_source'
         }
+    ],
+    transition_summary: [
+        {
+            product_id: 'p-101',
+            product_name: 'Hydra Serum',
+            target_product_id: 'p-102',
+            target_product_name: 'Barrier Toner',
+            transition_rank: '1',
+            transition_rate: '0.21',
+            avg_days_to_transition: '16.2',
+            transition_customer_cnt: '14',
+            as_of_date: '2024-05-10'
+        }
+    ],
+    return_loop_summary: [
+        {
+            product_id: 'p-101',
+            product_name: 'Hydra Serum',
+            return_case_count: '9',
+            qualified_return_rate: '0.18',
+            simple_repeat_rate: '0.33',
+            return_loop_rate: '0.11',
+            avg_return_days: '21.4',
+            as_of_date: '2024-05-10'
+        }
+    ],
+    revenue_inflow_context: [
+        {
+            context_key: 'utm_attributed_order_share_30d',
+            label: '최근 30일 UTM 식별 주문 비중',
+            value: '0.62',
+            detail: '식별 주문 31건 / 전체 50건',
+            as_of_date: '2024-05-10'
+        },
+        {
+            context_key: 'top_utm_source_30d',
+            label: '상위 유입 source',
+            value: 'meta',
+            detail: '최근 30일 기여 매출 2,430,000원',
+            as_of_date: '2024-05-10'
+        }
     ]
 };

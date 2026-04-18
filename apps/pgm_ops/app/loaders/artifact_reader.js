@@ -10,22 +10,31 @@ export async function browserReadText(path) {
     return response.text();
 }
 
-export async function loadCsvArtifact({ path, readText = browserReadText, fallbackRows = [] }) {
-    try {
-        const text = await readText(path);
-        return {
-            // Empty text still counts as an artifact read; do not silently replace it with sample rows.
-            rows: parseCsv(text),
-            source: 'artifact',
-            error: null
-        };
-    } catch (error) {
-        return {
-            rows: fallbackRows,
-            source: 'fallback',
-            error
-        };
+export async function loadCsvArtifact({ path, alternatePaths = [], readText = browserReadText, fallbackRows = [] }) {
+    const candidatePaths = [path, ...alternatePaths.filter(Boolean)];
+    let lastError = null;
+
+    for (const candidatePath of candidatePaths) {
+        try {
+            const text = await readText(candidatePath);
+            return {
+                // Empty text still counts as an artifact read; do not silently replace it with sample rows.
+                rows: parseCsv(text),
+                source: 'artifact',
+                error: null,
+                resolvedPath: candidatePath
+            };
+        } catch (error) {
+            lastError = error;
+        }
     }
+
+    return {
+        rows: fallbackRows,
+        source: 'fallback',
+        error: lastError,
+        resolvedPath: null
+    };
 }
 
 export async function loadArtifactCollection(definitions, options = {}) {
@@ -33,6 +42,7 @@ export async function loadArtifactCollection(definitions, options = {}) {
         Object.entries(definitions).map(async ([key, definition]) => {
             const result = await loadCsvArtifact({
                 path: definition.path,
+                alternatePaths: definition.alternatePaths ?? [],
                 readText: options.readText,
                 fallbackRows: definition.fallbackRows ?? []
             });

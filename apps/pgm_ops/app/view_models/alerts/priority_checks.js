@@ -47,6 +47,9 @@ export function buildPriorityChecks(brandRows, revenueStructureRows, roleStateDa
         .forEach((row) => {
             const product = productLookup.get(row.product_id);
             const roleState = latestRoleLookup.get(row.product_id);
+            const transitionEvidence = product?.top_transition_target_name
+                ? `; top_transition=${product.top_transition_target_name}; transition_rate=${product.top_transition_rate ?? 'n/a'}`
+                : '';
 
             pushCheck(checks, {
                 priority: 'medium',
@@ -55,8 +58,8 @@ export function buildPriorityChecks(brandRows, revenueStructureRows, roleStateDa
                 label: `${product?.product_name ?? row.product_id} role-state 공백`,
                 reason: 'revenue_structure_daily 상위 기여 상품인데 product_role_state_daily same-date snapshot은 blank입니다.',
                 suggested_check: 'PGM 관측 누락인지 실제 구조 변화인지 먼저 구분하세요.',
-                evidence: `revenue.rank=${row.revenue_rank_in_brand_day}; revenue.share=${row.revenue_share_in_brand_day}; role_state_source=${roleState?.role_state_source ?? 'blank'}`,
-                rule_source: 'revenue_structure_daily.revenue_rank_in_brand_day + product_role_state_daily.role_state_source'
+                evidence: `revenue.rank=${row.revenue_rank_in_brand_day}; revenue.share=${row.revenue_share_in_brand_day}; role_state_source=${roleState?.role_state_source ?? 'blank'}${transitionEvidence}`,
+                rule_source: 'revenue_structure_daily.revenue_rank_in_brand_day + product_role_state_daily.role_state_source + product_transition_summary.transition_rate'
             });
         });
 
@@ -77,6 +80,24 @@ export function buildPriorityChecks(brandRows, revenueStructureRows, roleStateDa
             rule_source: 'brand_operating_status_daily.brand_revenue_day_over_day_change_rate + revenue_structure_daily.revenue_rank_in_brand_day'
         });
     }
+
+    latestRevenueRows
+        .filter((row) => Number(row.revenue_rank_in_brand_day ?? 999) <= 3)
+        .map((row) => productLookup.get(row.product_id))
+        .filter(Boolean)
+        .filter((row) => Number(row.return_loop_rate ?? 0) >= 0.08 || Number(row.simple_repeat_rate ?? 0) >= 0.2)
+        .forEach((product) => {
+            pushCheck(checks, {
+                priority: 'medium',
+                entity_type: 'product',
+                entity_id: product.product_id,
+                label: `${product.product_name} 복귀/반복 루프 점검`,
+                reason: '상위 매출 기여 상품에서 복귀율 또는 반복율이 운영 보조 경계선을 넘었습니다.',
+                suggested_check: '반품 사유, 반복 구매 패턴, 다음 전환 상품을 함께 확인하세요.',
+                evidence: `qualified_return_rate=${product.qualified_return_rate ?? 'n/a'}; return_loop_rate=${product.return_loop_rate ?? 'n/a'}; simple_repeat_rate=${product.simple_repeat_rate ?? 'n/a'}; top_transition=${product.top_transition_target_name || 'n/a'}`,
+                rule_source: 'product_return_loop_summary.return_loop_rate + product_return_loop_summary.simple_repeat_rate + product_transition_summary.transition_rate'
+            });
+        });
 
     if (!checks.length) {
         pushCheck(checks, {

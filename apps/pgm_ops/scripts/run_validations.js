@@ -9,8 +9,12 @@ async function loadLayer(directoryUrl, fileMap) {
     const directory = fileURLToPath(directoryUrl);
     const entries = await Promise.all(
         Object.entries(fileMap).map(async ([key, filename]) => {
-            const text = await fs.readFile(`${directory}/${filename}`, 'utf8');
-            return [key, parseCsv(text)];
+            try {
+                const text = await fs.readFile(`${directory}/${filename}`, 'utf8');
+                return [key, parseCsv(text)];
+            } catch (error) {
+                return [key, []];
+            }
         })
     );
 

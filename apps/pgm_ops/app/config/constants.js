@@ -7,7 +7,13 @@ export const RAW_INPUT_FILES = {
     order_items: 'order_items.csv',
     products: 'products.csv',
     product_daily: 'product_daily.csv',
-    pgm_scored: 'pgm_scored.csv'
+    pgm_scored: 'pgm_scored.csv',
+    product_window_metrics: 'product_window_metrics.csv',
+    brand_window_metrics: 'brand_window_metrics.csv',
+    members: 'members.csv',
+    order_with_utm: 'order_with_utm.csv',
+    pgm_transition_edge: 'pgm_transition_edge.csv',
+    pgm_loop_detail: 'pgm_loop_detail.csv'
 };
 
 export const STAGING_FILES = {
@@ -15,7 +21,13 @@ export const STAGING_FILES = {
     stg_order_items: 'stg_order_items.csv',
     stg_products: 'stg_products.csv',
     stg_product_daily: 'stg_product_daily.csv',
-    stg_pgm_scored: 'stg_pgm_scored.csv'
+    stg_pgm_scored: 'stg_pgm_scored.csv',
+    stg_product_window_metrics: 'stg_product_window_metrics.csv',
+    stg_brand_window_metrics: 'stg_brand_window_metrics.csv',
+    stg_members: 'stg_members.csv',
+    stg_order_with_utm: 'stg_order_with_utm.csv',
+    stg_pgm_transition_edge: 'stg_pgm_transition_edge.csv',
+    stg_pgm_loop_detail: 'stg_pgm_loop_detail.csv'
 };
 
 export const MART_FILES = {
@@ -23,7 +35,9 @@ export const MART_FILES = {
     product_role_profile: 'product_role_profile.csv',
     product_role_state_daily: 'product_role_state_daily.csv',
     revenue_structure_daily: 'revenue_structure_daily.csv',
-    brand_operating_status_daily: 'brand_operating_status_daily.csv'
+    brand_operating_status_daily: 'brand_operating_status_daily.csv',
+    product_transition_summary: 'product_transition_summary.csv',
+    product_return_loop_summary: 'product_return_loop_summary.csv'
 };
 
 export const VIEW_MODEL_FILES = {
@@ -34,14 +48,18 @@ export const VIEW_MODEL_FILES = {
     product_detail_header: 'product_detail_header.csv',
     role_structure_chart: 'role_structure_chart.csv',
     revenue_structure_chart: 'revenue_structure_chart.csv',
-    priority_checks: 'priority_checks.csv'
+    priority_checks: 'priority_checks.csv',
+    transition_summary: 'transition_summary.csv',
+    return_loop_summary: 'return_loop_summary.csv',
+    revenue_inflow_context: 'revenue_inflow_context.csv'
 };
 
 export const QA_FILES = {
     raw_extract_manifest: 'raw_extract_manifest.csv',
     validation_summary: 'validation_summary.csv',
     coverage_report: 'coverage_report.csv',
-    validation_report: 'validation_report.md'
+    validation_report: 'validation_report.md',
+    prd_validation_summary: 'prd_validation_summary.csv'
 };
 
-export const ROLE_LABEL_FALLBACK = 'PGM 미관측';
+export const ROLE_LABEL_FALLBACK = '상태 미확인';

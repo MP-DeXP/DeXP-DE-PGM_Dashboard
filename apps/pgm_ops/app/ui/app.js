@@ -13,9 +13,22 @@ function getSearchParams() {
 
 function getArtifactBase() {
     const params = getSearchParams();
-    return params.get('artifactBase')
-        || window.localStorage.getItem(APP_SETTINGS.localStorageArtifactKey)
-        || APP_SETTINGS.defaultArtifactBase;
+    const queryBase = params.get('artifactBase');
+    const storedBase = window.localStorage.getItem(APP_SETTINGS.localStorageArtifactKey);
+
+    if (queryBase) {
+        return queryBase;
+    }
+
+    if (storedBase && storedBase !== './artifacts') {
+        return storedBase;
+    }
+
+    return APP_SETTINGS.defaultArtifactBase;
+}
+
+function getStaticArtifactBase() {
+    return './artifacts';
 }
 
 function shouldForceSampleMode() {
@@ -24,17 +37,22 @@ function shouldForceSampleMode() {
 }
 
 function formatDate(value) {
-    return value || 'n/a';
+    return value || '없음';
 }
 
 function updateChrome(loadMeta, latestDate) {
     const badge = document.getElementById('ops-data-source-badge');
     const updated = document.getElementById('ops-last-updated');
+    const snapshotDate = loadMeta.latestSnapshotDate ?? latestDate;
+
+    if (!badge || !updated) {
+        return;
+    }
 
     badge.textContent = loadMeta.sourceLabel;
     badge.classList.toggle('is-live', loadMeta.mode === 'artifact');
     badge.classList.toggle('is-sample', loadMeta.mode !== 'artifact');
-    updated.textContent = `latest snapshot ${formatDate(latestDate)} · ${loadMeta.chromeNote}`;
+    updated.textContent = `기준일 ${formatDate(snapshotDate)} · ${loadMeta.chromeNote}`;
 }
 
 function attachStaticNav() {
@@ -45,11 +63,11 @@ function attachStaticNav() {
     });
 }
 
-function getLatestCardDate(models) {
+function getLatestCardDate(cardGroups) {
     return [
-        ...models.overview_daily_cards,
-        ...models.overview_weekly_cards,
-        ...models.overview_monthly_cards
+        ...(cardGroups.daily ?? []),
+        ...(cardGroups.weekly ?? []),
+        ...(cardGroups.monthly ?? [])
     ].reduce((latest, row) => (!latest || row.as_of_date > latest ? row.as_of_date : latest), null);
 }
 
@@ -73,32 +91,65 @@ function buildLoadMetaFromCollection(collection) {
     if (!fallbackKeys.length) {
         return {
             mode: 'artifact',
-            sourceLabel: 'artifact-backed',
-            chromeNote: 'all view_model files loaded',
-            note: '모든 화면이 `artifacts/view_model/*.csv` 실데이터를 직접 읽고 있습니다. 비어 있는 artifact는 그대로 빈 상태로 남고 sample이 섞이지 않습니다.',
+            sourceLabel: '실데이터',
+            chromeNote: '최신 화면 데이터 연결됨',
+            note: '모든 화면이 최신 동기화 결과를 읽고 있습니다.',
             fallbackKeys,
-            emptyArtifactKeys
+            emptyArtifactKeys,
+            latestSnapshotDate: null
         };
     }
 
     if (!artifactKeys.length) {
         return {
             mode: 'fallback',
-            sourceLabel: 'sample fallback',
-            chromeNote: 'all panels are sample-backed',
-            note: '브라우저에서 view_model artifact를 읽지 못해 모든 패널이 sample fallback만 보여 줍니다. 이 모드는 구현 예시 확인용이며 운영 판단 근거가 아닙니다.',
+            sourceLabel: '샘플 보기',
+            chromeNote: '예시 데이터만 표시 중',
+            note: '실데이터를 읽지 못해 예시 데이터로 표시하고 있습니다.',
             fallbackKeys,
-            emptyArtifactKeys
+            emptyArtifactKeys,
+            latestSnapshotDate: null
         };
     }
 
     return {
         mode: 'mixed',
-        sourceLabel: 'artifact + sample',
-        chromeNote: `sample fallback: ${fallbackKeys.join(', ')}`,
-        note: `artifact로 읽힌 패널과 sample fallback 패널이 함께 있습니다. sample fallback 파일: ${fallbackKeys.join(', ')}. artifact로 읽힌 파일만 실제 구현 결과로 해석하세요.`,
+        sourceLabel: '혼합 보기',
+        chromeNote: `일부 예시 파일 사용: ${fallbackKeys.join(', ')}`,
+        note: '일부 화면이 예시 데이터로 표시되고 있습니다.',
         fallbackKeys,
-        emptyArtifactKeys
+        emptyArtifactKeys,
+        latestSnapshotDate: null
+    };
+}
+
+async function loadServiceStatus(artifactBase) {
+    const normalizedBase = artifactBase.replace(/\/$/, '');
+    if (!normalizedBase.endsWith('/api/pgm-ops')) {
+        return null;
+    }
+
+    const response = await fetch(`${normalizedBase}/meta/load-status.json`);
+    if (!response.ok) {
+        throw new Error(`Failed to read service status: ${response.status}`);
+    }
+
+    return response.json();
+}
+
+function mergeLoadMeta(collectionMeta, serviceStatus) {
+    if (!serviceStatus) {
+        return collectionMeta;
+    }
+
+    return {
+        ...collectionMeta,
+        sourceLabel: collectionMeta.mode === 'artifact' ? (serviceStatus.sourceLabel ?? collectionMeta.sourceLabel) : collectionMeta.sourceLabel,
+        chromeNote: serviceStatus.chromeNote ?? collectionMeta.chromeNote,
+        note: collectionMeta.mode === 'artifact'
+            ? (serviceStatus.note ?? collectionMeta.note)
+            : collectionMeta.note,
+        latestSnapshotDate: serviceStatus.latestSnapshotDate ?? collectionMeta.latestSnapshotDate
     };
 }
 
@@ -112,55 +163,53 @@ function filterProducts(rows, query) {
 }
 
 function renderApp(container, models, state, loadMeta) {
-    const periodKey = `overview_${state.period}_cards`;
-    const cards = models[periodKey] ?? [];
-    const latestDate = getLatestCardDate(models);
-    const filteredProducts = filterProducts(models.product_table, state.searchQuery);
+    const overviewCards = {
+        daily: models.overview_daily_cards ?? [],
+        weekly: models.overview_weekly_cards ?? [],
+        monthly: models.overview_monthly_cards ?? []
+    };
+    const latestDate = getLatestCardDate(overviewCards);
+    const filteredProducts = filterProducts(models.product_table ?? [], state.searchQuery);
 
     if (filteredProducts.length && !filteredProducts.some((row) => row.product_id === state.selectedProductId)) {
         state.selectedProductId = filteredProducts[0].product_id;
     }
 
     container.innerHTML = `
-        <div class="ops-tab-row" id="ops-period-tabs">
-            ${['daily', 'weekly', 'monthly'].map((period) => `
-                <button class="ops-tab ${period === state.period ? 'is-active' : ''}" type="button" data-period="${period}">
-                    ${period.toUpperCase()}
-                </button>
-            `).join('')}
-        </div>
-        ${renderOverviewPage(cards, latestDate, {
-            sourceLabel: loadMeta.sourceLabel,
-            note: loadMeta.note,
-            mode: loadMeta.mode,
-            fallbackKeys: loadMeta.fallbackKeys,
-            emptyArtifactKeys: loadMeta.emptyArtifactKeys
-        })}
-        <div class="ops-layout">
-            <div>
-                ${renderProductsPage({
-                    productRows: filteredProducts,
-                    detailRows: models.product_detail_header,
-                    selectedProductId: state.selectedProductId,
-                    roleStructureRows: models.role_structure_chart,
-                    revenueStructureRows: models.revenue_structure_chart,
-                    searchQuery: state.searchQuery
-                })}
-            </div>
-            <div>
-                ${renderPriorityPage(models.priority_checks)}
+        <div class="ops-page-stack">
+            ${renderOverviewPage({
+                dailyCards: overviewCards.daily,
+                weeklyCards: overviewCards.weekly,
+                monthlyCards: overviewCards.monthly,
+                latestDate,
+                statusBadge: loadMeta.sourceLabel
+            })}
+            <div class="ops-layout">
+                <div class="ops-layout-main">
+                    ${renderProductsPage({
+                        productRows: filteredProducts,
+                        detailRows: models.product_detail_header ?? [],
+                        selectedProductId: state.selectedProductId,
+                        roleStructureRows: models.role_structure_chart ?? [],
+                        revenueStructureRows: models.revenue_structure_chart ?? [],
+                        searchQuery: state.searchQuery,
+                        transitionSummaryRows: models.transition_summary ?? [],
+                        returnLoopSummaryRows: models.return_loop_summary ?? [],
+                        revenueInflowRows: models.revenue_inflow_context ?? []
+                    })}
+                </div>
+                <div class="ops-layout-side">
+                    ${renderPriorityPage(
+                        models.priority_checks ?? [],
+                        models.transition_summary ?? [],
+                        models.return_loop_summary ?? []
+                    )}
+                </div>
             </div>
         </div>
     `;
 
     updateChrome(loadMeta, latestDate);
-
-    container.querySelectorAll('[data-period]').forEach((button) => {
-        button.addEventListener('click', () => {
-            state.period = button.dataset.period;
-            renderApp(container, models, state, loadMeta);
-        });
-    });
 
     const searchInput = document.getElementById('ops-product-search');
     if (searchInput) {
@@ -184,9 +233,9 @@ async function loadViewModels() {
             models: toModelObject(SAMPLE_FALLBACKS),
             loadMeta: {
                 mode: 'fallback',
-                sourceLabel: 'sample fallback',
-                chromeNote: 'forced by ?sample=1',
-                note: '`?sample=1`로 sample fallback 모드를 강제했습니다. 이 화면의 값은 샘플 예시이며 실 artifact 결과가 아닙니다.',
+                sourceLabel: '샘플 보기',
+                chromeNote: '예시 모드 강제 적용',
+                note: '샘플 모드가 강제 적용되었습니다.',
                 fallbackKeys: Object.keys(VIEW_MODEL_FILES),
                 emptyArtifactKeys: []
             }
@@ -194,11 +243,15 @@ async function loadViewModels() {
     }
 
     const artifactBase = getArtifactBase();
+    const staticArtifactBase = getStaticArtifactBase();
     const definitions = Object.fromEntries(
         Object.entries(VIEW_MODEL_FILES).map(([key, filename]) => [
             key,
             {
                 path: getBrowserArtifactPath('view_model', filename, artifactBase),
+                alternatePaths: artifactBase.endsWith('/api/pgm-ops')
+                    ? [getBrowserArtifactPath('view_model', filename, staticArtifactBase)]
+                    : [],
                 fallbackRows: SAMPLE_FALLBACKS[key] ?? []
             }
         ])
@@ -206,10 +259,17 @@ async function loadViewModels() {
 
     const collection = await loadArtifactCollection(definitions);
     const models = Object.fromEntries(Object.entries(collection).map(([key, result]) => [key, result.rows]));
+    let serviceStatus = null;
+
+    try {
+        serviceStatus = await loadServiceStatus(artifactBase);
+    } catch (error) {
+        serviceStatus = null;
+    }
 
     return {
         models,
-        loadMeta: buildLoadMetaFromCollection(collection)
+        loadMeta: mergeLoadMeta(buildLoadMetaFromCollection(collection), serviceStatus)
     };
 }
 
@@ -217,12 +277,11 @@ export async function initializePgmOpsApp() {
     attachStaticNav();
 
     const container = document.getElementById('ops-app');
-    container.innerHTML = '<div class="ops-panel hero"><div class="ops-empty"><strong>로딩 중...</strong><p>view_model artifact를 확인하고 있습니다.</p></div></div>';
+    container.innerHTML = '<div class="ops-panel hero"><div class="ops-empty"><strong>데이터를 불러오는 중입니다.</strong><p>화면에 필요한 최신 데이터를 확인하고 있습니다.</p></div></div>';
 
     const { models, loadMeta } = await loadViewModels();
-    const initialProduct = models.product_table[0]?.product_id ?? '';
+    const initialProduct = (models.product_table ?? [])[0]?.product_id ?? '';
     const state = {
-        period: 'daily',
         selectedProductId: initialProduct,
         searchQuery: ''
     };

@@ -8,6 +8,14 @@ export const ARTIFACT_DIR_URLS = {
     qa: new URL('../../artifacts/qa/', import.meta.url)
 };
 
-export function getBrowserArtifactPath(layer, filename, baseOverride = './artifacts') {
-    return `${baseOverride.replace(/\/$/, '')}/${layer}/${filename}`;
+export function getBrowserArtifactPath(layer, filename, baseOverride = '/api/pgm-ops') {
+    const normalizedBase = baseOverride.replace(/\/$/, '');
+    const apiLayerMap = {
+        view_model: 'view-model'
+    };
+    const layerSegment = normalizedBase.endsWith('/api/pgm-ops')
+        ? (apiLayerMap[layer] ?? layer)
+        : layer;
+
+    return `${normalizedBase}/${layerSegment}/${filename}`;
 }
