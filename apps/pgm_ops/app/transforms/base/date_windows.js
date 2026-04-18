@@ -2,7 +2,7 @@ function compareDateStrings(left, right) {
     return left.localeCompare(right);
 }
 
-function addDays(dateString, amount) {
+export function shiftDate(dateString, amount) {
     const [year, month, day] = dateString.split('-').map(Number);
     const date = new Date(Date.UTC(year, month - 1, day));
     date.setUTCDate(date.getUTCDate() + amount);
@@ -29,7 +29,7 @@ export function listDateRange(startDate, endDate) {
 
     while (cursor <= endDate) {
         range.push(cursor);
-        cursor = addDays(cursor, 1);
+        cursor = shiftDate(cursor, 1);
     }
 
     return range;

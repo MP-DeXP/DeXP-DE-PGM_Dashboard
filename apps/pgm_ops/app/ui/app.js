@@ -5,7 +5,12 @@ import { getBrowserArtifactPath } from '../config/paths.js';
 import { loadArtifactCollection } from '../loaders/artifact_reader.js';
 import { renderOverviewPage } from './pages/overview_page.js';
 import { renderProductsPage } from './pages/products_page.js';
-import { renderPriorityPage } from './pages/priority_page.js';
+
+const OPTIONAL_VIEW_MODEL_FILES = {
+    overview_role_contribution: 'overview_role_contribution.csv',
+    brand_role_structure: 'brand_role_structure.csv',
+    brand_role_window_comparison: 'brand_role_window_comparison.csv'
+};
 
 function getSearchParams() {
     return new URLSearchParams(window.location.search);
@@ -73,7 +78,7 @@ function getLatestCardDate(cardGroups) {
 
 function toModelObject(sourceRows) {
     return Object.fromEntries(
-        Object.keys(VIEW_MODEL_FILES).map((key) => [key, [...(sourceRows[key] ?? [])]])
+        [...Object.keys(VIEW_MODEL_FILES), ...Object.keys(OPTIONAL_VIEW_MODEL_FILES)].map((key) => [key, [...(sourceRows[key] ?? [])]])
     );
 }
 
@@ -181,31 +186,26 @@ function renderApp(container, models, state, loadMeta) {
                 dailyCards: overviewCards.daily,
                 weeklyCards: overviewCards.weekly,
                 monthlyCards: overviewCards.monthly,
+                roleContributionRows: models.overview_role_contribution ?? [],
+                productRows: models.product_table ?? [],
                 latestDate,
                 statusBadge: loadMeta.sourceLabel
             })}
-            <div class="ops-layout">
-                <div class="ops-layout-main">
-                    ${renderProductsPage({
-                        productRows: filteredProducts,
-                        detailRows: models.product_detail_header ?? [],
-                        selectedProductId: state.selectedProductId,
-                        roleStructureRows: models.role_structure_chart ?? [],
-                        revenueStructureRows: models.revenue_structure_chart ?? [],
-                        searchQuery: state.searchQuery,
-                        transitionSummaryRows: models.transition_summary ?? [],
-                        returnLoopSummaryRows: models.return_loop_summary ?? [],
-                        revenueInflowRows: models.revenue_inflow_context ?? []
-                    })}
-                </div>
-                <div class="ops-layout-side">
-                    ${renderPriorityPage(
-                        models.priority_checks ?? [],
-                        models.transition_summary ?? [],
-                        models.return_loop_summary ?? []
-                    )}
-                </div>
-            </div>
+            ${renderProductsPage({
+                productRows: filteredProducts,
+                allProductRows: models.product_table ?? [],
+                detailRows: models.product_detail_header ?? [],
+                selectedProductId: state.selectedProductId,
+                roleStructureRows: models.role_structure_chart ?? [],
+                revenueStructureRows: models.revenue_structure_chart ?? [],
+                brandRoleStructureRows: models.brand_role_structure ?? [],
+                brandRoleWindowComparisonRows: models.brand_role_window_comparison ?? [],
+                searchQuery: state.searchQuery,
+                transitionSummaryRows: models.transition_summary ?? [],
+                returnLoopSummaryRows: models.return_loop_summary ?? [],
+                revenueInflowRows: models.revenue_inflow_context ?? [],
+                priorityRows: models.priority_checks ?? []
+            })}
         </div>
     `;
 
@@ -258,7 +258,23 @@ async function loadViewModels() {
     );
 
     const collection = await loadArtifactCollection(definitions);
-    const models = Object.fromEntries(Object.entries(collection).map(([key, result]) => [key, result.rows]));
+    const optionalDefinitions = Object.fromEntries(
+        Object.entries(OPTIONAL_VIEW_MODEL_FILES).map(([key, filename]) => [
+            key,
+            {
+                path: getBrowserArtifactPath('view_model', filename, artifactBase),
+                alternatePaths: artifactBase.endsWith('/api/pgm-ops')
+                    ? [getBrowserArtifactPath('view_model', filename, staticArtifactBase)]
+                    : [],
+                fallbackRows: []
+            }
+        ])
+    );
+    const optionalCollection = await loadArtifactCollection(optionalDefinitions);
+    const models = Object.fromEntries([
+        ...Object.entries(collection).map(([key, result]) => [key, result.rows]),
+        ...Object.entries(optionalCollection).map(([key, result]) => [key, result.rows])
+    ]);
     let serviceStatus = null;
 
     try {

@@ -1,6 +1,14 @@
 export const WINDOWS = [7, 30, 90];
 export const PERIODS = ['daily', 'weekly', 'monthly'];
 export const PRIORITY_LEVELS = ['high', 'medium', 'low'];
+export const ROLE_KEYS = ['entry', 'expansion', 'return', 'convergence'];
+export const ROLE_LABEL_FALLBACK = '상태 미확인';
+export const ROLE_LABELS = {
+    entry: '첫구매 유도',
+    expansion: '단골 유도',
+    return: '반복 구매',
+    convergence: '구매 집중'
+};
 
 export const RAW_INPUT_FILES = {
     orders: 'orders.csv',
@@ -36,6 +44,8 @@ export const MART_FILES = {
     product_role_state_daily: 'product_role_state_daily.csv',
     revenue_structure_daily: 'revenue_structure_daily.csv',
     brand_operating_status_daily: 'brand_operating_status_daily.csv',
+    role_revenue_daily: 'role_revenue_daily.csv',
+    role_product_membership_window: 'role_product_membership_window.csv',
     product_transition_summary: 'product_transition_summary.csv',
     product_return_loop_summary: 'product_return_loop_summary.csv'
 };
@@ -44,9 +54,12 @@ export const VIEW_MODEL_FILES = {
     overview_daily_cards: 'overview_daily_cards.csv',
     overview_weekly_cards: 'overview_weekly_cards.csv',
     overview_monthly_cards: 'overview_monthly_cards.csv',
+    overview_role_contribution: 'overview_role_contribution.csv',
     product_table: 'product_table.csv',
     product_detail_header: 'product_detail_header.csv',
     role_structure_chart: 'role_structure_chart.csv',
+    brand_role_structure: 'brand_role_structure.csv',
+    brand_role_window_comparison: 'brand_role_window_comparison.csv',
     revenue_structure_chart: 'revenue_structure_chart.csv',
     priority_checks: 'priority_checks.csv',
     transition_summary: 'transition_summary.csv',
@@ -62,4 +75,15 @@ export const QA_FILES = {
     prd_validation_summary: 'prd_validation_summary.csv'
 };
 
-export const ROLE_LABEL_FALLBACK = '상태 미확인';
+export function getRoleLabel(roleKey) {
+    if (!roleKey) {
+        return ROLE_LABEL_FALLBACK;
+    }
+
+    return ROLE_LABELS[roleKey] ?? roleKey;
+}
+
+export function getRoleSortOrder(roleKey) {
+    const index = ROLE_KEYS.indexOf(roleKey);
+    return index === -1 ? ROLE_KEYS.length : index;
+}

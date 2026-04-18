@@ -4,18 +4,23 @@ import { buildRevenueStructureDaily } from '../transforms/revenue/revenue_struct
 import { buildBrandOperatingStatusDaily } from '../transforms/brand/operating_status.js';
 import { buildProductRoleProfile } from '../transforms/role/role_profile.js';
 import { buildProductRoleStateDaily } from '../transforms/role/role_state.js';
+import { buildRoleRevenueDaily } from '../transforms/role/role_revenue_daily.js';
+import { buildRoleProductMembershipWindow } from '../transforms/role/role_product_membership_window.js';
 import { enrichBrandRevenueWindows, enrichProductRevenueWindows, buildBrandWindowSnapshot } from '../transforms/revenue/revenue_windows.js';
 import { buildProductTransitionSummary } from '../transforms/transition/transition_summary.js';
 import { buildProductReturnLoopSummary } from '../transforms/transition/return_loop_summary.js';
 import { buildDailyOverviewCards } from '../view_models/overview/daily_cards.js';
 import { buildWeeklyOverviewCards } from '../view_models/overview/weekly_cards.js';
 import { buildMonthlyOverviewCards } from '../view_models/overview/monthly_cards.js';
+import { buildOverviewRoleContribution } from '../view_models/overview/role_contribution.js';
 import { buildProductTable } from '../view_models/products/product_table.js';
 import { buildProductDetailHeader } from '../view_models/products/product_detail.js';
 import { buildTransitionSummaryView } from '../view_models/products/transition_summary.js';
 import { buildReturnLoopSummaryView } from '../view_models/products/return_loop_summary.js';
 import { buildRevenueInflowContext } from '../view_models/products/revenue_inflow_context.js';
 import { buildRoleStructureChart } from '../view_models/structures/role_structure.js';
+import { buildBrandRoleStructure } from '../view_models/structures/brand_role_structure.js';
+import { buildBrandRoleWindowComparison } from '../view_models/structures/brand_role_window_comparison.js';
 import { buildRevenueStructureChart } from '../view_models/structures/revenue_structure.js';
 import { buildPriorityChecks } from '../view_models/alerts/priority_checks.js';
 import { normalizeRows } from '../transforms/base/normalize_values.js';
@@ -123,6 +128,8 @@ export function buildMartArtifacts(stagingArtifacts) {
     const revenueStructureDaily = buildRevenueStructureDaily(productDailyMetricsBase);
     const brandOperatingStatusDailyBase = buildBrandOperatingStatusDaily(productDailyMetricsBase, productRoleStateDaily, revenueStructureDaily);
     const brandOperatingStatusDaily = enrichBrandRevenueWindows(brandOperatingStatusDailyBase, stagingArtifacts.stg_brand_window_metrics ?? []);
+    const roleRevenueDaily = buildRoleRevenueDaily(productDailyMetricsBase, productRoleStateDaily);
+    const roleProductMembershipWindow = buildRoleProductMembershipWindow(productDailyMetrics, productRoleStateDaily);
     const productTransitionSummary = buildProductTransitionSummary(
         stagingArtifacts.stg_pgm_transition_edge,
         stagingArtifacts.stg_products,
@@ -140,6 +147,8 @@ export function buildMartArtifacts(stagingArtifacts) {
         product_role_state_daily: productRoleStateDaily,
         revenue_structure_daily: revenueStructureDaily,
         brand_operating_status_daily: brandOperatingStatusDaily,
+        role_revenue_daily: roleRevenueDaily,
+        role_product_membership_window: roleProductMembershipWindow,
         product_transition_summary: productTransitionSummary,
         product_return_loop_summary: productReturnLoopSummary
     };
@@ -157,14 +166,27 @@ export function buildViewModelArtifacts(martArtifacts, stagingArtifacts = {}) {
     );
     const transitionSummary = buildTransitionSummaryView(martArtifacts.product_transition_summary, stagingArtifacts.stg_products ?? []);
     const returnLoopSummary = buildReturnLoopSummaryView(martArtifacts.product_return_loop_summary, stagingArtifacts.stg_products ?? []);
+    const overviewRoleContribution = buildOverviewRoleContribution(
+        martArtifacts.role_revenue_daily ?? [],
+        martArtifacts.role_product_membership_window ?? []
+    );
+    const brandRoleStructure = buildBrandRoleStructure(
+        martArtifacts.product_daily_metrics,
+        martArtifacts.product_role_state_daily,
+        martArtifacts.revenue_structure_daily
+    );
+    const brandRoleWindowComparison = buildBrandRoleWindowComparison(martArtifacts.role_product_membership_window ?? []);
 
     return {
         overview_daily_cards: buildDailyOverviewCards(martArtifacts.brand_operating_status_daily),
         overview_weekly_cards: buildWeeklyOverviewCards(martArtifacts.brand_operating_status_daily, windowSnapshot),
         overview_monthly_cards: buildMonthlyOverviewCards(martArtifacts.brand_operating_status_daily, windowSnapshot),
+        overview_role_contribution: overviewRoleContribution,
         product_table: productTable,
         product_detail_header: buildProductDetailHeader(productTable),
         role_structure_chart: buildRoleStructureChart(martArtifacts.product_daily_metrics, martArtifacts.product_role_state_daily),
+        brand_role_structure: brandRoleStructure,
+        brand_role_window_comparison: brandRoleWindowComparison,
         revenue_structure_chart: buildRevenueStructureChart(productTable),
         priority_checks: buildPriorityChecks(
             martArtifacts.brand_operating_status_daily,

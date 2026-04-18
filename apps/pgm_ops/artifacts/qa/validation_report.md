@@ -1,8 +1,8 @@
 # pgm_ops 검증 리포트
 
 ## 요약
-- pass: 126
-- warn: 19
+- pass: 147
+- warn: 23
 - fail: 0
 
 ## 커버리지
@@ -91,6 +91,16 @@
 - [pass] brand_operating_status_daily / null_check: Required columns are populated.
 - [pass] brand_operating_status_daily / freshness_check: Latest date=2026-04-17, age=1d
 - [pass] brand_operating_status_daily / duplication_check: No duplicate presentation rows detected.
+- [pass] role_revenue_daily / schema_check: Required columns present.
+- [pass] role_revenue_daily / grain_check: Primary grain is unique.
+- [pass] role_revenue_daily / null_check: Required columns are populated.
+- [pass] role_revenue_daily / freshness_check: Latest date=2026-04-17, age=1d
+- [pass] role_revenue_daily / duplication_check: No duplicate presentation rows detected.
+- [pass] role_product_membership_window / schema_check: Required columns present.
+- [pass] role_product_membership_window / grain_check: Primary grain is unique.
+- [pass] role_product_membership_window / null_check: Required columns are populated.
+- [warn] role_product_membership_window / freshness_check: No date field available for freshness evaluation.
+- [pass] role_product_membership_window / duplication_check: No duplicate presentation rows detected.
 - [pass] product_transition_summary / schema_check: Required columns present.
 - [pass] product_transition_summary / grain_check: Primary grain is unique.
 - [pass] product_transition_summary / null_check: Required columns are populated.
@@ -116,6 +126,11 @@
 - [pass] overview_monthly_cards / null_check: Required columns are populated.
 - [warn] overview_monthly_cards / freshness_check: No date field available for freshness evaluation.
 - [pass] overview_monthly_cards / duplication_check: No duplicate presentation rows detected.
+- [pass] overview_role_contribution / schema_check: Required columns present.
+- [pass] overview_role_contribution / grain_check: Primary grain is unique.
+- [pass] overview_role_contribution / null_check: Required columns are populated.
+- [warn] overview_role_contribution / freshness_check: No date field available for freshness evaluation.
+- [pass] overview_role_contribution / duplication_check: No duplicate presentation rows detected.
 - [pass] product_table / schema_check: Required columns present.
 - [pass] product_table / grain_check: Primary grain is unique.
 - [warn] product_table / null_check: Nulls in required columns: top_transition_target_name:12, top_transition_rate:12, qualified_return_rate:11, return_loop_rate:11, simple_repeat_rate:11
@@ -131,6 +146,16 @@
 - [pass] role_structure_chart / null_check: Required columns are populated.
 - [warn] role_structure_chart / freshness_check: No date field available for freshness evaluation.
 - [pass] role_structure_chart / duplication_check: No duplicate presentation rows detected.
+- [pass] brand_role_structure / schema_check: Required columns present.
+- [pass] brand_role_structure / grain_check: Primary grain is unique.
+- [pass] brand_role_structure / null_check: Required columns are populated.
+- [warn] brand_role_structure / freshness_check: No date field available for freshness evaluation.
+- [pass] brand_role_structure / duplication_check: No duplicate presentation rows detected.
+- [pass] brand_role_window_comparison / schema_check: Required columns present.
+- [pass] brand_role_window_comparison / grain_check: Primary grain is unique.
+- [pass] brand_role_window_comparison / null_check: Required columns are populated.
+- [warn] brand_role_window_comparison / freshness_check: No date field available for freshness evaluation.
+- [pass] brand_role_window_comparison / duplication_check: No duplicate presentation rows detected.
 - [pass] revenue_structure_chart / schema_check: Required columns present.
 - [pass] revenue_structure_chart / grain_check: Primary grain is unique.
 - [pass] revenue_structure_chart / null_check: Required columns are populated.

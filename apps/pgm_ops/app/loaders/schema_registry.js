@@ -98,6 +98,14 @@ export const SCHEMA_REGISTRY = {
         brand_operating_status_daily: defineSchema(MART_FILES.brand_operating_status_daily, ['date'], ['date', 'brand_revenue', 'brand_order_count', 'active_product_count', 'pgm_observed_product_count', 'top_product_revenue_share', 'dominant_role_state_in_revenue', 'status_summary_label'], {
             primaryKey: ['date']
         }),
+        role_revenue_daily: defineSchema(MART_FILES.role_revenue_daily, ['date', 'role_state_primary'], ['date', 'role_state_primary', 'role_label', 'revenue', 'product_count', 'revenue_share_in_brand_day', 'revenue_rank_in_brand_day'], {
+            primaryKey: ['date', 'role_state_primary'],
+            nullable: ['role_state_primary']
+        }),
+        role_product_membership_window: defineSchema(MART_FILES.role_product_membership_window, ['as_of_date', 'window_days', 'role_state_primary', 'product_id'], ['as_of_date', 'window_days', 'role_state_primary', 'role_label', 'product_id', 'product_name', 'window_revenue', 'share_in_role', 'share_in_brand_window', 'role_rank'], {
+            primaryKey: ['as_of_date', 'window_days', 'role_state_primary', 'product_id'],
+            nullable: ['role_state_primary']
+        }),
         product_transition_summary: defineSchema(MART_FILES.product_transition_summary, ['date', 'product_id', 'transition_rank'], ['date', 'product_id', 'product_name', 'target_product_id', 'target_product_name', 'transition_rank', 'transition_customer_cnt', 'source_cohort_customer_cnt', 'transition_rate', 'avg_days_to_transition'], {
             primaryKey: ['date', 'product_id', 'transition_rank']
         }),
@@ -118,6 +126,10 @@ export const SCHEMA_REGISTRY = {
             primaryKey: ['period', 'card_key'],
             nullable: ['delta']
         }),
+        overview_role_contribution: defineSchema(VIEW_MODEL_FILES.overview_role_contribution, ['period', 'role_state_primary'], ['period', 'role_state_primary', 'role_label', 'role_revenue', 'role_revenue_share', 'role_rank', 'as_of_date', 'support_window_days'], {
+            primaryKey: ['period', 'role_state_primary'],
+            nullable: ['role_state_primary']
+        }),
         product_table: defineSchema(VIEW_MODEL_FILES.product_table, ['product_id'], ['product_id', 'product_name', 'profile_role_primary', 'role_state_primary', 'pgm_observed_flag', 'revenue', 'revenue_share_in_brand_day', 'revenue_rank_in_brand_day', 'revenue_7d', 'revenue_30d', 'revenue_90d', 'top_transition_target_name', 'top_transition_rate', 'qualified_return_rate', 'return_loop_rate', 'simple_repeat_rate', 'image_url', 'detail_url'], {
             primaryKey: ['product_id']
         }),
@@ -126,6 +138,14 @@ export const SCHEMA_REGISTRY = {
         }),
         role_structure_chart: defineSchema(VIEW_MODEL_FILES.role_structure_chart, ['role_state_primary'], ['role_state_primary', 'revenue', 'revenue_share', 'product_count'], {
             primaryKey: ['role_state_primary']
+        }),
+        brand_role_structure: defineSchema(VIEW_MODEL_FILES.brand_role_structure, ['as_of_date', 'role_state_primary', 'product_id'], ['as_of_date', 'role_state_primary', 'role_label', 'product_id', 'product_name', 'revenue', 'revenue_share_in_role', 'revenue_share_in_brand', 'role_rank'], {
+            primaryKey: ['as_of_date', 'role_state_primary', 'product_id'],
+            nullable: ['role_state_primary']
+        }),
+        brand_role_window_comparison: defineSchema(VIEW_MODEL_FILES.brand_role_window_comparison, ['as_of_date', 'window_days', 'role_state_primary', 'product_id'], ['as_of_date', 'window_days', 'role_state_primary', 'role_label', 'product_id', 'product_name', 'window_revenue', 'share_in_role', 'role_rank'], {
+            primaryKey: ['as_of_date', 'window_days', 'role_state_primary', 'product_id'],
+            nullable: ['role_state_primary']
         }),
         revenue_structure_chart: defineSchema(VIEW_MODEL_FILES.revenue_structure_chart, ['product_id'], ['product_id', 'product_name', 'revenue', 'revenue_share_in_brand_day', 'role_state_primary'], {
             primaryKey: ['product_id']

@@ -9,6 +9,8 @@ function cleanDisplayText(value) {
         .replace(/same-date role snapshot/gi, '당일 기준')
         .replace(/same-date role state/gi, '당일 상태')
         .replace(/role-state/gi, '상태')
+        .replace(/\bproduct\b/gi, '상품')
+        .replace(/\bbrand\b/gi, '브랜드')
         .replace(/runtime mode/gi, '상태')
         .replace(/artifact-backed/gi, '실데이터 연결')
         .replace(/sample fallback/gi, '예시 데이터')
@@ -41,13 +43,13 @@ function renderPrioritySupport(transitionRows, returnLoopRows) {
         <section class="ops-panel ops-section">
             <div class="ops-section-head">
                 <div>
-                    <h3>보조 근거</h3>
-                    <p>선택한 우선 점검 항목을 이동 신호와 복귀 흐름으로 다시 확인합니다.</p>
+                    <h3>함께 볼 보조 신호</h3>
+                    <p>선택한 상품이나 점검 항목을 볼 때 같이 확인하면 좋은 이동·복귀 흐름입니다.</p>
                 </div>
             </div>
             <div class="ops-support-grid">
                 <div class="ops-support-card">
-                    <h4>이동이 많은 상품</h4>
+                    <h4>이동 신호가 큰 흐름</h4>
                     <div class="ops-support-list">
                         ${topTransitions.length ? topTransitions.map((row) => `
                             <article class="ops-support-item">
@@ -58,7 +60,7 @@ function renderPrioritySupport(transitionRows, returnLoopRows) {
                     </div>
                 </div>
                 <div class="ops-support-card">
-                    <h4>복귀가 잦은 상품</h4>
+                    <h4>복귀 신호가 큰 상품</h4>
                     <div class="ops-support-list">
                         ${topReturnLoops.length ? topReturnLoops.map((row) => `
                             <article class="ops-support-item">
@@ -79,12 +81,12 @@ export function renderPriorityPage(rows, transitionRows = [], returnLoopRows = [
             <section class="ops-panel ops-section">
                 <div class="ops-section-head">
                     <div>
-                        <h3>우선 점검 대상</h3>
-                        <p>지금은 앞에서 볼 항목이 없습니다.</p>
+                        <h3>함께 볼 점검 포인트</h3>
+                        <p>지금은 따로 덧붙여 볼 항목이 없습니다.</p>
                     </div>
                 </div>
                 <div class="ops-empty">
-                    <strong>표시할 우선 점검 항목이 없습니다.</strong>
+                    <strong>표시할 점검 포인트가 없습니다.</strong>
                 </div>
             </section>
         `
@@ -92,8 +94,8 @@ export function renderPriorityPage(rows, transitionRows = [], returnLoopRows = [
             <section class="ops-panel ops-section">
                 <div class="ops-section-head">
                     <div>
-                        <h3>우선 점검 대상</h3>
-                        <p>매출 구조와 역할 신호를 함께 보고 먼저 확인할 항목을 좁힌 목록입니다.</p>
+                        <h3>함께 볼 점검 포인트</h3>
+                        <p>선택한 상품과 구조 변화를 읽을 때 같이 확인하면 좋은 보조 판단 항목입니다.</p>
                     </div>
                 </div>
                 <div class="ops-priority-list">
@@ -102,14 +104,14 @@ export function renderPriorityPage(rows, transitionRows = [], returnLoopRows = [
                             <div class="ops-priority-head">
                                 <div>
                                     <strong class="ops-priority-title">${cleanDisplayText(row.label)}</strong>
-                                    <p class="ops-priority-meta">${cleanDisplayText(`${row.priority.toUpperCase()} · ${row.entity_type} · ${row.entity_id}`)}</p>
+                                    <p class="ops-priority-meta">${cleanDisplayText(`우선도 ${row.priority} · ${row.entity_type} · ${row.entity_id}`)}</p>
                                 </div>
-                                <span class="ops-pill">${cleanDisplayText(row.priority)}</span>
+                                <span class="ops-pill">${cleanDisplayText(`우선도 ${row.priority}`)}</span>
                             </div>
                             <p class="ops-priority-reason">${cleanDisplayText(row.reason)}</p>
-                            <p class="ops-priority-evidence"><strong>확인 포인트:</strong> ${cleanDisplayText(row.suggested_check)}</p>
-                            <p class="ops-priority-evidence"><strong>근거:</strong> ${cleanDisplayText(row.evidence)}</p>
-                            ${row.rule_source ? `<p class="ops-priority-evidence"><strong>규칙 출처:</strong> ${cleanDisplayText(row.rule_source)}</p>` : ''}
+                            <p class="ops-priority-evidence"><strong>먼저 볼 내용:</strong> ${cleanDisplayText(row.suggested_check)}</p>
+                            <p class="ops-priority-evidence"><strong>이렇게 보입니다:</strong> ${cleanDisplayText(row.evidence)}</p>
+                            ${row.rule_source ? `<p class="ops-priority-evidence"><strong>판단 기준:</strong> ${cleanDisplayText(row.rule_source)}</p>` : ''}
                         </article>
                     `).join('')}
                 </div>

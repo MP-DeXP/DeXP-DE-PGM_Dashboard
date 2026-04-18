@@ -79,6 +79,16 @@ brand_operating_status_daily,grain_check,pass,Primary grain is unique.
 brand_operating_status_daily,null_check,pass,Required columns are populated.
 brand_operating_status_daily,freshness_check,pass,"Latest date=2026-04-17, age=1d"
 brand_operating_status_daily,duplication_check,pass,No duplicate presentation rows detected.
+role_revenue_daily,schema_check,pass,Required columns present.
+role_revenue_daily,grain_check,pass,Primary grain is unique.
+role_revenue_daily,null_check,pass,Required columns are populated.
+role_revenue_daily,freshness_check,pass,"Latest date=2026-04-17, age=1d"
+role_revenue_daily,duplication_check,pass,No duplicate presentation rows detected.
+role_product_membership_window,schema_check,pass,Required columns present.
+role_product_membership_window,grain_check,pass,Primary grain is unique.
+role_product_membership_window,null_check,pass,Required columns are populated.
+role_product_membership_window,freshness_check,warn,No date field available for freshness evaluation.
+role_product_membership_window,duplication_check,pass,No duplicate presentation rows detected.
 product_transition_summary,schema_check,pass,Required columns present.
 product_transition_summary,grain_check,pass,Primary grain is unique.
 product_transition_summary,null_check,pass,Required columns are populated.
@@ -104,6 +114,11 @@ overview_monthly_cards,grain_check,pass,Primary grain is unique.
 overview_monthly_cards,null_check,pass,Required columns are populated.
 overview_monthly_cards,freshness_check,warn,No date field available for freshness evaluation.
 overview_monthly_cards,duplication_check,pass,No duplicate presentation rows detected.
+overview_role_contribution,schema_check,pass,Required columns present.
+overview_role_contribution,grain_check,pass,Primary grain is unique.
+overview_role_contribution,null_check,pass,Required columns are populated.
+overview_role_contribution,freshness_check,warn,No date field available for freshness evaluation.
+overview_role_contribution,duplication_check,pass,No duplicate presentation rows detected.
 product_table,schema_check,pass,Required columns present.
 product_table,grain_check,pass,Primary grain is unique.
 product_table,null_check,warn,"Nulls in required columns: top_transition_target_name:12, top_transition_rate:12, qualified_return_rate:11, return_loop_rate:11, simple_repeat_rate:11"
@@ -119,6 +134,16 @@ role_structure_chart,grain_check,pass,Primary grain is unique.
 role_structure_chart,null_check,pass,Required columns are populated.
 role_structure_chart,freshness_check,warn,No date field available for freshness evaluation.
 role_structure_chart,duplication_check,pass,No duplicate presentation rows detected.
+brand_role_structure,schema_check,pass,Required columns present.
+brand_role_structure,grain_check,pass,Primary grain is unique.
+brand_role_structure,null_check,pass,Required columns are populated.
+brand_role_structure,freshness_check,warn,No date field available for freshness evaluation.
+brand_role_structure,duplication_check,pass,No duplicate presentation rows detected.
+brand_role_window_comparison,schema_check,pass,Required columns present.
+brand_role_window_comparison,grain_check,pass,Primary grain is unique.
+brand_role_window_comparison,null_check,pass,Required columns are populated.
+brand_role_window_comparison,freshness_check,warn,No date field available for freshness evaluation.
+brand_role_window_comparison,duplication_check,pass,No duplicate presentation rows detected.
 revenue_structure_chart,schema_check,pass,Required columns present.
 revenue_structure_chart,grain_check,pass,Primary grain is unique.
 revenue_structure_chart,null_check,pass,Required columns are populated.

@@ -24,7 +24,7 @@
 | 애디티브 구조 | 기존 PGM 코어를 건드리지 않고 상태판을 덧붙이는 구조 | `raw -> staging -> mart -> view_model -> qa -> UI` 레이어 유지 | matched | 기존 앱 바깥으로 격리되어 있음 |
 | UI 읽기 경로 | UI는 `view_model`만 읽고 중간 레이어는 직접 읽지 않음 | 브라우저 기본 경로가 `/api/pgm-ops/view-model/*.csv`이며 UI는 view_model만 소비 | matched | static 직접 읽기 대신 서비스 기본값으로 전환 |
 | Daily / Weekly / Monthly 상태판 | 일/주/월 카드 상태판 존재 | `overview_daily_cards`, `overview_weekly_cards`, `overview_monthly_cards` 생성 및 렌더 | matched | 화면과 CSV 둘 다 존재 |
-| 7 / 30 / 90 윈도우 | 전일 비교와 7/30/90 window 반영 | `revenue_windows.js`와 overview card builder에 rolling window 계산은 존재하지만 현재 snapshot raw 범위가 latest-day 중심이라 weekly/monthly 값이 0으로 남음 | partial | 로직은 맞지만 현재 적재 범위가 좁음 |
+| 7 / 30 / 90 윈도우 | 전일 비교와 7/30/90 window 반영 | `revenue_windows.js`와 overview card builder에 rolling window 계산은 존재하고, `overview_role_contribution`, `brand_role_window_comparison`까지 생성됨. 다만 역할 source인 `gold_pgm_product_demand_gravity`/`gold_pgm_scored` tenant 데이터는 현재 `2026-04-05`~`2026-04-17` 12~13일 범위만 확인됨 | partial | 매출 window는 채워지지만 30/90일 역할 구성은 완전한 same-date history가 아니라 부분 관측 + fallback 성격이 남음 |
 | role profile / state 분리 | product-grain profile과 same-date state를 분리 | `product_role_profile`, `product_role_state_daily`, `PGM 미관측` UI 라벨 유지 | matched | latest fallback 금지 유지 |
 | Revenue Structure 결합 | 역할 구조와 매출 구조를 함께 읽는 운영 관점 | `revenue_structure_daily`, `revenue_structure_chart`, `product_table`가 연결됨 | matched | overview / products / priority에 공통 근거로 사용 |
 | 운영 우선점검 대상과 이유 | 우선 점검 대상, 이유, suggested check를 제공 | `priority_checks.csv`와 priority 화면에 이유, evidence, rule source 노출 | matched | transition / return 근거도 함께 연결됨 |
@@ -40,7 +40,9 @@
 
 - 실제 artifact에는 더 이상 fixture 상품명(`Hydra Serum` 등)이 아니라 Rosetta 기반 실상품명이 들어갑니다.
 - 앱 기본 로딩 경로는 `/api/pgm-ops`로 전환되었고, `load-status.json`으로 최신 snapshot과 QA 상태를 함께 확인할 수 있습니다.
-- 7/30/90 window 계산 로직은 유지되지만, 현재 적재된 Rosetta snapshot이 latest-day 중심이라 weekly / monthly 카드 값은 아직 충분히 차지 않습니다.
+- 7/30/90 window 계산 로직은 유지되며 화면도 해당 블록을 렌더합니다.
+- 다만 Rosetta 확인 결과 `silver_fact_product`는 장기 이력이 충분하지만, 역할 source인 `gold_pgm_product_demand_gravity`는 `2026-04-06`~`2026-04-17` 12일, `gold_pgm_scored`는 `2026-04-05`~`2026-04-17` 13일 범위만 존재합니다.
+- 따라서 `7일 역할 구성 변화`는 실관측 기반으로 볼 수 있지만, `30일/90일 역할 구성 변화`는 완전한 historical role attribution이 아니라 현재 가용한 역할 관측 범위와 window metric을 함께 쓰는 partial 구현으로 봐야 합니다.
 - `transition / return-loop / UTM`은 PRD의 보조 evidence 축으로는 반영되었지만, full drill-down 제품 경험으로 확장된 것은 아닙니다.
 - Rosetta 경계는 브라우저 런타임이 아니라 동기화 단계에만 두었습니다. 이 점은 이번 구현 방향과 일치하지만, 재현 가능한 동기화 자동화는 후속 과제로 남아 있습니다.
 
