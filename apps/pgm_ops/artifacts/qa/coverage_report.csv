@@ -1,9 +1,21 @@
-metric_name,metric_value,message
-product_master_fallback_usage_rate,0,최근 확정일 상품명 fallback 사용률
-pgm_observed_coverage,0.7,최근 확정일 동일 일자 PGM 관측 커버리지
-role_state_blank_rate,0.3,최근 확정일 관측 상태 공백 비율; 최신 역할 보정 미적용
-role_history_mode,same_date_only,현재 파이프라인이 role state history를 해석하는 모드
-raw_product_daily_lookback_coverage,0.008333333333333333,요청 lookback 대비 product_daily 날짜 커버리지
-raw_pgm_scored_lookback_coverage,0.008333333333333333,요청 lookback 대비 pgm_scored 날짜 커버리지
-synthetic_raw_artifact_count,0,원본 파일 부재/불일치로 synthetic 생성된 raw artifact 수
-raw_extract_warning_count,0,run_extract/raw snapshot 해석 단계에서 누적된 warning 수
+metric_name,metric_value,message,metric_group,metric_status
+product_master_fallback_usage_rate,0,최근 확정일 상품명 fallback 사용률,coverage_shortage,pass
+pgm_observed_coverage,0.7,최근 확정일 동일 일자 PGM 관측 커버리지,coverage_shortage,warn
+role_state_blank_rate,0.3,최근 확정일 관측 상태 공백 비율; 최신 역할 보정 미적용,coverage_shortage,warn
+weekly_role_evidence_status,unavailable,최근 7일 역할 근거 상태: 역할 비교 불가,coverage_shortage,fail
+weekly_role_compare_enabled,false,최근 7일 역할 근거가 부족해 역할 비교 rows를 숨깁니다.,coverage_shortage,fail
+weekly_role_truth_mismatch_flag,true,"최근 7일 총매출 truth는 brand_window_snapshot 기준 21632800/34582300이고, 역할 근거 합계는 2714300/0라 현재 gap 18918500, 비교 gap 34582300가 있습니다.",truth_mismatch,fail
+monthly_role_evidence_status,unavailable,최근 30일 역할 근거 상태: 역할 비교 불가,coverage_shortage,fail
+monthly_role_compare_enabled,false,최근 30일 역할 근거가 부족해 역할 비교 rows를 숨깁니다.,coverage_shortage,fail
+monthly_role_truth_mismatch_flag,true,"최근 30일 총매출 truth는 brand_window_snapshot 기준 158531220/174996100이고, 역할 근거 합계는 2714300/0라 현재 gap 155816920, 비교 gap 174996100가 있습니다.",truth_mismatch,fail
+role_history_mode,same_date_only,현재 파이프라인이 role state history를 해석하는 모드,context,info
+raw_product_daily_lookback_coverage,0.008333333333333333,요청 lookback 대비 product_daily 날짜 커버리지,coverage_shortage,warn
+raw_pgm_scored_lookback_coverage,0.008333333333333333,요청 lookback 대비 pgm_scored 날짜 커버리지,coverage_shortage,warn
+raw_pgm_scored_coverage_gap_days,119,요청 lookback 대비 pgm_scored 날짜 부족 일수,coverage_shortage,warn
+raw_pgm_truth_mismatch_risk_flag,false,product_daily와 pgm_scored의 날짜 범위가 맞아 role truth mismatch 위험이 낮습니다.,truth_mismatch,pass
+brand_window_vs_product_daily_gap_7d,18918500,"brand_window_metrics 7일 합계와 product_daily 7일 합계 차이입니다. brand_window=21632800, product_daily=2714300",truth_mismatch,warn
+brand_window_vs_product_daily_gap_30d,155816920,"brand_window_metrics 30일 합계와 product_daily 30일 합계 차이입니다. brand_window=158531220, product_daily=2714300",truth_mismatch,warn
+brand_window_anchor_match_flag,true,brand_window_metrics as_of_date가 product_daily 최신일과 맞습니다.,truth_mismatch,pass
+pgm_scored_vs_product_daily_anchor_match_flag,true,pgm_scored 최신일이 product_daily 최신일과 맞습니다.,truth_mismatch,pass
+synthetic_raw_artifact_count,0,원본 파일 부재/불일치로 synthetic 생성된 raw artifact 수,coverage_shortage,pass
+raw_extract_warning_count,0,run_extract/raw snapshot 해석 단계에서 누적된 warning 수,context,pass

@@ -26,6 +26,11 @@ export function buildOverviewRoleDelta(productDailyMetrics, productRoleStateDail
             role_history_warning_title: roleRow.role_history_warning_title,
             role_history_warning_copy: roleRow.role_history_warning_copy,
             role_history_basis_copy: roleRow.role_history_basis_copy,
-            coverage_summary: roleRow.coverage_summary
+            coverage_summary: roleRow.coverage_summary,
+            evidence_status: roleRow.evidence_status,
+            evidence_status_label: roleRow.evidence_status_label,
+            can_compare_roles: roleRow.can_compare_roles,
+            truth_mismatch_flag: roleRow.truth_mismatch_flag,
+            truth_mismatch_copy: roleRow.truth_mismatch_copy
         })));
 }

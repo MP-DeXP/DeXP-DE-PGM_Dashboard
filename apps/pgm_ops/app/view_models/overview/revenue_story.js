@@ -1,5 +1,9 @@
 import { getLatestDate, shiftDate } from '../../transforms/base/date_windows.js';
-import { buildOverviewRoleAnalytics } from './role_decomposition.js';
+import {
+    buildOverviewRoleAnalytics,
+    ROLE_EVIDENCE_STATUS_LIMITED,
+    ROLE_EVIDENCE_STATUS_UNAVAILABLE
+} from './role_decomposition.js';
 import { buildRoleHistoryMeta, isSyntheticRoleHistoryMode } from './role_history_mode.js';
 
 function pickLeadRole(roleRows) {
@@ -26,6 +30,25 @@ function buildDeltaRate(currentValue, previousValue) {
     }
 
     return (Number(currentValue ?? 0) - previous) / previous;
+}
+
+function hasTruthMismatch(observedValue, truthValue) {
+    return Math.abs(Number(observedValue ?? 0) - Number(truthValue ?? 0)) > 0.000001;
+}
+
+function buildTruthMismatchCopy(periodRow, revenueTruth) {
+    const observedCurrentRevenue = Number(periodRow.current_revenue ?? 0);
+    const observedPreviousRevenue = Number(periodRow.previous_revenue ?? 0);
+    const truthCurrentRevenue = Number(revenueTruth.current_revenue ?? 0);
+    const truthPreviousRevenue = Number(revenueTruth.previous_revenue ?? 0);
+    const currentGap = truthCurrentRevenue - observedCurrentRevenue;
+    const previousGap = truthPreviousRevenue - observedPreviousRevenue;
+
+    if (!hasTruthMismatch(observedCurrentRevenue, truthCurrentRevenue) && !hasTruthMismatch(observedPreviousRevenue, truthPreviousRevenue)) {
+        return periodRow.truth_mismatch_copy;
+    }
+
+    return `${periodRow.period_label} 총매출 truth는 ${revenueTruth.truth_source} 기준 ${truthCurrentRevenue}/${truthPreviousRevenue}이고, 역할 근거 합계는 ${observedCurrentRevenue}/${observedPreviousRevenue}라 현재 gap ${currentGap}, 비교 gap ${previousGap}가 있습니다.`;
 }
 
 function sortRowsByDate(rows) {
@@ -127,11 +150,24 @@ function buildCoverageFields(periodRow) {
         role_history_warning_level: roleHistoryMeta.role_history_warning_level,
         role_history_warning_title: roleHistoryMeta.role_history_warning_title,
         role_history_warning_copy: periodRow.role_history_warning_copy ?? roleHistoryMeta.role_history_warning_copy,
-        role_history_basis_copy: periodRow.role_history_basis_copy ?? roleHistoryMeta.role_history_basis_copy
+        role_history_basis_copy: periodRow.role_history_basis_copy ?? roleHistoryMeta.role_history_basis_copy,
+        evidence_status: periodRow.evidence_status,
+        evidence_status_label: periodRow.evidence_status_label,
+        can_compare_roles: periodRow.can_compare_roles,
+        truth_mismatch_flag: periodRow.truth_mismatch_flag,
+        truth_mismatch_copy: periodRow.truth_mismatch_copy
     };
 }
 
 function buildHeadline(periodRow, leadRole) {
+    if (periodRow.evidence_status === ROLE_EVIDENCE_STATUS_UNAVAILABLE) {
+        return `${periodRow.period_label} 브랜드 실매출은 유지했지만 역할 근거가 부족해 역할 비교를 중단했습니다.`;
+    }
+
+    if (periodRow.evidence_status === ROLE_EVIDENCE_STATUS_LIMITED) {
+        return `${periodRow.period_label} 브랜드 실매출은 전체 기준이지만 역할 근거는 일부 날짜만 있어 truth mismatch를 함께 봐야 합니다.`;
+    }
+
     if (isSyntheticRoleHistoryMode(periodRow.role_history_mode)) {
         if (!leadRole) {
             return `${periodRow.period_label} 실매출은 집계했지만 역할 분해는 latest-role assumption 기준 참고치만 제공합니다.`;
@@ -155,7 +191,19 @@ function buildHeadline(periodRow, leadRole) {
     return `${periodRow.period_label} 매출 변화와 함께 가장 크게 관측된 역할은 ${leadRole.role_label}입니다.`;
 }
 
-function buildNote(periodRow, swingRole, coverageFields) {
+function buildNote(periodRow, swingRole, coverageFields, truthMismatchCopy) {
+    if (periodRow.evidence_status === ROLE_EVIDENCE_STATUS_UNAVAILABLE) {
+        return `${truthMismatchCopy} ${coverageFields.role_history_basis_copy}`;
+    }
+
+    if (periodRow.evidence_status === ROLE_EVIDENCE_STATUS_LIMITED) {
+        if (!swingRole) {
+            return `${truthMismatchCopy} ${coverageFields.role_history_warning_copy}`;
+        }
+
+        return `${truthMismatchCopy} 현재 관측된 역할 근거 안에서는 ${swingRole.role_label} 변화가 가장 큽니다.`;
+    }
+
     if (isSyntheticRoleHistoryMode(periodRow.role_history_mode)) {
         return `${coverageFields.role_history_warning_copy} 기간 총매출과 역할 변화 해석은 같은 의미가 아니며 실제 역할 이동 이력으로 단정하면 안 됩니다.`;
     }
@@ -193,6 +241,11 @@ export function buildOverviewRevenueStory(productDailyMetrics, productRoleStateD
         const swingRole = pickSwingRole(periodRow.roles);
         const revenueTruth = getSnapshotTruth(periodRow.period, brandRows, windowSnapshot, periodRow);
         const coverageFields = buildCoverageFields(periodRow);
+        const truthMismatchFlag = hasTruthMismatch(periodRow.current_revenue, revenueTruth.current_revenue)
+            || hasTruthMismatch(periodRow.previous_revenue, revenueTruth.previous_revenue);
+        const truthMismatchCopy = truthMismatchFlag
+            ? buildTruthMismatchCopy(periodRow, revenueTruth)
+            : coverageFields.truth_mismatch_copy;
 
         return {
             period: periodRow.period,
@@ -223,9 +276,14 @@ export function buildOverviewRevenueStory(productDailyMetrics, productRoleStateD
             role_history_warning_copy: coverageFields.role_history_warning_copy,
             role_history_basis_copy: coverageFields.role_history_basis_copy,
             history_warning_copy: coverageFields.history_warning_copy,
+            evidence_status: coverageFields.evidence_status,
+            evidence_status_label: coverageFields.evidence_status_label,
+            can_compare_roles: coverageFields.can_compare_roles,
+            truth_mismatch_flag: truthMismatchFlag ? 'true' : coverageFields.truth_mismatch_flag,
+            truth_mismatch_copy: truthMismatchCopy,
             truth_source: revenueTruth.truth_source,
             story_headline: buildHeadline(periodRow, leadRole),
-            story_note: buildNote(periodRow, swingRole, coverageFields)
+            story_note: buildNote(periodRow, swingRole, coverageFields, truthMismatchCopy)
         };
     });
 }

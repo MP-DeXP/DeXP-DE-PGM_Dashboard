@@ -4,6 +4,10 @@ import { safeDivide } from '../../transforms/base/null_handling.js';
 import { compareRoleKeys } from '../../transforms/role/role_helpers.js';
 import { buildRoleHistoryMeta, inferRoleHistoryMode } from './role_history_mode.js';
 
+export const ROLE_EVIDENCE_STATUS_AVAILABLE = 'available';
+export const ROLE_EVIDENCE_STATUS_LIMITED = 'limited';
+export const ROLE_EVIDENCE_STATUS_UNAVAILABLE = 'unavailable';
+
 export const OVERVIEW_ROLE_PERIODS = [
     {
         period: 'daily',
@@ -83,6 +87,79 @@ function buildDeltaRate(currentValue, previousValue) {
     return (Number(currentValue ?? 0) - previous) / previous;
 }
 
+function buildObservedDateSet(windowDates, roleDates) {
+    return new Set(windowDates.filter((date) => roleDates.has(date)));
+}
+
+function buildWindowTotals(rows, currentDateSet, previousDateSet) {
+    return rows.reduce((totals, row) => {
+        const revenue = Number(row.revenue ?? 0);
+
+        if (currentDateSet.has(row.date)) {
+            totals.current += revenue;
+        } else if (previousDateSet.has(row.date)) {
+            totals.previous += revenue;
+        }
+
+        return totals;
+    }, { current: 0, previous: 0 });
+}
+
+function buildEvidenceMeta(periodConfig, currentCoveredDays, previousCoveredDays) {
+    const expectedWindowDays = Number(periodConfig.supportWindowDays ?? 0);
+    const isMultiDayPeriod = expectedWindowDays > 1;
+    let evidenceStatus = ROLE_EVIDENCE_STATUS_AVAILABLE;
+    let evidenceStatusLabel = '정상 비교 가능';
+    let canCompareRoles = 'true';
+
+    if (!currentCoveredDays && !previousCoveredDays) {
+        evidenceStatus = ROLE_EVIDENCE_STATUS_UNAVAILABLE;
+        evidenceStatusLabel = '역할 근거 없음';
+        canCompareRoles = 'false';
+    } else if (isMultiDayPeriod && (!currentCoveredDays || !previousCoveredDays)) {
+        evidenceStatus = ROLE_EVIDENCE_STATUS_UNAVAILABLE;
+        evidenceStatusLabel = '역할 비교 불가';
+        canCompareRoles = 'false';
+    } else if (isMultiDayPeriod && (currentCoveredDays < expectedWindowDays || previousCoveredDays < expectedWindowDays)) {
+        evidenceStatus = ROLE_EVIDENCE_STATUS_UNAVAILABLE;
+        evidenceStatusLabel = '기간 역할 근거 부족';
+        canCompareRoles = 'false';
+    } else if (currentCoveredDays < expectedWindowDays || previousCoveredDays < expectedWindowDays) {
+        evidenceStatus = ROLE_EVIDENCE_STATUS_LIMITED;
+        evidenceStatusLabel = '제한적 비교';
+    } else if (!currentCoveredDays || !previousCoveredDays) {
+        evidenceStatus = ROLE_EVIDENCE_STATUS_LIMITED;
+        evidenceStatusLabel = '제한적 비교';
+    }
+
+    return {
+        evidence_status: evidenceStatus,
+        evidence_status_label: evidenceStatusLabel,
+        can_compare_roles: canCompareRoles
+    };
+}
+
+function hasTruthMismatch(observedRevenue, truthRevenue) {
+    return Math.abs(Number(observedRevenue ?? 0) - Number(truthRevenue ?? 0)) > 0.000001;
+}
+
+function buildTruthMismatchCopy(periodLabel, evidenceMeta, coverageStats, truthTotals, observedTotals) {
+    const currentGap = Number(truthTotals.current ?? 0) - Number(observedTotals.current ?? 0);
+    const previousGap = Number(truthTotals.previous ?? 0) - Number(observedTotals.previous ?? 0);
+    const hasMismatch = hasTruthMismatch(observedTotals.current, truthTotals.current)
+        || hasTruthMismatch(observedTotals.previous, truthTotals.previous);
+
+    if (!hasMismatch) {
+        return `${periodLabel} 브랜드 truth와 역할 합계가 같은 기간 기준으로 맞습니다.`;
+    }
+
+    if (evidenceMeta.evidence_status === ROLE_EVIDENCE_STATUS_UNAVAILABLE) {
+        return `${periodLabel} 브랜드 truth는 전체 기간 실매출이지만 역할 근거는 현재 ${coverageStats.currentCoveredDays}/${coverageStats.expectedWindowDays}일, 비교 ${coverageStats.previousCoveredDays}/${coverageStats.expectedWindowDays}일뿐이라 역할 비교를 중단했습니다. 현재 gap ${currentGap}, 비교 gap ${previousGap}입니다.`;
+    }
+
+    return `${periodLabel} 브랜드 truth는 전체 기간 실매출이고 역할 합계는 same-date 관측일 매출만 반영해 차이가 있습니다. 현재 gap ${currentGap}, 비교 gap ${previousGap}입니다.`;
+}
+
 function finalizeProductRow(productRow, roleCurrentRevenue, rolePreviousRevenue, totalCurrentRevenue) {
     return {
         ...productRow,
@@ -94,7 +171,7 @@ function finalizeProductRow(productRow, roleCurrentRevenue, rolePreviousRevenue,
     };
 }
 
-function buildRoleRows(periodConfig, rows, roleLookup, currentDateSet, previousDateSet, asOfDate, currentCoveredDays, previousCoveredDays, roleHistoryMeta) {
+function buildRoleRows(periodConfig, rows, roleLookup, currentDateSet, previousDateSet, asOfDate, currentCoveredDays, previousCoveredDays, roleHistoryMeta, evidenceMeta, truthMismatchMeta) {
     const roleBuckets = new Map();
     let currentTotalRevenue = 0;
     let previousTotalRevenue = 0;
@@ -140,6 +217,11 @@ function buildRoleRows(periodConfig, rows, roleLookup, currentDateSet, previousD
                 role_history_warning_copy: roleHistoryMeta.role_history_warning_copy,
                 role_history_basis_copy: roleHistoryMeta.role_history_basis_copy,
                 coverage_summary: roleHistoryMeta.coverage_summary,
+                evidence_status: evidenceMeta.evidence_status,
+                evidence_status_label: evidenceMeta.evidence_status_label,
+                can_compare_roles: evidenceMeta.can_compare_roles,
+                truth_mismatch_flag: truthMismatchMeta.truth_mismatch_flag,
+                truth_mismatch_copy: truthMismatchMeta.truth_mismatch_copy,
                 products: new Map()
             });
         }
@@ -176,7 +258,12 @@ function buildRoleRows(periodConfig, rows, roleLookup, currentDateSet, previousD
                 role_history_warning_title: roleHistoryMeta.role_history_warning_title,
                 role_history_warning_copy: roleHistoryMeta.role_history_warning_copy,
                 role_history_basis_copy: roleHistoryMeta.role_history_basis_copy,
-                coverage_summary: roleHistoryMeta.coverage_summary
+                coverage_summary: roleHistoryMeta.coverage_summary,
+                evidence_status: evidenceMeta.evidence_status,
+                evidence_status_label: evidenceMeta.evidence_status_label,
+                can_compare_roles: evidenceMeta.can_compare_roles,
+                truth_mismatch_flag: truthMismatchMeta.truth_mismatch_flag,
+                truth_mismatch_copy: truthMismatchMeta.truth_mismatch_copy
             });
         }
 
@@ -225,6 +312,10 @@ function buildRoleRows(periodConfig, rows, roleLookup, currentDateSet, previousD
             };
         });
 
+    const exposedRoles = periodConfig.supportWindowDays > 1 && evidenceMeta.evidence_status === ROLE_EVIDENCE_STATUS_UNAVAILABLE
+        ? []
+        : rankedRoles;
+
     return {
         period: periodConfig.period,
         period_label: periodConfig.label,
@@ -245,7 +336,12 @@ function buildRoleRows(periodConfig, rows, roleLookup, currentDateSet, previousD
         role_history_warning_copy: roleHistoryMeta.role_history_warning_copy,
         role_history_basis_copy: roleHistoryMeta.role_history_basis_copy,
         coverage_summary: roleHistoryMeta.coverage_summary,
-        roles: rankedRoles
+        evidence_status: evidenceMeta.evidence_status,
+        evidence_status_label: evidenceMeta.evidence_status_label,
+        can_compare_roles: evidenceMeta.can_compare_roles,
+        truth_mismatch_flag: truthMismatchMeta.truth_mismatch_flag,
+        truth_mismatch_copy: truthMismatchMeta.truth_mismatch_copy,
+        roles: exposedRoles
     };
 }
 
@@ -264,10 +360,16 @@ export function buildOverviewRoleAnalytics(productDailyMetrics, productRoleState
         const previousDates = buildWindowDates(asOfDate, periodConfig.previousStartOffset, periodConfig.previousEndOffset);
         const currentDateSet = new Set(currentDates);
         const previousDateSet = new Set(previousDates);
-        const scopedRows = productDailyMetrics.filter((row) => currentDateSet.has(row.date) || previousDateSet.has(row.date));
         const scopedRoleRows = productRoleStateDaily.filter((row) => currentDateSet.has(row.date) || previousDateSet.has(row.date));
+        const currentObservedDateSet = buildObservedDateSet(currentDates, roleDates);
+        const previousObservedDateSet = buildObservedDateSet(previousDates, roleDates);
+        const scopedRows = productDailyMetrics.filter((row) => currentDateSet.has(row.date) || previousDateSet.has(row.date));
+        const observedScopedRows = productDailyMetrics.filter((row) => currentObservedDateSet.has(row.date) || previousObservedDateSet.has(row.date));
         const currentCoveredDays = currentDates.filter((date) => roleDates.has(date)).length;
         const previousCoveredDays = previousDates.filter((date) => roleDates.has(date)).length;
+        const evidenceMeta = buildEvidenceMeta(periodConfig, currentCoveredDays, previousCoveredDays);
+        const truthTotals = buildWindowTotals(scopedRows, currentDateSet, previousDateSet);
+        const observedTotals = buildWindowTotals(observedScopedRows, currentDateSet, previousDateSet);
         const roleHistoryMeta = buildRoleHistoryMeta({
             roleHistoryMode: inferRoleHistoryMode({
                 roleHistorySignals: scopedRoleRows.map((row) => row.role_history_mode ?? row.role_state_source ?? row.revenue_source ?? ''),
@@ -280,17 +382,35 @@ export function buildOverviewRoleAnalytics(productDailyMetrics, productRoleState
             expectedWindowDays: periodConfig.supportWindowDays,
             periodLabel: periodConfig.label
         });
+        const truthMismatchMeta = {
+            truth_mismatch_flag: hasTruthMismatch(observedTotals.current, truthTotals.current) || hasTruthMismatch(observedTotals.previous, truthTotals.previous)
+                ? 'true'
+                : 'false',
+            truth_mismatch_copy: buildTruthMismatchCopy(
+                periodConfig.label,
+                evidenceMeta,
+                {
+                    currentCoveredDays,
+                    previousCoveredDays,
+                    expectedWindowDays: periodConfig.supportWindowDays
+                },
+                truthTotals,
+                observedTotals
+            )
+        };
 
         return buildRoleRows(
             periodConfig,
-            scopedRows,
+            observedScopedRows,
             roleLookup,
             currentDateSet,
             previousDateSet,
             asOfDate,
             currentCoveredDays,
             previousCoveredDays,
-            roleHistoryMeta
+            roleHistoryMeta,
+            evidenceMeta,
+            truthMismatchMeta
         );
     });
 }

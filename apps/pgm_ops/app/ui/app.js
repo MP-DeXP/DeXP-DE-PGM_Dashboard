@@ -264,10 +264,22 @@ function filterProducts(rows, query) {
     return rows.filter((row) => `${row.product_name} ${row.product_id}`.toLowerCase().includes(normalized));
 }
 
+function prioritizePriorityRows(priorityRows, productRows) {
+    const productIds = new Set((productRows ?? []).map((row) => row.product_id));
+    const leadProductIndex = priorityRows.findIndex((row) => row.entity_type === 'product' && productIds.has(row.entity_id));
+
+    if (leadProductIndex <= 0) {
+        return [...priorityRows];
+    }
+
+    return [priorityRows[leadProductIndex], ...priorityRows.slice(0, leadProductIndex), ...priorityRows.slice(leadProductIndex + 1)];
+}
+
 function getInitialSelectedProductId(models) {
     const productRows = models.product_table ?? [];
     const productIds = new Set(productRows.map((row) => row.product_id));
-    const topPriorityProductId = (models.priority_checks ?? []).find((row) => row.entity_type === 'product' && productIds.has(row.entity_id))?.entity_id;
+    const topPriorityProductId = prioritizePriorityRows(models.priority_checks ?? [], productRows)
+        .find((row) => row.entity_type === 'product' && productIds.has(row.entity_id))?.entity_id;
 
     return topPriorityProductId ?? productRows[0]?.product_id ?? '';
 }
@@ -278,9 +290,12 @@ function renderTopLevelTabNav(activeTab) {
 
     return `
         <nav class="ops-view-switcher" aria-label="PGM Ops 화면 전환">
-            <div class="ops-view-switcher-copy">
-                <span class="ops-view-switcher-kicker">PGM Ops</span>
-                <strong>${activeTabMeta.label}</strong>
+            <div class="ops-view-switcher-utility">
+                <span class="ops-view-switcher-kicker">보조 전환</span>
+                <div class="ops-view-switcher-copy">
+                    <strong>${activeTabMeta.label}</strong>
+                    <small>${activeTabMeta.description}</small>
+                </div>
             </div>
             <div class="pgm-chart-tab-group" role="tablist" aria-label="PGM Ops 화면 전환">
                 ${Object.entries(TOP_LEVEL_TAB_META).map(([tabKey, tabMeta]) => `
@@ -301,6 +316,7 @@ function renderTopLevelTabNav(activeTab) {
 function renderApp(container, models, state, loadMeta) {
     const latestDate = getLatestOverviewDate(models);
     const filteredProducts = filterProducts(models.product_table ?? [], state.searchQuery);
+    const priorityRows = prioritizePriorityRows(models.priority_checks ?? [], models.product_table ?? []);
     const availablePeriods = new Set((models.overview_revenue_story ?? []).map((row) => row.period));
     const activeTab = normalizeTopLevelTab(state.activeTab);
 
@@ -328,7 +344,7 @@ function renderApp(container, models, state, loadMeta) {
                     roleDeltaRows: models.overview_role_delta ?? [],
                     roleDrilldownRows: models.overview_role_drilldown ?? [],
                     productRows: models.product_table ?? [],
-                    priorityRows: models.priority_checks ?? [],
+                    priorityRows,
                     selectedOverviewPeriod: state.selectedOverviewPeriod,
                     selectedOverviewRole: state.selectedOverviewRole,
                     latestDate,
@@ -342,7 +358,7 @@ function renderApp(container, models, state, loadMeta) {
                     transitionSummaryRows: models.transition_summary ?? [],
                     returnLoopSummaryRows: models.return_loop_summary ?? [],
                     revenueInflowRows: models.revenue_inflow_context ?? [],
-                    priorityRows: models.priority_checks ?? []
+                    priorityRows
                 })}
         </div>
     `;

@@ -138,10 +138,10 @@ export function renderProductsPage({
     priorityRows = []
 }) {
     void revenueInflowRows;
-    void priorityRows;
 
     const selectedProduct = productRows.find((row) => row.product_id === selectedProductId) ?? productRows[0];
     const selectedDetail = detailRows.find((row) => row.product_id === selectedProduct?.product_id);
+    const selectedPriority = priorityRows.find((row) => row.entity_type === 'product' && row.entity_id === selectedProduct?.product_id) ?? null;
 
     const selectedTransitionRows = transitionSummaryRows
         .filter((row) => row.product_id === selectedProduct?.product_id)
@@ -163,15 +163,35 @@ export function renderProductsPage({
         '재방문 신호 없음',
         renderReturnRow
     );
+    const workspaceLead = selectedPriority
+        ? cleanDisplayText(selectedPriority.reason || selectedPriority.label)
+        : '운영 요약에서 넘긴 SKU를 여기서 바로 분석합니다.';
 
     return `
         <section class="ops-products-stack" id="ops-products-section">
             <div class="ops-workspace-shell">
+                <div class="ops-analysis-workspace">
+                    ${renderWorkspaceContext(selectedProduct)}
+                    <div class="ops-workspace-summary card">
+                        <strong>분석 시작점</strong>
+                        <p>${escapeHtml(workspaceLead)}</p>
+                    </div>
+
+                    <div class="ops-workspace-body">
+                        ${renderProductDetail(selectedDetail, selectedProduct)}
+
+                        <div class="ops-support-stack">
+                            ${transitionPanel}
+                            ${returnPanel}
+                        </div>
+                    </div>
+                </div>
+
                 <aside class="ops-selection-panel">
                     <div class="pgm-product-table-top">
                         <div>
                             <h3>SKU 선택</h3>
-                            <p class="chart-hint">운영 요약에서 이어 볼 SKU를 고릅니다.</p>
+                            <p class="chart-hint">작업면에서 이어 볼 SKU를 빠르게 전환합니다.</p>
                         </div>
                         <div class="ops-product-head-meta">
                             <span class="ops-pill badge">${escapeHtml(`${productRows.length}개`)}</span>
@@ -189,19 +209,6 @@ export function renderProductsPage({
                     </div>
                     ${renderProductGallery(productRows, selectedProduct?.product_id)}
                 </aside>
-
-                <div class="ops-analysis-workspace">
-                    ${renderWorkspaceContext(selectedProduct)}
-
-                    <div class="ops-workspace-body">
-                        ${renderProductDetail(selectedDetail, selectedProduct)}
-
-                        <div class="ops-support-stack">
-                            ${transitionPanel}
-                            ${returnPanel}
-                        </div>
-                    </div>
-                </div>
             </div>
         </section>
     `;

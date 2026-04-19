@@ -5,7 +5,7 @@ import {
     ROLE_HISTORY_MODES,
     WINDOWS
 } from '../config/constants.js';
-import { getLatestDate, shiftDate } from '../transforms/base/date_windows.js';
+import { getLatestDate, listDateRange, shiftDate } from '../transforms/base/date_windows.js';
 
 const DATE_FIELD_BY_DATASET = {
     orders: 'order_date',
@@ -74,8 +74,69 @@ function getCoverageStatus(exists, coverageRatio) {
     return Number(coverageRatio) >= 1 ? 'full' : 'partial';
 }
 
+function getDateDiffDays(leftDate, rightDate) {
+    if (!isIsoDate(leftDate) || !isIsoDate(rightDate)) {
+        return '';
+    }
+
+    const left = new Date(`${leftDate}T00:00:00Z`);
+    const right = new Date(`${rightDate}T00:00:00Z`);
+    return Math.max(0, Math.round((left.getTime() - right.getTime()) / 86400000));
+}
+
+function countCoveredDaysInWindow(dateSet, asOfDate, windowDays, offsetDays = 0) {
+    if (!asOfDate || !windowDays) {
+        return '';
+    }
+
+    const endDate = shiftDate(asOfDate, -offsetDays);
+    const startDate = shiftDate(endDate, -(windowDays - 1));
+    return listDateRange(startDate, endDate).filter((date) => dateSet.has(date)).length;
+}
+
+function buildCoverageMetric(metricName, metricValue, message, metricGroup = 'coverage_shortage', metricStatus = 'info') {
+    return {
+        metric_name: metricName,
+        metric_value: metricValue,
+        message,
+        metric_group: metricGroup,
+        metric_status: metricStatus
+    };
+}
+
+function buildTruthMismatchRisk(artifactName, coverage, productDailyCoverage) {
+    if (artifactName !== 'pgm_scored') {
+        return {
+            truth_mismatch_risk_flag: 'false',
+            truth_mismatch_risk_status: 'none',
+            truth_mismatch_risk_copy: ''
+        };
+    }
+
+    const productDailyCoveredDays = Number(productDailyCoverage.covered_days ?? 0);
+    const pgmCoveredDays = Number(coverage.covered_days ?? 0);
+    const coverageGapDays = Math.max(0, productDailyCoveredDays - pgmCoveredDays);
+    const productDailyMaxDate = String(productDailyCoverage.max_date ?? '');
+    const pgmMaxDate = String(coverage.max_date ?? '');
+
+    if (!coverageGapDays && (!productDailyMaxDate || !pgmMaxDate || pgmMaxDate >= productDailyMaxDate)) {
+        return {
+            truth_mismatch_risk_flag: 'false',
+            truth_mismatch_risk_status: 'none',
+            truth_mismatch_risk_copy: 'product_daily와 pgm_scored의 날짜 범위가 맞아 role truth mismatch 위험이 낮습니다.'
+        };
+    }
+
+    return {
+        truth_mismatch_risk_flag: 'true',
+        truth_mismatch_risk_status: coverageGapDays > 0 ? 'high' : 'medium',
+        truth_mismatch_risk_copy: `product_daily는 ${productDailyCoveredDays}일, pgm_scored는 ${pgmCoveredDays}일만 커버해 weekly/monthly 역할 합계가 브랜드 truth와 어긋날 수 있습니다.`
+    };
+}
+
 function buildCoverageMetadata(rows, datasetKey, context) {
     const dates = getDatasetDates(rows, datasetKey);
+    const dateSet = new Set(dates);
 
     if (!dates.length) {
         return {
@@ -84,7 +145,15 @@ function buildCoverageMetadata(rows, datasetKey, context) {
             covered_days: '',
             expected_lookback_days: getExpectedLookbackDays(datasetKey, context),
             coverage_ratio: '',
-            coverage_status: getCoverageStatus(rows.length > 0, '')
+            coverage_status: getCoverageStatus(rows.length > 0, ''),
+            coverage_gap_days: '',
+            as_of_present_flag: context.asOfDate ? 'false' : '',
+            as_of_gap_days: context.asOfDate ? '' : '',
+            current_window_covered_days_7d: '',
+            previous_window_covered_days_7d: '',
+            current_window_covered_days_30d: '',
+            previous_window_covered_days_30d: '',
+            missing_date_count: ''
         };
     }
 
@@ -105,7 +174,15 @@ function buildCoverageMetadata(rows, datasetKey, context) {
         covered_days: coveredDays,
         expected_lookback_days: expectedDays,
         coverage_ratio: coverageRatio,
-        coverage_status: getCoverageStatus(rows.length > 0, coverageRatio)
+        coverage_status: getCoverageStatus(rows.length > 0, coverageRatio),
+        coverage_gap_days: expectedDays ? Math.max(0, Number(expectedDays) - coveredDays) : '',
+        as_of_present_flag: context.asOfDate ? (dateSet.has(context.asOfDate) ? 'true' : 'false') : '',
+        as_of_gap_days: context.asOfDate ? getDateDiffDays(context.asOfDate, maxDate) : '',
+        current_window_covered_days_7d: countCoveredDaysInWindow(dateSet, context.asOfDate, 7, 0),
+        previous_window_covered_days_7d: countCoveredDaysInWindow(dateSet, context.asOfDate, 7, 7),
+        current_window_covered_days_30d: countCoveredDaysInWindow(dateSet, context.asOfDate, 30, 0),
+        previous_window_covered_days_30d: countCoveredDaysInWindow(dateSet, context.asOfDate, 30, 30),
+        missing_date_count: expectedDays ? Math.max(0, Number(expectedDays) - coveredDays) : ''
     };
 }
 
@@ -319,12 +396,14 @@ export function buildRawExtractManifest(rawArtifacts, options = {}) {
     const context = options.extractContext ?? buildExtractContext(rawArtifacts, options);
     const syntheticArtifacts = context.syntheticArtifacts ?? {};
     const warningList = context.warnings ?? [];
+    const productDailyCoverage = buildCoverageMetadata(rawArtifacts.product_daily ?? [], 'product_daily', context);
 
     return Object.entries(RAW_INPUT_FILES).map(([artifactName]) => {
         const rows = rawArtifacts[artifactName] ?? [];
         const exists = rows.length > 0;
         const coverage = buildCoverageMetadata(rows, artifactName, context);
         const syntheticReason = syntheticArtifacts[artifactName] ?? '';
+        const truthMismatchRisk = buildTruthMismatchRisk(artifactName, coverage, productDailyCoverage);
         const artifactWarnings = [];
 
         if (!exists) {
@@ -348,6 +427,13 @@ export function buildRawExtractManifest(rawArtifacts, options = {}) {
             });
         }
 
+        if (truthMismatchRisk.truth_mismatch_risk_flag === 'true') {
+            artifactWarnings.push({
+                code: 'truth_mismatch_risk',
+                message: truthMismatchRisk.truth_mismatch_risk_copy
+            });
+        }
+
         if (context.mxChannelId || context.mxPlatform || context.sample) {
             artifactWarnings.push(...warningList.filter((warning) => (
                 warning.code === 'local_filter_not_applied' || warning.code === 'sample_preview_only'
@@ -367,9 +453,20 @@ export function buildRawExtractManifest(rawArtifacts, options = {}) {
             covered_days: coverage.covered_days,
             coverage_ratio: coverage.coverage_ratio,
             coverage_status: coverage.coverage_status,
+            coverage_gap_days: coverage.coverage_gap_days,
+            as_of_present_flag: coverage.as_of_present_flag,
+            as_of_gap_days: coverage.as_of_gap_days,
+            current_window_covered_days_7d: coverage.current_window_covered_days_7d,
+            previous_window_covered_days_7d: coverage.previous_window_covered_days_7d,
+            current_window_covered_days_30d: coverage.current_window_covered_days_30d,
+            previous_window_covered_days_30d: coverage.previous_window_covered_days_30d,
+            missing_date_count: coverage.missing_date_count,
             synthetic: syntheticReason ? 'true' : 'false',
             synthetic_reason: syntheticReason,
             role_history_mode: context.roleHistoryMode,
+            truth_mismatch_risk_flag: truthMismatchRisk.truth_mismatch_risk_flag,
+            truth_mismatch_risk_status: truthMismatchRisk.truth_mismatch_risk_status,
+            truth_mismatch_risk_copy: truthMismatchRisk.truth_mismatch_risk_copy,
             requested_mx_channel_id: context.mxChannelId,
             requested_mx_platform: context.mxPlatform,
             sample: context.sample === true ? 'true' : (context.sample || ''),
@@ -385,33 +482,116 @@ export function summarizeExtractCoverage(rawArtifacts, options = {}) {
     const manifest = options.manifest ?? buildRawExtractManifest(rawArtifacts, { extractContext: context });
     const productDailyCoverage = manifest.find((row) => row.artifact_name === 'product_daily') ?? {};
     const pgmCoverage = manifest.find((row) => row.artifact_name === 'pgm_scored') ?? {};
+    const brandWindowCoverage = manifest.find((row) => row.artifact_name === 'brand_window_metrics') ?? {};
     const syntheticCount = manifest.filter((row) => row.synthetic === 'true').length;
+    const productDailyCurrent7d = Number(productDailyCoverage.current_window_covered_days_7d ?? 0);
+    const productDailyCurrent30d = Number(productDailyCoverage.current_window_covered_days_30d ?? 0);
+    const brandWindowRows = rawArtifacts.brand_window_metrics ?? [];
+    const anchorBrandWindowRow = brandWindowRows.find((row) => row.as_of_date === context.asOfDate)
+        ?? brandWindowRows.sort((left, right) => String(right.as_of_date ?? '').localeCompare(String(left.as_of_date ?? '')))[0]
+        ?? null;
+    const brandWindowRevenue7d = Number(anchorBrandWindowRow?.revenue_7d ?? 0);
+    const brandWindowRevenue30d = Number(anchorBrandWindowRow?.revenue_30d ?? 0);
+    const productDailyRows = rawArtifacts.product_daily ?? [];
+    const productDailyRevenue7d = productDailyRows.reduce((total, row) => (
+        row.date >= shiftDate(context.asOfDate, -6) && row.date <= context.asOfDate
+            ? total + Number(row.revenue ?? 0)
+            : total
+    ), 0);
+    const productDailyRevenue30d = productDailyRows.reduce((total, row) => (
+        row.date >= shiftDate(context.asOfDate, -29) && row.date <= context.asOfDate
+            ? total + Number(row.revenue ?? 0)
+            : total
+    ), 0);
+    const brandWindowGap7d = brandWindowRevenue7d - productDailyRevenue7d;
+    const brandWindowGap30d = brandWindowRevenue30d - productDailyRevenue30d;
+    const brandWindowAnchorMatch = anchorBrandWindowRow
+        ? String(anchorBrandWindowRow.as_of_date ?? '') === String(productDailyCoverage.max_date ?? '')
+        : false;
+    const pgmAnchorMatch = String(pgmCoverage.max_date ?? '') === String(productDailyCoverage.max_date ?? '')
+        && String(pgmCoverage.as_of_present_flag ?? '') === 'true';
 
     return [
-        {
-            metric_name: 'role_history_mode',
-            metric_value: context.roleHistoryMode,
-            message: '현재 파이프라인이 role state history를 해석하는 모드'
-        },
-        {
-            metric_name: 'raw_product_daily_lookback_coverage',
-            metric_value: productDailyCoverage.coverage_ratio ?? '',
-            message: '요청 lookback 대비 product_daily 날짜 커버리지'
-        },
-        {
-            metric_name: 'raw_pgm_scored_lookback_coverage',
-            metric_value: pgmCoverage.coverage_ratio ?? '',
-            message: '요청 lookback 대비 pgm_scored 날짜 커버리지'
-        },
-        {
-            metric_name: 'synthetic_raw_artifact_count',
-            metric_value: syntheticCount,
-            message: '원본 파일 부재/불일치로 synthetic 생성된 raw artifact 수'
-        },
-        {
-            metric_name: 'raw_extract_warning_count',
-            metric_value: context.warnings?.length ?? 0,
-            message: 'run_extract/raw snapshot 해석 단계에서 누적된 warning 수'
-        }
+        buildCoverageMetric(
+            'role_history_mode',
+            context.roleHistoryMode,
+            '현재 파이프라인이 role state history를 해석하는 모드',
+            'context',
+            'info'
+        ),
+        buildCoverageMetric(
+            'raw_product_daily_lookback_coverage',
+            productDailyCoverage.coverage_ratio ?? '',
+            '요청 lookback 대비 product_daily 날짜 커버리지',
+            'coverage_shortage',
+            Number(productDailyCoverage.coverage_ratio ?? 0) >= 1 ? 'pass' : 'warn'
+        ),
+        buildCoverageMetric(
+            'raw_pgm_scored_lookback_coverage',
+            pgmCoverage.coverage_ratio ?? '',
+            '요청 lookback 대비 pgm_scored 날짜 커버리지',
+            'coverage_shortage',
+            Number(pgmCoverage.coverage_ratio ?? 0) >= 1 ? 'pass' : 'warn'
+        ),
+        buildCoverageMetric(
+            'raw_pgm_scored_coverage_gap_days',
+            pgmCoverage.coverage_gap_days ?? '',
+            '요청 lookback 대비 pgm_scored 날짜 부족 일수',
+            'coverage_shortage',
+            Number(pgmCoverage.coverage_gap_days ?? 0) > 0 ? 'warn' : 'pass'
+        ),
+        buildCoverageMetric(
+            'raw_pgm_truth_mismatch_risk_flag',
+            pgmCoverage.truth_mismatch_risk_flag ?? 'false',
+            pgmCoverage.truth_mismatch_risk_copy || 'pgm_scored와 product_daily의 날짜 범위 차이를 기준으로 role truth mismatch 위험을 봅니다.',
+            'truth_mismatch',
+            pgmCoverage.truth_mismatch_risk_flag === 'true' ? 'warn' : 'pass'
+        ),
+        buildCoverageMetric(
+            'brand_window_vs_product_daily_gap_7d',
+            brandWindowGap7d,
+            `brand_window_metrics 7일 합계와 product_daily 7일 합계 차이입니다. brand_window=${brandWindowRevenue7d}, product_daily=${productDailyRevenue7d}`,
+            'truth_mismatch',
+            Math.abs(brandWindowGap7d) > 0.000001 ? 'warn' : 'pass'
+        ),
+        buildCoverageMetric(
+            'brand_window_vs_product_daily_gap_30d',
+            brandWindowGap30d,
+            `brand_window_metrics 30일 합계와 product_daily 30일 합계 차이입니다. brand_window=${brandWindowRevenue30d}, product_daily=${productDailyRevenue30d}`,
+            'truth_mismatch',
+            Math.abs(brandWindowGap30d) > 0.000001 ? 'warn' : 'pass'
+        ),
+        buildCoverageMetric(
+            'brand_window_anchor_match_flag',
+            brandWindowAnchorMatch ? 'true' : 'false',
+            brandWindowAnchorMatch
+                ? 'brand_window_metrics as_of_date가 product_daily 최신일과 맞습니다.'
+                : `brand_window_metrics anchor(${anchorBrandWindowRow?.as_of_date ?? '없음'})와 product_daily 최신일(${productDailyCoverage.max_date ?? '없음'})이 다릅니다.`,
+            'truth_mismatch',
+            brandWindowAnchorMatch ? 'pass' : 'warn'
+        ),
+        buildCoverageMetric(
+            'pgm_scored_vs_product_daily_anchor_match_flag',
+            pgmAnchorMatch ? 'true' : 'false',
+            pgmAnchorMatch
+                ? 'pgm_scored 최신일이 product_daily 최신일과 맞습니다.'
+                : `pgm_scored 최신일(${pgmCoverage.max_date ?? '없음'}) 또는 as_of_present_flag(${pgmCoverage.as_of_present_flag ?? '없음'})가 product_daily 최신일(${productDailyCoverage.max_date ?? '없음'})과 맞지 않습니다.`,
+            'truth_mismatch',
+            pgmAnchorMatch ? 'pass' : 'warn'
+        ),
+        buildCoverageMetric(
+            'synthetic_raw_artifact_count',
+            syntheticCount,
+            '원본 파일 부재/불일치로 synthetic 생성된 raw artifact 수',
+            'coverage_shortage',
+            syntheticCount > 0 ? 'warn' : 'pass'
+        ),
+        buildCoverageMetric(
+            'raw_extract_warning_count',
+            context.warnings?.length ?? 0,
+            'run_extract/raw snapshot 해석 단계에서 누적된 warning 수',
+            'context',
+            (context.warnings?.length ?? 0) > 0 ? 'warn' : 'pass'
+        )
     ];
 }

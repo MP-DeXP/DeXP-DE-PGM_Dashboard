@@ -13,6 +13,12 @@ import { buildDailyOverviewCards } from '../view_models/overview/daily_cards.js'
 import { buildWeeklyOverviewCards } from '../view_models/overview/weekly_cards.js';
 import { buildMonthlyOverviewCards } from '../view_models/overview/monthly_cards.js';
 import { buildOverviewRoleContribution } from '../view_models/overview/role_contribution.js';
+import {
+    buildOverviewRoleAnalytics,
+    ROLE_EVIDENCE_STATUS_AVAILABLE,
+    ROLE_EVIDENCE_STATUS_LIMITED,
+    ROLE_EVIDENCE_STATUS_UNAVAILABLE
+} from '../view_models/overview/role_decomposition.js';
 import { buildOverviewRevenueStory } from '../view_models/overview/revenue_story.js';
 import { buildOverviewRoleDelta } from '../view_models/overview/role_delta.js';
 import { buildOverviewRoleDrilldown } from '../view_models/overview/role_drilldown.js';
@@ -229,6 +235,32 @@ export function buildRawExtractManifest(rawArtifacts, options = {}) {
     return buildRawExtractManifestRows(rawArtifacts, options);
 }
 
+function buildCoverageMetric(metricName, metricValue, message, metricGroup = 'coverage_shortage', metricStatus = 'info') {
+    return {
+        metric_name: metricName,
+        metric_value: metricValue,
+        message,
+        metric_group: metricGroup,
+        metric_status: metricStatus
+    };
+}
+
+function toEvidenceMetricStatus(evidenceStatus) {
+    if (evidenceStatus === ROLE_EVIDENCE_STATUS_AVAILABLE) {
+        return 'pass';
+    }
+
+    if (evidenceStatus === ROLE_EVIDENCE_STATUS_LIMITED) {
+        return 'warn';
+    }
+
+    if (evidenceStatus === ROLE_EVIDENCE_STATUS_UNAVAILABLE) {
+        return 'fail';
+    }
+
+    return 'info';
+}
+
 export function buildCoverageReport(martArtifacts, options = {}) {
     const latestDate = getLatestDate(martArtifacts.product_daily_metrics);
     const latestProductRows = martArtifacts.product_daily_metrics.filter((row) => row.date === latestDate);
@@ -236,6 +268,52 @@ export function buildCoverageReport(martArtifacts, options = {}) {
     const fallbackUsage = latestProductRows.filter((row) => row.product_name_source === 'order_item_fallback').length;
     const blankRoleStates = latestRoleRows.filter((row) => !row.role_state_primary).length;
     const observedCount = latestRoleRows.filter((row) => row.pgm_observed_flag === 'true').length;
+    const roleAnalytics = buildOverviewRoleAnalytics(
+        martArtifacts.product_daily_metrics ?? [],
+        martArtifacts.product_role_state_daily ?? []
+    );
+    const overviewWindowSnapshot = buildBrandWindowSnapshot(
+        martArtifacts.brand_operating_status_daily ?? [],
+        options.rawArtifacts?.brand_window_metrics ?? []
+    );
+    const overviewRevenueStory = buildOverviewRevenueStory(
+        martArtifacts.product_daily_metrics ?? [],
+        martArtifacts.product_role_state_daily ?? [],
+        overviewWindowSnapshot
+    );
+    const roleEvidenceMetrics = roleAnalytics
+        .filter((row) => row.period === 'weekly' || row.period === 'monthly')
+        .flatMap((periodRow) => {
+            const storyRow = overviewRevenueStory.find((row) => row.period === periodRow.period) ?? periodRow;
+
+            return [
+            buildCoverageMetric(
+                `${periodRow.period}_role_evidence_status`,
+                periodRow.evidence_status,
+                `${periodRow.period_label} 역할 근거 상태: ${periodRow.evidence_status_label}`,
+                'coverage_shortage',
+                toEvidenceMetricStatus(periodRow.evidence_status)
+            ),
+            buildCoverageMetric(
+                `${periodRow.period}_role_compare_enabled`,
+                periodRow.can_compare_roles,
+                periodRow.can_compare_roles === 'true'
+                    ? `${periodRow.period_label} 역할 비교 rows를 계속 제공합니다.`
+                    : `${periodRow.period_label} 역할 근거가 부족해 역할 비교 rows를 숨깁니다.`,
+                'coverage_shortage',
+                periodRow.can_compare_roles === 'true' ? 'pass' : 'fail'
+            ),
+            buildCoverageMetric(
+                `${periodRow.period}_role_truth_mismatch_flag`,
+                storyRow.truth_mismatch_flag,
+                storyRow.truth_mismatch_copy,
+                'truth_mismatch',
+                storyRow.truth_mismatch_flag === 'true'
+                    ? toEvidenceMetricStatus(periodRow.evidence_status === ROLE_EVIDENCE_STATUS_AVAILABLE ? ROLE_EVIDENCE_STATUS_LIMITED : periodRow.evidence_status)
+                    : 'pass'
+            )
+        ];
+        });
     const extractCoverage = options.rawArtifacts
         ? summarizeExtractCoverage(options.rawArtifacts, {
             extractContext: options.extractContext,
@@ -244,21 +322,28 @@ export function buildCoverageReport(martArtifacts, options = {}) {
         : [];
 
     return [
-        {
-            metric_name: 'product_master_fallback_usage_rate',
-            metric_value: latestProductRows.length ? fallbackUsage / latestProductRows.length : 0,
-            message: '최근 확정일 상품명 fallback 사용률'
-        },
-        {
-            metric_name: 'pgm_observed_coverage',
-            metric_value: latestRoleRows.length ? observedCount / latestRoleRows.length : 0,
-            message: '최근 확정일 동일 일자 PGM 관측 커버리지'
-        },
-        {
-            metric_name: 'role_state_blank_rate',
-            metric_value: latestRoleRows.length ? blankRoleStates / latestRoleRows.length : 0,
-            message: '최근 확정일 관측 상태 공백 비율; 최신 역할 보정 미적용'
-        },
+        buildCoverageMetric(
+            'product_master_fallback_usage_rate',
+            latestProductRows.length ? fallbackUsage / latestProductRows.length : 0,
+            '최근 확정일 상품명 fallback 사용률',
+            'coverage_shortage',
+            fallbackUsage > 0 ? 'warn' : 'pass'
+        ),
+        buildCoverageMetric(
+            'pgm_observed_coverage',
+            latestRoleRows.length ? observedCount / latestRoleRows.length : 0,
+            '최근 확정일 동일 일자 PGM 관측 커버리지',
+            'coverage_shortage',
+            observedCount === latestRoleRows.length ? 'pass' : 'warn'
+        ),
+        buildCoverageMetric(
+            'role_state_blank_rate',
+            latestRoleRows.length ? blankRoleStates / latestRoleRows.length : 0,
+            '최근 확정일 관측 상태 공백 비율; 최신 역할 보정 미적용',
+            'coverage_shortage',
+            blankRoleStates > 0 ? 'warn' : 'pass'
+        ),
+        ...roleEvidenceMetrics,
         ...extractCoverage
     ];
 }
@@ -299,6 +384,11 @@ export function buildValidationReport(validationSummary, coverageReport) {
         return map;
     }, new Map());
 
+    const coverageShortageRows = coverageReport.filter((row) => row.metric_group === 'coverage_shortage');
+    const truthMismatchRows = coverageReport.filter((row) => row.metric_group === 'truth_mismatch');
+    const contextRows = coverageReport.filter((row) => !row.metric_group || row.metric_group === 'context');
+    const coverageWarnCount = coverageShortageRows.filter((row) => row.metric_status === 'warn' || row.metric_status === 'fail').length;
+    const truthMismatchWarnCount = truthMismatchRows.filter((row) => row.metric_status === 'warn' || row.metric_status === 'fail').length;
     const lines = [
         '# pgm_ops 검증 리포트',
         '',
@@ -306,12 +396,37 @@ export function buildValidationReport(validationSummary, coverageReport) {
         `- pass: ${(groupedByStatus.get('pass') ?? []).length}`,
         `- warn: ${(groupedByStatus.get('warn') ?? []).length}`,
         `- fail: ${(groupedByStatus.get('fail') ?? []).length}`,
+        `- coverage_insufficient warn/fail: ${coverageWarnCount}`,
+        `- truth_mismatch warn/fail: ${truthMismatchWarnCount}`,
         '',
-        '## 커버리지',
-        ...coverageReport.map((row) => `- ${row.metric_name}: ${row.metric_value} (${row.message})`),
-        '',
-        '## 세부 결과'
+        '## Coverage Insufficient',
+        `- 경고/실패 지표 수: ${coverageWarnCount}`,
+        '- 역할 비교 가능 여부와 raw lookback 부족을 먼저 확인합니다.',
+        ...coverageShortageRows.map((row) => `- [${row.metric_status ?? 'info'}] ${row.metric_name}: ${row.metric_value} (${row.message})`),
+        ''
     ];
+
+    if (truthMismatchRows.length) {
+        lines.push('## Truth Mismatch');
+        lines.push(`- 경고/실패 지표 수: ${truthMismatchWarnCount}`);
+        lines.push('- 기간 총매출 truth와 역할 근거 scope가 같은 기간 의미인지 분리해서 읽습니다.');
+        truthMismatchRows.forEach((row) => {
+            lines.push(`- [${row.metric_status ?? 'info'}] ${row.metric_name}: ${row.metric_value} (${row.message})`);
+        });
+        lines.push('');
+    }
+
+    if (contextRows.length) {
+        lines.push('## 컨텍스트');
+        contextRows.forEach((row) => {
+            lines.push(`- [${row.metric_status ?? 'info'}] ${row.metric_name}: ${row.metric_value} (${row.message})`);
+        });
+        lines.push('');
+    }
+
+    lines.push(
+        '## 세부 결과'
+    );
 
     validationSummary.forEach((row) => {
         lines.push(`- [${row.status}] ${row.artifact_name} / ${row.check_name}: ${row.message}`);
