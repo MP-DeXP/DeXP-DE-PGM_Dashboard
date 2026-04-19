@@ -1,5 +1,10 @@
 import { ARTIFACT_DIR_URLS } from '../app/config/paths.js';
-import { DEFAULT_LOOKBACK_DAYS, RAW_FILE_NAMES, RAW_METADATA_FILE_NAME } from '../app/config/constants.js';
+import {
+    DEFAULT_LOOKBACK_DAYS,
+    RAW_DATASET_MIN_HISTORY_DAYS,
+    RAW_FILE_NAMES,
+    RAW_METADATA_FILE_NAME
+} from '../app/config/constants.js';
 import { exists, readCsvFile, writeCsvFile } from '../app/loaders/files.js';
 import {
     getRosettaErrorCode,
@@ -12,6 +17,13 @@ import { shiftDate } from '../app/transforms/date.js';
 import { parsePipelineCliArgs } from './pipeline_cli.js';
 
 const DEFAULT_ROSETTA_ENDPOINT = 'https://dev-rosetta-api.mercuryx.net/mcp';
+const HISTORY_READY_WINDOWS = [7, 30, 90];
+const BRAND_SCORE_EVENT_SPEC = {
+    datasetKey: 'brand_score_events',
+    sourceKey: 'derived_brand_score_events',
+    sourceTable: 'silver_meta_order_item(minimum_event_layer)',
+    dateFields: ['order_at']
+};
 
 const REFRESH_STATUS_COLUMNS = [
     'dataset_key',
@@ -20,10 +32,17 @@ const REFRESH_STATUS_COLUMNS = [
     'source_table',
     'query_window_start',
     'query_window_end',
+    'requested_lookback_days',
+    'effective_lookback_days',
+    'required_min_lookback_days',
     'status',
     'row_count',
     'min_date',
     'max_date',
+    'history_ready_7d',
+    'history_ready_30d',
+    'history_ready_90d',
+    'history_note',
     'note',
     'provenance',
     'counts_toward_completion',
@@ -78,20 +97,135 @@ function collectDateValues(rows, dateFields = []) {
         .sort();
 }
 
-function buildStatusRow(spec, rows, status, note, bounds, extras = {}) {
-    const dates = collectDateValues(rows, spec.dateFields);
+function getBounds(asOfDate, lookbackDays) {
+    if (!lookbackDays) {
+        return {
+            asOfDate,
+            lookbackStart: ''
+        };
+    }
+
+    return {
+        asOfDate,
+        lookbackStart: shiftDate(asOfDate, -(lookbackDays - 1))
+    };
+}
+
+function getRequiredMinLookbackDays(datasetKey) {
+    return Number(RAW_DATASET_MIN_HISTORY_DAYS[datasetKey] ?? 0);
+}
+
+function buildDatasetRefreshPlan(datasetKey, asOfDate, requestedLookbackDays) {
+    const requiredMinLookbackDays = getRequiredMinLookbackDays(datasetKey);
+    const effectiveLookbackDays = requiredMinLookbackDays > 0
+        ? Math.max(requestedLookbackDays, requiredMinLookbackDays)
+        : 0;
+    const bounds = getBounds(asOfDate, effectiveLookbackDays);
+
+    return {
+        datasetKey,
+        asOfDate,
+        bounds,
+        requestedLookbackDays,
+        effectiveLookbackDays,
+        requiredMinLookbackDays
+    };
+}
+
+function isHistoryReady(dates, asOfDate, windowDays) {
+    if (!dates.length) {
+        return false;
+    }
+
+    const requiredStart = shiftDate(asOfDate, -(windowDays - 1));
+    return dates[0] <= requiredStart && dates.at(-1) >= asOfDate;
+}
+
+function getStatusSpec(datasetKey, spec) {
+    if (spec) {
+        return spec;
+    }
+    if (datasetKey === BRAND_SCORE_EVENT_SPEC.datasetKey) {
+        return BRAND_SCORE_EVENT_SPEC;
+    }
+    return {
+        datasetKey,
+        sourceKey: '',
+        sourceTable: '',
+        dateFields: ['date', 'order_at', 'created_at', 'updated_at']
+    };
+}
+
+function buildHistoryMeta(dates, plan, metricsSource = 'loaded') {
+    const minDate = dates[0] ?? '';
+    const maxDate = dates.at(-1) ?? '';
+    const isPreservedSnapshot = metricsSource === 'snapshot_preserved';
+    const preservedSuffix = isPreservedSnapshot ? ' 보존 snapshot 기준입니다.' : '';
+
+    if (!plan.effectiveLookbackDays) {
+        const ready = dates.length > 0 ? 'true' : 'false';
+        return {
+            minDate,
+            maxDate,
+            history_ready_7d: ready,
+            history_ready_30d: ready,
+            history_ready_90d: ready,
+            history_note: dates.length
+                ? `이력 최소 요구가 없는 전체 스냅샷입니다.${preservedSuffix}`
+                : `이력 최소 요구가 없는 전체 스냅샷이지만 관측 행이 없습니다.${preservedSuffix}`
+        };
+    }
+
+    const lookbackNote = plan.effectiveLookbackDays > plan.requestedLookbackDays
+        ? `최소 이력 ${plan.requiredMinLookbackDays}일 요구로 실제 조회 기간을 ${plan.effectiveLookbackDays}일로 확장했습니다.`
+        : `요청 기간 ${plan.effectiveLookbackDays}일을 그대로 조회했습니다.`;
+
+    if (!dates.length) {
+        return {
+            minDate,
+            maxDate,
+            history_ready_7d: 'false',
+            history_ready_30d: 'false',
+            history_ready_90d: 'false',
+            history_note: `${lookbackNote} 날짜 관측이 없어 준비 여부를 판단할 수 없습니다.${preservedSuffix}`
+        };
+    }
+
+    const sourceLabel = isPreservedSnapshot ? '보존 snapshot 관측 범위' : '관측 범위';
+    return {
+        minDate,
+        maxDate,
+        history_ready_7d: isHistoryReady(dates, plan.asOfDate, HISTORY_READY_WINDOWS[0]) ? 'true' : 'false',
+        history_ready_30d: isHistoryReady(dates, plan.asOfDate, HISTORY_READY_WINDOWS[1]) ? 'true' : 'false',
+        history_ready_90d: isHistoryReady(dates, plan.asOfDate, HISTORY_READY_WINDOWS[2]) ? 'true' : 'false',
+        history_note: `${lookbackNote} ${sourceLabel} ${minDate}~${maxDate} 기준으로 준비 여부를 계산했습니다.${preservedSuffix}`
+    };
+}
+
+function buildStatusRow(specInput, rows, status, note, plan, extras = {}) {
+    const spec = getStatusSpec(specInput.datasetKey, specInput);
+    const metricRows = extras.metricRows ?? rows;
+    const dates = collectDateValues(metricRows, spec.dateFields);
+    const historyMeta = buildHistoryMeta(dates, plan, extras.metricsSource);
 
     return {
         dataset_key: spec.datasetKey,
         filename: RAW_FILE_NAMES[spec.datasetKey],
         source_key: spec.sourceKey,
         source_table: spec.sourceTable,
-        query_window_start: bounds.lookbackStart,
-        query_window_end: bounds.asOfDate,
+        query_window_start: plan.bounds.lookbackStart,
+        query_window_end: plan.bounds.asOfDate,
+        requested_lookback_days: plan.requestedLookbackDays,
+        effective_lookback_days: plan.effectiveLookbackDays,
+        required_min_lookback_days: plan.requiredMinLookbackDays,
         status,
         row_count: rows.length,
-        min_date: dates[0] ?? '',
-        max_date: dates.at(-1) ?? '',
+        min_date: historyMeta.minDate,
+        max_date: historyMeta.maxDate,
+        history_ready_7d: historyMeta.history_ready_7d,
+        history_ready_30d: historyMeta.history_ready_30d,
+        history_ready_90d: historyMeta.history_ready_90d,
+        history_note: historyMeta.history_note,
         note,
         provenance: extras.provenance ?? '',
         counts_toward_completion: extras.countsTowardCompletion ?? 'false',
@@ -221,13 +355,6 @@ async function writeRefreshStatus(rows) {
     );
 }
 
-function getBounds(asOfDate, lookbackDays) {
-    return {
-        asOfDate,
-        lookbackStart: shiftDate(asOfDate, -(lookbackDays - 1))
-    };
-}
-
 function buildFailureNote(statusCode, message, preservedCount = 0) {
     const normalizedMessage = String(message ?? '').trim() || 'Rosetta refresh failed.';
     return preservedCount > 0
@@ -235,35 +362,37 @@ function buildFailureNote(statusCode, message, preservedCount = 0) {
         : `${statusCode}: ${normalizedMessage}`;
 }
 
-async function buildBlockedStateRows(bounds, statusCode, message, querySpecs = [], authMode = '', datasetKeys = Object.keys(RAW_FILE_NAMES)) {
+async function buildBlockedStateRows(
+    asOfDate,
+    requestedLookbackDays,
+    statusCode,
+    message,
+    querySpecs = [],
+    authMode = '',
+    datasetKeys = Object.keys(RAW_FILE_NAMES)
+) {
     const specByDataset = Object.fromEntries(querySpecs.map((spec) => [spec.datasetKey, spec]));
     const statusRows = [];
 
     for (const datasetKey of datasetKeys) {
         const existingRows = await ensureHeaderOnlyFile(datasetKey);
-        const existingDates = collectDateValues(existingRows, ['date', 'order_at', 'created_at', 'updated_at']);
-        const spec = specByDataset[datasetKey];
+        const plan = buildDatasetRefreshPlan(datasetKey, asOfDate, requestedLookbackDays);
+        const spec = getStatusSpec(datasetKey, specByDataset[datasetKey]);
 
-        statusRows.push({
-            dataset_key: datasetKey,
-            filename: RAW_FILE_NAMES[datasetKey],
-            source_key: datasetKey === 'brand_score_events'
-                ? 'derived_brand_score_events'
-                : (spec?.sourceKey ?? ''),
-            source_table: datasetKey === 'brand_score_events'
-                ? 'silver_meta_order_item(minimum_event_layer)'
-                : (spec?.sourceTable ?? ''),
-            query_window_start: bounds.lookbackStart,
-            query_window_end: bounds.asOfDate,
-            status: statusCode,
-            row_count: 0,
-            min_date: existingDates[0] ?? '',
-            max_date: existingDates.at(-1) ?? '',
-            note: buildFailureNote(statusCode, message, existingRows.length),
-            provenance: existingRows.length ? 'snapshot_preserved' : '',
-            counts_toward_completion: 'false',
-            auth_mode: authMode
-        });
+        statusRows.push(buildStatusRow(
+            spec,
+            [],
+            statusCode,
+            buildFailureNote(statusCode, message, existingRows.length),
+            plan,
+            {
+                provenance: existingRows.length ? 'snapshot_preserved' : '',
+                countsTowardCompletion: 'false',
+                authMode,
+                metricRows: existingRows,
+                metricsSource: existingRows.length ? 'snapshot_preserved' : 'loaded'
+            }
+        ));
     }
 
     return statusRows;
@@ -291,14 +420,13 @@ function buildSuccessNote(spec, authMode) {
 
 export async function refreshRawExtractFromRosetta(options = {}) {
     const asOfDate = options.asOfDate || '';
-    const lookbackDays = Number.parseInt(options.lookbackDays, 10) || DEFAULT_LOOKBACK_DAYS;
+    const requestedLookbackDays = Number.parseInt(options.lookbackDays, 10) || DEFAULT_LOOKBACK_DAYS;
 
     if (!asOfDate) {
         throw new Error('Rosetta refresh requires --as-of-date YYYY-MM-DD.');
     }
 
-    const bounds = getBounds(asOfDate, lookbackDays);
-    const querySpecs = getRosettaQuerySpecs(bounds);
+    const querySpecs = getRosettaQuerySpecs();
     const runtimeState = buildRuntimeState();
     const datasetRows = {};
     const refreshStatuses = [];
@@ -307,7 +435,8 @@ export async function refreshRawExtractFromRosetta(options = {}) {
         const reason = 'PGM_OPS2_ROSETTA_AUTH_MODE=bearer 이지만 PGM_OPS2_ROSETTA_BEARER_TOKEN이 없습니다.';
         await writeRefreshStatus(
             await buildBlockedStateRows(
-                bounds,
+                asOfDate,
+                requestedLookbackDays,
                 REFRESH_FAILURE_STATUS_CODES.auth_missing,
                 reason,
                 querySpecs,
@@ -320,8 +449,10 @@ export async function refreshRawExtractFromRosetta(options = {}) {
     }
 
     for (const spec of querySpecs) {
+        const plan = buildDatasetRefreshPlan(spec.datasetKey, asOfDate, requestedLookbackDays);
+
         try {
-            const { rows, provenance, authMode } = await fetchAllRowsForSpec(runtimeState, spec, bounds);
+            const { rows, provenance, authMode } = await fetchAllRowsForSpec(runtimeState, spec, plan.bounds);
 
             if (!rows.length) {
                 const preservedRows = await ensureHeaderOnlyFile(spec.datasetKey);
@@ -335,11 +466,13 @@ export async function refreshRawExtractFromRosetta(options = {}) {
                         `${spec.sourceTable} 조회 결과가 비어 있습니다.`,
                         preservedRows.length
                     ),
-                    bounds,
+                    plan,
                     {
-                        provenance,
+                        provenance: preservedRows.length ? `${provenance}+snapshot_preserved` : provenance,
                         countsTowardCompletion: 'false',
-                        authMode
+                        authMode,
+                        metricRows: preservedRows,
+                        metricsSource: preservedRows.length ? 'snapshot_preserved' : 'loaded'
                     }
                 ));
                 console.warn(`[pgm_ops2] source empty ${spec.datasetKey}`);
@@ -353,7 +486,7 @@ export async function refreshRawExtractFromRosetta(options = {}) {
                 rows,
                 'completed',
                 buildSuccessNote(spec, authMode),
-                bounds,
+                plan,
                 {
                     provenance,
                     countsTowardCompletion: 'true',
@@ -370,13 +503,15 @@ export async function refreshRawExtractFromRosetta(options = {}) {
                 [],
                 statusCode,
                 buildFailureNote(statusCode, error.message ?? 'Rosetta query failed', preservedRows.length),
-                bounds,
+                plan,
                 {
                     provenance: preservedRows.length ? 'snapshot_preserved' : '',
                     countsTowardCompletion: 'false',
                     authMode: runtimeState.bridgeFailure?.code === statusCode
                         ? 'codex_mcp_bridge'
-                        : (runtimeState.bearerClient ? 'bearer_token' : '')
+                        : (runtimeState.bearerClient ? 'bearer_token' : ''),
+                    metricRows: preservedRows,
+                    metricsSource: preservedRows.length ? 'snapshot_preserved' : 'loaded'
                 }
             ));
             console.warn(`[pgm_ops2] failed ${spec.datasetKey}: ${error.message ?? error}`);
@@ -387,7 +522,8 @@ export async function refreshRawExtractFromRosetta(options = {}) {
             ) {
                 const remainingSpecs = querySpecs.slice(querySpecs.indexOf(spec) + 1);
                 const blockedRows = await buildBlockedStateRows(
-                    bounds,
+                    asOfDate,
+                    requestedLookbackDays,
                     statusCode,
                     error.message ?? 'Rosetta auth or bridge is unavailable.',
                     remainingSpecs,
@@ -405,29 +541,30 @@ export async function refreshRawExtractFromRosetta(options = {}) {
         await writeDataset('brand_score_events', brandScoreEvents);
     }
     const preservedBrandScoreRows = brandScoreEvents.length ? [] : await ensureHeaderOnlyFile('brand_score_events');
+    const brandScorePlan = buildDatasetRefreshPlan('brand_score_events', asOfDate, requestedLookbackDays);
 
-    refreshStatuses.push({
-        dataset_key: 'brand_score_events',
-        filename: RAW_FILE_NAMES.brand_score_events,
-        source_key: 'derived_brand_score_events',
-        source_table: 'silver_meta_order_item(minimum_event_layer)',
-        query_window_start: bounds.lookbackStart,
-        query_window_end: bounds.asOfDate,
-        status: brandScoreEvents.length ? 'completed' : REFRESH_FAILURE_STATUS_CODES.source_empty,
-        row_count: brandScoreEvents.length,
-        min_date: collectDateValues(brandScoreEvents, ['order_at'])[0] ?? '',
-        max_date: collectDateValues(brandScoreEvents, ['order_at']).at(-1) ?? '',
-        note: brandScoreEvents.length
+    refreshStatuses.push(buildStatusRow(
+        BRAND_SCORE_EVENT_SPEC,
+        brandScoreEvents,
+        brandScoreEvents.length ? 'completed' : REFRESH_FAILURE_STATUS_CODES.source_empty,
+        brandScoreEvents.length
             ? 'order_lines 기반 최소 event layer를 파생했습니다.'
             : buildFailureNote(
                 REFRESH_FAILURE_STATUS_CODES.source_empty,
                 'order_lines 기반 최소 event layer를 만들 수 없었습니다.',
                 preservedBrandScoreRows.length
             ),
-        provenance: 'derived_from_order_lines',
-        counts_toward_completion: brandScoreEvents.length ? 'true' : 'false',
-        auth_mode: 'derived'
-    });
+        brandScorePlan,
+        {
+            provenance: brandScoreEvents.length
+                ? 'derived_from_order_lines'
+                : (preservedBrandScoreRows.length ? 'snapshot_preserved' : 'derived_from_order_lines'),
+            countsTowardCompletion: brandScoreEvents.length ? 'true' : 'false',
+            authMode: 'derived',
+            metricRows: brandScoreEvents.length ? brandScoreEvents : preservedBrandScoreRows,
+            metricsSource: brandScoreEvents.length ? 'loaded' : (preservedBrandScoreRows.length ? 'snapshot_preserved' : 'loaded')
+        }
+    ));
 
     await writeRefreshStatus(refreshStatuses);
 }

@@ -1,4 +1,4 @@
-priority_level,product_count
-즉시 확인,0
-주의 관찰,43
-정상 유지,0
+priority_level,product_count,brand_revenue_30d_current,brand_revenue_30d_previous,brand_revenue_30d_delta_rate
+즉시 확인,24,161962180,195510440,-0.17159318960153738
+주의 관찰,4,161962180,195510440,-0.17159318960153738
+정상 유지,34,161962180,195510440,-0.17159318960153738

@@ -4,3 +4,11 @@ priority_queue_exists,pass,우선순위 큐 산출물이 생성되었습니다.
 role_same_date_snapshot,pass,Role taxonomy는 as_of_date 기준 단일 snapshot으로 생성합니다.
 brand_score_queue_exclusion,pass,Brand Score는 큐 보조 상태로만 유지됩니다.
 product_image_provenance,pass,상품 이미지는 Rosetta 적재 결과를 직접 사용합니다.
+revenue_history_ready,pass,Revenue 30/90일 비교를 위한 history가 확보되었습니다.
+revenue_compare_population,pass,Revenue 30일 비교 가능 상품이 존재합니다.
+freshness_timestamp_consistency,pass,raw manifest와 데이터 상태 화면의 최신일이 일치합니다.
+role_contract_source_presence,pass,Role 확장 전이 source가 적재되어 있습니다.
+role_primary_axis_not_support_only,pass,Role taxonomy는 canonical score 축으로 결정됩니다.
+brand_score_freshness_cap,pass,event 또는 basket freshness 제약으로 provisional을 제한합니다.
+detail_picker_covers_full_queue,pass,상세 선택 목록이 전체 큐를 모두 덮습니다.
+brand_revenue_context_present,pass,브랜드 30일 Revenue 컨텍스트가 큐 요약에 포함되어 있습니다.

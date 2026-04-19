@@ -3,3 +3,6 @@ iteration,issue_found,change_applied,brand_score_level
 2,한글 경로에서 nested refresh transport가 불안정하고 검증 요약이 빈 raw 상태를 직접 드러내지 못함,ASCII 별칭 refresh 경로를 추가하고 실데이터 미적재 상태를 검증 요약과 화면에서 분리 표기,limited
 3,서버 번들과 UI가 빈 상태를 더 운영적으로 설명할 필요가 있었음,bundle/load status와 빈 상태 문구를 정리하고 tone audit 결과를 데이터 상태 화면에 연결,limited
 4,상품 이미지가 참조 주입 상태라 실적재 여부를 화면과 QA에서 구분하기 어려웠음,"Rosetta products 실적재 경로와 이미지 provenance 검증을 추가하고, 화면 밀도를 운영툴 기준으로 재설계",limited
+5,Revenue source history가 부족해 직전기간 rolling 비교가 전부 무너졌음,dataset별 최소 history 적재와 Revenue compare state를 추가해 비교 가능 여부를 분리,limited
+6,timestamp freshness가 비어도 데이터 상태 화면에서 정상처럼 보였음,날짜 정규화 공통 함수를 도입하고 freshness/coverage 상태를 source별로 다시 계산,limited
+7,Role/Brand Score 판정이 support count와 stale source에 과도하게 끌렸음,Role taxonomy를 canonical score 중심으로 재정의하고 Brand Score freshness cap 및 QA 검증을 추가,limited

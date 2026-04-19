@@ -175,6 +175,12 @@ function renderSummaryCards() {
         return '<div class="empty-state">표시할 우선순위 집계가 없습니다.</div>';
     }
 
+    const brandRevenueCurrent = Number(rows[0]?.brand_revenue_30d_current ?? 0);
+    const brandRevenuePrevious = Number(rows[0]?.brand_revenue_30d_previous ?? 0);
+    const brandRevenueDeltaRate = rows[0]?.brand_revenue_30d_delta_rate === '' || rows[0]?.brand_revenue_30d_delta_rate == null
+        ? null
+        : Number(rows[0]?.brand_revenue_30d_delta_rate);
+
     return `
         <div class="summary-grid">
             ${rows.map((row) => `
@@ -184,6 +190,13 @@ function renderSummaryCards() {
                     <div>${escapeHtml(row.priority_level)}</div>
                 </article>
             `).join('')}
+            <article class="summary-card">
+                <div class="section-kicker">브랜드 Revenue</div>
+                <strong>${escapeHtml(brandRevenueCurrent.toLocaleString('ko-KR'))}</strong>
+                <div>최근 30일</div>
+                <small>직전기간 ${escapeHtml(brandRevenuePrevious.toLocaleString('ko-KR'))}</small>
+                <small>${escapeHtml(brandRevenueDeltaRate == null ? '비교 불가' : `${(brandRevenueDeltaRate * 100).toFixed(1)}%`)}</small>
+            </article>
         </div>
     `;
 }
@@ -310,7 +323,7 @@ function renderDetailView() {
                 <div class="section-kicker">대상 선택</div>
                 <h3>상품 목록</h3>
                 <div class="product-picker">
-                    ${queueRows.slice(0, 24).map((row) => `
+                    ${queueRows.map((row) => `
                         <button
                             class="${row.product_id === selectedQueueRow.product_id ? 'is-selected' : ''}"
                             data-product-pick="${escapeHtml(row.product_id)}"
@@ -397,6 +410,7 @@ function renderDefinitionsView() {
 function renderHealthView() {
     const healthRows = getViewModel('vm_data_health');
     const brandRows = getViewModel('vm_brand_score_panel');
+    const brandValidationRows = state.bundle?.mart?.mart_brand_score_validation_status ?? [];
     const toneAuditRows = state.bundle?.qa?.tone_audit ?? [];
     const rawManifestRows = state.bundle?.qa?.raw_manifest ?? [];
     const validationRows = state.bundle?.qa?.validation_summary ?? [];
@@ -406,6 +420,12 @@ function renderHealthView() {
     const productImageState = productImageManifest.data_provenance === 'rosetta_direct'
         ? 'Rosetta 적재 완료'
         : productImageValidation.message || '참조 표시 중';
+    const brandValidation = brandValidationRows[0] ?? {};
+    const brandStatusSummary = [
+        `provisional ${brandValidation.provisional_count || 0}`,
+        `limited ${brandValidation.limited_count || 0}`,
+        `unavailable ${brandValidation.unavailable_count || 0}`
+    ].join(' / ');
 
     return `
         <section class="panel">
@@ -420,6 +440,8 @@ function renderHealthView() {
                         <th>max date</th>
                         <th>gap days</th>
                         <th>상태</th>
+                        <th>coverage</th>
+                        <th>history note</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -431,6 +453,8 @@ function renderHealthView() {
                             <td>${escapeHtml(row.max_date)}</td>
                             <td>${escapeHtml(row.freshness_gap_days)}</td>
                             <td>${escapeHtml(row.data_state)}</td>
+                            <td>${escapeHtml(row.coverage_state || '-')}</td>
+                            <td>${escapeHtml(row.coverage_note || '-')}</td>
                         </tr>
                     `).join('')}
                 </tbody>
@@ -441,7 +465,8 @@ function renderHealthView() {
                 <div class="section-kicker">Brand Score</div>
                 <h3>재현 상태</h3>
                 <p class="muted">큐에는 연결하지 않고, 상태만 별도 표시합니다.</p>
-                <div>${escapeHtml(brandRows[0]?.brand_score_status || 'unavailable')}</div>
+                <div>${escapeHtml(brandStatusSummary)}</div>
+                <p class="muted">${escapeHtml(brandValidation.status_cap_reason || 'freshness cap 정상')}</p>
             </article>
             <article class="grid-card">
                 <div class="section-kicker">상품 이미지</div>

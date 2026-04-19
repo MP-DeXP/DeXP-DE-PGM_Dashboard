@@ -1,259 +1,435 @@
 product_id,product_name,product_image_url,section,label,value,note
-1000000072,마스코바도 흑임자설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000072/image/list/1000000072_list_015.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 역할 근거 없음
-1000000072,마스코바도 흑임자설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000072/image/list/1000000072_list_015.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
+1000000093,매화 2송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000093/image/list/1000000093_list_057.jpg,헤더,우선순위,즉시 확인,최근 30일 매출이 직전기간 대비 -28.7% / 첫구매기여 기준 score 0.64
+1000000093,매화 2송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000093/image/list/1000000093_list_057.jpg,Revenue,최근 30일 대비,-28.7%,직전 동일 길이 기간과 비교 가능합니다.
+1000000093,매화 2송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000093/image/list/1000000093_list_057.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000093,매화 2송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000093/image/list/1000000093_list_057.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 score 0.64
+1000000093,매화 2송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000093/image/list/1000000093_list_057.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000093,매화 2송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000093/image/list/1000000093_list_057.jpg,근거,반복 구매,0.11,반복 루프 103건 / support 103
+1000000093,매화 2송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000093/image/list/1000000093_list_057.jpg,근거,동시 구매,0.14,동시구매 pair 56건 / support 56
+1000000111,매화 3송이 3호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000111/image/list/1000000111_list_056.jpg,헤더,우선순위,즉시 확인,최근 30일 매출이 직전기간 대비 -47.3% / 첫구매기여 기준 score 0.32
+1000000111,매화 3송이 3호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000111/image/list/1000000111_list_056.jpg,Revenue,최근 30일 대비,-47.3%,직전 동일 길이 기간과 비교 가능합니다.
+1000000111,매화 3송이 3호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000111/image/list/1000000111_list_056.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000111,매화 3송이 3호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000111/image/list/1000000111_list_056.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 score 0.32
+1000000111,매화 3송이 3호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000111/image/list/1000000111_list_056.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000111,매화 3송이 3호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000111/image/list/1000000111_list_056.jpg,근거,반복 구매,0.10,반복 루프 39건 / support 39
+1000000111,매화 3송이 3호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000111/image/list/1000000111_list_056.jpg,근거,동시 구매,0.09,동시구매 pair 48건 / support 48
+1000000094,매화 3송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000094/image/list/1000000094_list_039.jpg,헤더,우선순위,즉시 확인,최근 30일 매출이 직전기간 대비 -64.9% / 재구매확장기여 기준 score 0.26
+1000000094,매화 3송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000094/image/list/1000000094_list_039.jpg,Revenue,최근 30일 대비,-64.9%,직전 동일 길이 기간과 비교 가능합니다.
+1000000094,매화 3송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000094/image/list/1000000094_list_039.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000094,매화 3송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000094/image/list/1000000094_list_039.jpg,Role,현재 taxonomy,재구매확장기여,재구매확장기여 기준 score 0.26
+1000000094,매화 3송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000094/image/list/1000000094_list_039.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000094,매화 3송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000094/image/list/1000000094_list_039.jpg,근거,반복 구매,0.10,반복 루프 20건 / support 20
+1000000094,매화 3송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000094/image/list/1000000094_list_039.jpg,근거,동시 구매,0.06,동시구매 pair 52건 / support 52
+1000000113,매화 5송이 3호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000113/image/list/1000000113_list_070.jpg,헤더,우선순위,즉시 확인,최근 30일 매출이 직전기간 대비 -61.5% / 재구매확장기여 기준 score 0.21
+1000000113,매화 5송이 3호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000113/image/list/1000000113_list_070.jpg,Revenue,최근 30일 대비,-61.5%,직전 동일 길이 기간과 비교 가능합니다.
+1000000113,매화 5송이 3호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000113/image/list/1000000113_list_070.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000113,매화 5송이 3호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000113/image/list/1000000113_list_070.jpg,Role,현재 taxonomy,재구매확장기여,재구매확장기여 기준 score 0.21
+1000000113,매화 5송이 3호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000113/image/list/1000000113_list_070.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000113,매화 5송이 3호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000113/image/list/1000000113_list_070.jpg,근거,반복 구매,0.13,반복 루프 14건 / support 14
+1000000113,매화 5송이 3호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000113/image/list/1000000113_list_070.jpg,근거,동시 구매,0.04,동시구매 pair 46건 / support 46
+1000000084,십리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000084/image/list/1000000084_list_028.jpg,헤더,우선순위,즉시 확인,최근 30일 매출이 직전기간 대비 -70.6% / 재구매확장기여 기준 score 0.14
+1000000084,십리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000084/image/list/1000000084_list_028.jpg,Revenue,최근 30일 대비,-70.6%,직전 동일 길이 기간과 비교 가능합니다.
+1000000084,십리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000084/image/list/1000000084_list_028.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000084,십리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000084/image/list/1000000084_list_028.jpg,Role,현재 taxonomy,재구매확장기여,재구매확장기여 기준 score 0.14
+1000000084,십리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000084/image/list/1000000084_list_028.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000084,십리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000084/image/list/1000000084_list_028.jpg,근거,반복 구매,0.04,반복 루프 5건 / support 5
+1000000084,십리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000084/image/list/1000000084_list_028.jpg,근거,동시 구매,0.09,동시구매 pair 50건 / support 50
+1000000092,일리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000092/image/list/1000000092_list_029.jpg,헤더,우선순위,즉시 확인,최근 30일 매출이 직전기간 대비 -61.0% / 재구매확장기여 기준 score 0.21
+1000000092,일리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000092/image/list/1000000092_list_029.jpg,Revenue,최근 30일 대비,-61.0%,직전 동일 길이 기간과 비교 가능합니다.
+1000000092,일리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000092/image/list/1000000092_list_029.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000092,일리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000092/image/list/1000000092_list_029.jpg,Role,현재 taxonomy,재구매확장기여,재구매확장기여 기준 score 0.21
+1000000092,일리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000092/image/list/1000000092_list_029.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000092,일리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000092/image/list/1000000092_list_029.jpg,근거,반복 구매,0.08,반복 루프 14건 / support 14
+1000000092,일리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000092/image/list/1000000092_list_029.jpg,근거,동시 구매,0.07,동시구매 pair 42건 / support 42
+1000000091,일리향 2단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000091/image/list/1000000091_list_092.jpg,헤더,우선순위,즉시 확인,최근 30일 매출이 직전기간 대비 -32.8% / 재구매확장기여 기준 score 0.25
+1000000091,일리향 2단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000091/image/list/1000000091_list_092.jpg,Revenue,최근 30일 대비,-32.8%,직전 동일 길이 기간과 비교 가능합니다.
+1000000091,일리향 2단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000091/image/list/1000000091_list_092.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000091,일리향 2단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000091/image/list/1000000091_list_092.jpg,Role,현재 taxonomy,재구매확장기여,재구매확장기여 기준 score 0.25
+1000000091,일리향 2단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000091/image/list/1000000091_list_092.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000091,일리향 2단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000091/image/list/1000000091_list_092.jpg,근거,반복 구매,0.14,반복 루프 17건 / support 17
+1000000091,일리향 2단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000091/image/list/1000000091_list_092.jpg,근거,동시 구매,0.12,동시구매 pair 48건 / support 48
+1000000085,십리향 2단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000085/image/list/1000000085_list_069.jpg,헤더,우선순위,즉시 확인,최근 30일 매출이 직전기간 대비 -26.0% / 재구매확장기여 기준 score 0.30
+1000000085,십리향 2단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000085/image/list/1000000085_list_069.jpg,Revenue,최근 30일 대비,-26.0%,직전 동일 길이 기간과 비교 가능합니다.
+1000000085,십리향 2단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000085/image/list/1000000085_list_069.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000085,십리향 2단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000085/image/list/1000000085_list_069.jpg,Role,현재 taxonomy,재구매확장기여,재구매확장기여 기준 score 0.30
+1000000085,십리향 2단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000085/image/list/1000000085_list_069.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000085,십리향 2단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000085/image/list/1000000085_list_069.jpg,근거,반복 구매,0.16,반복 루프 37건 / support 37
+1000000085,십리향 2단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000085/image/list/1000000085_list_069.jpg,근거,동시 구매,0.12,동시구매 pair 60건 / support 60
+1000000090,일리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000090/image/list/1000000090_list_073.jpg,헤더,우선순위,즉시 확인,최근 30일 매출이 직전기간 대비 -29.6% / 동시구매기여 기준 score 0.11
+1000000090,일리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000090/image/list/1000000090_list_073.jpg,Revenue,최근 30일 대비,-29.6%,직전 동일 길이 기간과 비교 가능합니다.
+1000000090,일리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000090/image/list/1000000090_list_073.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000090,일리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000090/image/list/1000000090_list_073.jpg,Role,현재 taxonomy,동시구매기여,동시구매기여 기준 score 0.11
+1000000090,일리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000090/image/list/1000000090_list_073.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000090,일리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000090/image/list/1000000090_list_073.jpg,근거,반복 구매,0.02,반복 루프 3건 / support 3
+1000000090,일리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000090/image/list/1000000090_list_073.jpg,근거,동시 구매,0.11,동시구매 pair 50건 / support 50
+1000000087,백리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000087/image/list/1000000087_list_067.jpg,헤더,우선순위,주의 관찰,최근 30일 매출이 직전기간 대비 -11.7% / 반복구매기여 기준 score 0.31
+1000000087,백리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000087/image/list/1000000087_list_067.jpg,Revenue,최근 30일 대비,-11.7%,직전 동일 길이 기간과 비교 가능합니다.
+1000000087,백리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000087/image/list/1000000087_list_067.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000087,백리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000087/image/list/1000000087_list_067.jpg,Role,현재 taxonomy,반복구매기여,반복구매기여 기준 score 0.31
+1000000087,백리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000087/image/list/1000000087_list_067.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000087,백리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000087/image/list/1000000087_list_067.jpg,근거,반복 구매,0.31,반복 루프 66건 / support 66
+1000000087,백리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000087/image/list/1000000087_list_067.jpg,근거,동시 구매,0.14,동시구매 pair 70건 / support 70
+1000000177,설 백리향 1단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000177/image/list/1000000177_list_062.jpg,헤더,우선순위,즉시 확인,최근 30일 매출이 직전기간 대비 -100.0% / 역할 근거 없음
+1000000177,설 백리향 1단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000177/image/list/1000000177_list_062.jpg,Revenue,최근 30일 대비,-100.0%,직전 동일 길이 기간과 비교 가능합니다.
+1000000177,설 백리향 1단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000177/image/list/1000000177_list_062.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000177,설 백리향 1단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000177/image/list/1000000177_list_062.jpg,Role,현재 taxonomy,관측 없음,역할 근거 없음
+1000000177,설 백리향 1단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000177/image/list/1000000177_list_062.jpg,Brand Score,상태,unavailable,Brand Score unavailable
+1000000177,설 백리향 1단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000177/image/list/1000000177_list_062.jpg,근거,반복 구매,,반복 루프 0건 / support 0
+1000000177,설 백리향 1단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000177/image/list/1000000177_list_062.jpg,근거,동시 구매,,동시구매 pair 0건 / support 0
+1000000112,매화 5송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000112/image/list/1000000112_list_032.jpg,헤더,우선순위,주의 관찰,최근 30일 매출이 직전기간 대비 -11.4% / 반복구매기여 기준 score 0.17
+1000000112,매화 5송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000112/image/list/1000000112_list_032.jpg,Revenue,최근 30일 대비,-11.4%,직전 동일 길이 기간과 비교 가능합니다.
+1000000112,매화 5송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000112/image/list/1000000112_list_032.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000112,매화 5송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000112/image/list/1000000112_list_032.jpg,Role,현재 taxonomy,반복구매기여,반복구매기여 기준 score 0.17
+1000000112,매화 5송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000112/image/list/1000000112_list_032.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000112,매화 5송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000112/image/list/1000000112_list_032.jpg,근거,반복 구매,0.17,반복 루프 10건 / support 10
+1000000112,매화 5송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000112/image/list/1000000112_list_032.jpg,근거,동시 구매,0.05,동시구매 pair 52건 / support 52
+1000000064,2색 이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000064/image/list/1000000064_list_053.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 -2.3% / 첫구매기여 기준 score 1.00
+1000000064,2색 이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000064/image/list/1000000064_list_053.jpg,Revenue,최근 30일 대비,-2.3%,직전 동일 길이 기간과 비교 가능합니다.
+1000000064,2색 이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000064/image/list/1000000064_list_053.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000064,2색 이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000064/image/list/1000000064_list_053.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 score 1.00
+1000000064,2색 이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000064/image/list/1000000064_list_053.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000064,2색 이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000064/image/list/1000000064_list_053.jpg,근거,반복 구매,0.18,반복 루프 214건 / support 214
+1000000064,2색 이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000064/image/list/1000000064_list_053.jpg,근거,동시 구매,1.00,동시구매 pair 76건 / support 76
+1000000043,모듬영양찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000043/image/list/1000000043_list_012.jpg,헤더,우선순위,즉시 확인,최근 30일 매출이 직전기간 대비 -34.1% / 동시구매기여 기준 score 0.49
+1000000043,모듬영양찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000043/image/list/1000000043_list_012.jpg,Revenue,최근 30일 대비,-34.1%,직전 동일 길이 기간과 비교 가능합니다.
+1000000043,모듬영양찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000043/image/list/1000000043_list_012.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000043,모듬영양찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000043/image/list/1000000043_list_012.jpg,Role,현재 taxonomy,동시구매기여,동시구매기여 기준 score 0.49
+1000000043,모듬영양찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000043/image/list/1000000043_list_012.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000043,모듬영양찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000043/image/list/1000000043_list_012.jpg,근거,반복 구매,0.33,반복 루프 26건 / support 26
+1000000043,모듬영양찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000043/image/list/1000000043_list_012.jpg,근거,동시 구매,0.49,동시구매 pair 70건 / support 70
+1000000153,유밀상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000153/image/list/1000000153_list_092.jpg,헤더,우선순위,즉시 확인,최근 30일 매출이 직전기간 대비 -70.0% / 재구매확장기여 기준 score 0.12
+1000000153,유밀상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000153/image/list/1000000153_list_092.jpg,Revenue,최근 30일 대비,-70.0%,직전 동일 길이 기간과 비교 가능합니다.
+1000000153,유밀상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000153/image/list/1000000153_list_092.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000153,유밀상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000153/image/list/1000000153_list_092.jpg,Role,현재 taxonomy,재구매확장기여,재구매확장기여 기준 score 0.12
+1000000153,유밀상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000153/image/list/1000000153_list_092.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000153,유밀상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000153/image/list/1000000153_list_092.jpg,근거,반복 구매,0.05,반복 루프 5건 / support 5
+1000000153,유밀상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000153/image/list/1000000153_list_092.jpg,근거,동시 구매,0.02,동시구매 pair 4건 / support 4
+1000000062,흰이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000062/image/list/1000000062_list_062.jpg,헤더,우선순위,주의 관찰,최근 30일 매출이 직전기간 대비 -8.0% / 동시구매기여 기준 score 0.34
+1000000062,흰이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000062/image/list/1000000062_list_062.jpg,Revenue,최근 30일 대비,-8.0%,직전 동일 길이 기간과 비교 가능합니다.
+1000000062,흰이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000062/image/list/1000000062_list_062.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000062,흰이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000062/image/list/1000000062_list_062.jpg,Role,현재 taxonomy,동시구매기여,동시구매기여 기준 score 0.34
+1000000062,흰이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000062/image/list/1000000062_list_062.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000062,흰이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000062/image/list/1000000062_list_062.jpg,근거,반복 구매,0.11,반복 루프 13건 / support 13
+1000000062,흰이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000062/image/list/1000000062_list_062.jpg,근거,동시 구매,0.34,동시구매 pair 70건 / support 70
+1000000144,경기 미숫가루 쫀드기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000144/image/list/1000000144_list_070.jpg,헤더,우선순위,즉시 확인,최근 30일 매출이 직전기간 대비 -100.0% / 역할 근거 없음
+1000000144,경기 미숫가루 쫀드기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000144/image/list/1000000144_list_070.jpg,Revenue,최근 30일 대비,-100.0%,직전 동일 길이 기간과 비교 가능합니다.
+1000000144,경기 미숫가루 쫀드기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000144/image/list/1000000144_list_070.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000144,경기 미숫가루 쫀드기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000144/image/list/1000000144_list_070.jpg,Role,현재 taxonomy,관측 없음,역할 근거 없음
+1000000144,경기 미숫가루 쫀드기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000144/image/list/1000000144_list_070.jpg,Brand Score,상태,unavailable,Brand Score unavailable
+1000000144,경기 미숫가루 쫀드기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000144/image/list/1000000144_list_070.jpg,근거,반복 구매,,반복 루프 0건 / support 0
+1000000144,경기 미숫가루 쫀드기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000144/image/list/1000000144_list_070.jpg,근거,동시 구매,,동시구매 pair 0건 / support 0
+1000000128,흑임자인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000128/image/list/1000000128_list_033.jpg,헤더,우선순위,즉시 확인,최근 30일 매출이 직전기간 대비 -53.3% / 재구매확장기여 기준 score 0.13
+1000000128,흑임자인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000128/image/list/1000000128_list_033.jpg,Revenue,최근 30일 대비,-53.3%,직전 동일 길이 기간과 비교 가능합니다.
+1000000128,흑임자인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000128/image/list/1000000128_list_033.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000128,흑임자인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000128/image/list/1000000128_list_033.jpg,Role,현재 taxonomy,재구매확장기여,재구매확장기여 기준 score 0.13
+1000000128,흑임자인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000128/image/list/1000000128_list_033.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000128,흑임자인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000128/image/list/1000000128_list_033.jpg,근거,반복 구매,0.07,반복 루프 1건 / support 1
+1000000128,흑임자인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000128/image/list/1000000128_list_033.jpg,근거,동시 구매,0.12,동시구매 pair 62건 / support 62
+1000000095,매화 5송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000095/image/list/1000000095_list_06.jpg,헤더,우선순위,즉시 확인,최근 30일 매출이 직전기간 대비 -100.0% / 역할 근거 없음
+1000000095,매화 5송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000095/image/list/1000000095_list_06.jpg,Revenue,최근 30일 대비,-100.0%,직전 동일 길이 기간과 비교 가능합니다.
+1000000095,매화 5송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000095/image/list/1000000095_list_06.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000095,매화 5송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000095/image/list/1000000095_list_06.jpg,Role,현재 taxonomy,관측 없음,역할 근거 없음
+1000000095,매화 5송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000095/image/list/1000000095_list_06.jpg,Brand Score,상태,unavailable,Brand Score unavailable
+1000000095,매화 5송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000095/image/list/1000000095_list_06.jpg,근거,반복 구매,,반복 루프 0건 / support 0
+1000000095,매화 5송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000095/image/list/1000000095_list_06.jpg,근거,동시 구매,,동시구매 pair 0건 / support 0
+1000000075,2색절편 4kg,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000075/image/list/1000000075_list_092.jpg,헤더,우선순위,즉시 확인,최근 30일 매출이 직전기간 대비 -100.0% / 역할 근거 없음
+1000000075,2색절편 4kg,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000075/image/list/1000000075_list_092.jpg,Revenue,최근 30일 대비,-100.0%,직전 동일 길이 기간과 비교 가능합니다.
+1000000075,2색절편 4kg,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000075/image/list/1000000075_list_092.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000075,2색절편 4kg,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000075/image/list/1000000075_list_092.jpg,Role,현재 taxonomy,관측 없음,역할 근거 없음
+1000000075,2색절편 4kg,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000075/image/list/1000000075_list_092.jpg,Brand Score,상태,unavailable,Brand Score unavailable
+1000000075,2색절편 4kg,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000075/image/list/1000000075_list_092.jpg,근거,반복 구매,,반복 루프 0건 / support 0
+1000000075,2색절편 4kg,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000075/image/list/1000000075_list_092.jpg,근거,동시 구매,,동시구매 pair 0건 / support 0
+1000000156,기원상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000156/image/list/1000000156_list_085.jpg,헤더,우선순위,주의 관찰,최근 30일 매출이 직전기간 대비 -15.8% / 재구매확장기여 기준 score 0.19
+1000000156,기원상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000156/image/list/1000000156_list_085.jpg,Revenue,최근 30일 대비,-15.8%,직전 동일 길이 기간과 비교 가능합니다.
+1000000156,기원상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000156/image/list/1000000156_list_085.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000156,기원상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000156/image/list/1000000156_list_085.jpg,Role,현재 taxonomy,재구매확장기여,재구매확장기여 기준 score 0.19
+1000000156,기원상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000156/image/list/1000000156_list_085.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000156,기원상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000156/image/list/1000000156_list_085.jpg,근거,반복 구매,0.14,반복 루프 20건 / support 20
+1000000156,기원상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000156/image/list/1000000156_list_085.jpg,근거,동시 구매,0.02,동시구매 pair 4건 / support 4
+1000000176,설 십리향 2단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000176/image/list/1000000176_list_096.jpg,헤더,우선순위,즉시 확인,최근 30일 매출이 직전기간 대비 -100.0% / 역할 근거 없음
+1000000176,설 십리향 2단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000176/image/list/1000000176_list_096.jpg,Revenue,최근 30일 대비,-100.0%,직전 동일 길이 기간과 비교 가능합니다.
+1000000176,설 십리향 2단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000176/image/list/1000000176_list_096.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000176,설 십리향 2단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000176/image/list/1000000176_list_096.jpg,Role,현재 taxonomy,관측 없음,역할 근거 없음
+1000000176,설 십리향 2단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000176/image/list/1000000176_list_096.jpg,Brand Score,상태,unavailable,Brand Score unavailable
+1000000176,설 십리향 2단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000176/image/list/1000000176_list_096.jpg,근거,반복 구매,,반복 루프 0건 / support 0
+1000000176,설 십리향 2단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000176/image/list/1000000176_list_096.jpg,근거,동시 구매,,동시구매 pair 0건 / support 0
+1000000033,가래떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000033/image/list/1000000033_list_090.jpg,헤더,우선순위,즉시 확인,최근 30일 매출이 직전기간 대비 -33.9% / 재구매확장기여 기준 score 0.14
+1000000033,가래떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000033/image/list/1000000033_list_090.jpg,Revenue,최근 30일 대비,-33.9%,직전 동일 길이 기간과 비교 가능합니다.
+1000000033,가래떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000033/image/list/1000000033_list_090.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000033,가래떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000033/image/list/1000000033_list_090.jpg,Role,현재 taxonomy,재구매확장기여,재구매확장기여 기준 score 0.14
+1000000033,가래떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000033/image/list/1000000033_list_090.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000033,가래떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000033/image/list/1000000033_list_090.jpg,근거,반복 구매,0.06,반복 루프 3건 / support 3
+1000000033,가래떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000033/image/list/1000000033_list_090.jpg,근거,동시 구매,0.07,동시구매 pair 42건 / support 42
+1000000142,경기 미숫가루,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000142/image/list/1000000142_list_011.jpg,헤더,우선순위,즉시 확인,최근 30일 매출이 직전기간 대비 -36.3% / 재구매확장기여 기준 score 0.14
+1000000142,경기 미숫가루,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000142/image/list/1000000142_list_011.jpg,Revenue,최근 30일 대비,-36.3%,직전 동일 길이 기간과 비교 가능합니다.
+1000000142,경기 미숫가루,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000142/image/list/1000000142_list_011.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000142,경기 미숫가루,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000142/image/list/1000000142_list_011.jpg,Role,현재 taxonomy,재구매확장기여,재구매확장기여 기준 score 0.14
+1000000142,경기 미숫가루,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000142/image/list/1000000142_list_011.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000142,경기 미숫가루,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000142/image/list/1000000142_list_011.jpg,근거,반복 구매,0.00,반복 루프 0건 / support 0
+1000000142,경기 미숫가루,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000142/image/list/1000000142_list_011.jpg,근거,동시 구매,0.06,동시구매 pair 46건 / support 46
+1000000162,백리향 1단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000162/image/list/1000000087_list_067.jpg,헤더,우선순위,즉시 확인,최근 30일 매출이 직전기간 대비 -100.0% / 역할 근거 없음
+1000000162,백리향 1단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000162/image/list/1000000087_list_067.jpg,Revenue,최근 30일 대비,-100.0%,직전 동일 길이 기간과 비교 가능합니다.
+1000000162,백리향 1단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000162/image/list/1000000087_list_067.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000162,백리향 1단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000162/image/list/1000000087_list_067.jpg,Role,현재 taxonomy,관측 없음,역할 근거 없음
+1000000162,백리향 1단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000162/image/list/1000000087_list_067.jpg,Brand Score,상태,unavailable,Brand Score unavailable
+1000000162,백리향 1단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000162/image/list/1000000087_list_067.jpg,근거,반복 구매,,반복 루프 0건 / support 0
+1000000162,백리향 1단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000162/image/list/1000000087_list_067.jpg,근거,동시 구매,,동시구매 pair 0건 / support 0
+1000000175,설 십리향 1단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000175/image/list/1000000175_list_064.jpg,헤더,우선순위,즉시 확인,최근 30일 매출이 직전기간 대비 -100.0% / 역할 근거 없음
+1000000175,설 십리향 1단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000175/image/list/1000000175_list_064.jpg,Revenue,최근 30일 대비,-100.0%,직전 동일 길이 기간과 비교 가능합니다.
+1000000175,설 십리향 1단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000175/image/list/1000000175_list_064.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000175,설 십리향 1단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000175/image/list/1000000175_list_064.jpg,Role,현재 taxonomy,관측 없음,역할 근거 없음
+1000000175,설 십리향 1단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000175/image/list/1000000175_list_064.jpg,Brand Score,상태,unavailable,Brand Score unavailable
+1000000175,설 십리향 1단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000175/image/list/1000000175_list_064.jpg,근거,반복 구매,,반복 루프 0건 / support 0
+1000000175,설 십리향 1단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000175/image/list/1000000175_list_064.jpg,근거,동시 구매,,동시구매 pair 0건 / support 0
+1000000121,깨송편 1kg,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000121/image/list/1000000121_list_089.jpg,헤더,우선순위,즉시 확인,최근 30일 매출이 직전기간 대비 -29.6% / 반복구매기여 기준 score 0.22
+1000000121,깨송편 1kg,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000121/image/list/1000000121_list_089.jpg,Revenue,최근 30일 대비,-29.6%,직전 동일 길이 기간과 비교 가능합니다.
+1000000121,깨송편 1kg,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000121/image/list/1000000121_list_089.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000121,깨송편 1kg,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000121/image/list/1000000121_list_089.jpg,Role,현재 taxonomy,반복구매기여,반복구매기여 기준 score 0.22
+1000000121,깨송편 1kg,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000121/image/list/1000000121_list_089.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000121,깨송편 1kg,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000121/image/list/1000000121_list_089.jpg,근거,반복 구매,0.22,반복 루프 36건 / support 36
+1000000121,깨송편 1kg,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000121/image/list/1000000121_list_089.jpg,근거,동시 구매,0.19,동시구매 pair 58건 / support 58
+1000000042,약식,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000042/image/list/1000000042_list_03.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 -2.8% / 동시구매기여 기준 score 0.42
+1000000042,약식,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000042/image/list/1000000042_list_03.jpg,Revenue,최근 30일 대비,-2.8%,직전 동일 길이 기간과 비교 가능합니다.
+1000000042,약식,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000042/image/list/1000000042_list_03.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000042,약식,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000042/image/list/1000000042_list_03.jpg,Role,현재 taxonomy,동시구매기여,동시구매기여 기준 score 0.42
+1000000042,약식,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000042/image/list/1000000042_list_03.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000042,약식,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000042/image/list/1000000042_list_03.jpg,근거,반복 구매,0.15,반복 루프 30건 / support 30
+1000000042,약식,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000042/image/list/1000000042_list_03.jpg,근거,동시 구매,0.42,동시구매 pair 68건 / support 68
+1000000072,마스코바도 흑임자설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000072/image/list/1000000072_list_015.jpg,헤더,우선순위,즉시 확인,최근 30일 매출이 직전기간 대비 -100.0% / 역할 근거 없음
+1000000072,마스코바도 흑임자설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000072/image/list/1000000072_list_015.jpg,Revenue,최근 30일 대비,-100.0%,직전 동일 길이 기간과 비교 가능합니다.
+1000000072,마스코바도 흑임자설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000072/image/list/1000000072_list_015.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
 1000000072,마스코바도 흑임자설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000072/image/list/1000000072_list_015.jpg,Role,현재 taxonomy,관측 없음,역할 근거 없음
 1000000072,마스코바도 흑임자설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000072/image/list/1000000072_list_015.jpg,Brand Score,상태,unavailable,Brand Score unavailable
-1000000072,마스코바도 흑임자설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000072/image/list/1000000072_list_015.jpg,근거,반복 구매,,반복 루프 0건
-1000000072,마스코바도 흑임자설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000072/image/list/1000000072_list_015.jpg,근거,동시 구매,,동시구매 pair 0건
-1000000035,떡국떡 500g,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000035/image/list/1000000035_list_093.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000035,떡국떡 500g,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000035/image/list/1000000035_list_093.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000035,떡국떡 500g,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000035/image/list/1000000035_list_093.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000035,떡국떡 500g,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000035/image/list/1000000035_list_093.jpg,Brand Score,상태,limited,산식은 계산했지만 basket 또는 event 재현이 제한적입니다.
-1000000035,떡국떡 500g,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000035/image/list/1000000035_list_093.jpg,근거,반복 구매,0.40,반복 루프 4건
-1000000035,떡국떡 500g,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000035/image/list/1000000035_list_093.jpg,근거,동시 구매,1.00,동시구매 pair 56건
-1000000074,경기 콩약과(10ea),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000074/image/list/1000000074_list_06.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 동시구매기여 기준 동시구매기여 근거 1.00
-1000000074,경기 콩약과(10ea),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000074/image/list/1000000074_list_06.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000074,경기 콩약과(10ea),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000074/image/list/1000000074_list_06.jpg,Role,현재 taxonomy,동시구매기여,동시구매기여 기준 동시구매기여 근거 1.00
+1000000072,마스코바도 흑임자설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000072/image/list/1000000072_list_015.jpg,근거,반복 구매,,반복 루프 0건 / support 0
+1000000072,마스코바도 흑임자설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000072/image/list/1000000072_list_015.jpg,근거,동시 구매,,동시구매 pair 0건 / support 0
+1000000035,떡국떡 500g,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000035/image/list/1000000035_list_093.jpg,헤더,우선순위,즉시 확인,최근 30일 매출이 직전기간 대비 -47.2% / 재구매확장기여 기준 score 0.20
+1000000035,떡국떡 500g,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000035/image/list/1000000035_list_093.jpg,Revenue,최근 30일 대비,-47.2%,직전 동일 길이 기간과 비교 가능합니다.
+1000000035,떡국떡 500g,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000035/image/list/1000000035_list_093.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000035,떡국떡 500g,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000035/image/list/1000000035_list_093.jpg,Role,현재 taxonomy,재구매확장기여,재구매확장기여 기준 score 0.20
+1000000035,떡국떡 500g,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000035/image/list/1000000035_list_093.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000035,떡국떡 500g,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000035/image/list/1000000035_list_093.jpg,근거,반복 구매,0.19,반복 루프 4건 / support 4
+1000000035,떡국떡 500g,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000035/image/list/1000000035_list_093.jpg,근거,동시 구매,0.15,동시구매 pair 56건 / support 56
+1000000127,흑임자이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000127/image/list/1000000127_list_053.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 -0.5% / 동시구매기여 기준 score 0.42
+1000000127,흑임자이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000127/image/list/1000000127_list_053.jpg,Revenue,최근 30일 대비,-0.5%,직전 동일 길이 기간과 비교 가능합니다.
+1000000127,흑임자이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000127/image/list/1000000127_list_053.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000127,흑임자이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000127/image/list/1000000127_list_053.jpg,Role,현재 taxonomy,동시구매기여,동시구매기여 기준 score 0.42
+1000000127,흑임자이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000127/image/list/1000000127_list_053.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000127,흑임자이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000127/image/list/1000000127_list_053.jpg,근거,반복 구매,0.21,반복 루프 16건 / support 16
+1000000127,흑임자이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000127/image/list/1000000127_list_053.jpg,근거,동시 구매,0.42,동시구매 pair 62건 / support 62
+1000000155,만복상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000155/image/list/1000000155_list_016.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 0.0% / 역할 근거 없음
+1000000155,만복상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000155/image/list/1000000155_list_016.jpg,Revenue,최근 30일 대비,0.0%,직전 동일 길이 기간과 비교 가능합니다.
+1000000155,만복상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000155/image/list/1000000155_list_016.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000155,만복상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000155/image/list/1000000155_list_016.jpg,Role,현재 taxonomy,관측 없음,역할 근거 없음
+1000000155,만복상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000155/image/list/1000000155_list_016.jpg,Brand Score,상태,unavailable,Brand Score unavailable
+1000000155,만복상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000155/image/list/1000000155_list_016.jpg,근거,반복 구매,,반복 루프 0건 / support 0
+1000000155,만복상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000155/image/list/1000000155_list_016.jpg,근거,동시 구매,,동시구매 pair 0건 / support 0
+1000000161,십리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000161/image/list/1000000086_list_048.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 0.0% / 역할 근거 없음
+1000000161,십리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000161/image/list/1000000086_list_048.jpg,Revenue,최근 30일 대비,0.0%,직전 동일 길이 기간과 비교 가능합니다.
+1000000161,십리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000161/image/list/1000000086_list_048.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000161,십리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000161/image/list/1000000086_list_048.jpg,Role,현재 taxonomy,관측 없음,역할 근거 없음
+1000000161,십리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000161/image/list/1000000086_list_048.jpg,Brand Score,상태,unavailable,Brand Score unavailable
+1000000161,십리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000161/image/list/1000000086_list_048.jpg,근거,반복 구매,,반복 루프 0건 / support 0
+1000000161,십리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000161/image/list/1000000086_list_048.jpg,근거,동시 구매,,동시구매 pair 0건 / support 0
+1000000041,콩영양찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000041/image/list/1000000041_list_042.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 0.0% / 역할 근거 없음
+1000000041,콩영양찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000041/image/list/1000000041_list_042.jpg,Revenue,최근 30일 대비,0.0%,직전 동일 길이 기간과 비교 가능합니다.
+1000000041,콩영양찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000041/image/list/1000000041_list_042.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000041,콩영양찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000041/image/list/1000000041_list_042.jpg,Role,현재 taxonomy,관측 없음,역할 근거 없음
+1000000041,콩영양찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000041/image/list/1000000041_list_042.jpg,Brand Score,상태,unavailable,Brand Score unavailable
+1000000041,콩영양찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000041/image/list/1000000041_list_042.jpg,근거,반복 구매,,반복 루프 0건 / support 0
+1000000041,콩영양찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000041/image/list/1000000041_list_042.jpg,근거,동시 구매,,동시구매 pair 0건 / support 0
+1000000152,첫맛상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000152/image/list/1000000152_list_099.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 0.0% / 역할 근거 없음
+1000000152,첫맛상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000152/image/list/1000000152_list_099.jpg,Revenue,최근 30일 대비,0.0%,직전 동일 길이 기간과 비교 가능합니다.
+1000000152,첫맛상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000152/image/list/1000000152_list_099.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000152,첫맛상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000152/image/list/1000000152_list_099.jpg,Role,현재 taxonomy,관측 없음,역할 근거 없음
+1000000152,첫맛상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000152/image/list/1000000152_list_099.jpg,Brand Score,상태,unavailable,Brand Score unavailable
+1000000152,첫맛상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000152/image/list/1000000152_list_099.jpg,근거,반복 구매,,반복 루프 0건 / support 0
+1000000152,첫맛상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000152/image/list/1000000152_list_099.jpg,근거,동시 구매,,동시구매 pair 0건 / support 0
+1000000120,깨송편 4kg,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000120/image/list/1000000120_list_068.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 0.0% / 역할 근거 없음
+1000000120,깨송편 4kg,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000120/image/list/1000000120_list_068.jpg,Revenue,최근 30일 대비,0.0%,직전 동일 길이 기간과 비교 가능합니다.
+1000000120,깨송편 4kg,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000120/image/list/1000000120_list_068.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000120,깨송편 4kg,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000120/image/list/1000000120_list_068.jpg,Role,현재 taxonomy,관측 없음,역할 근거 없음
+1000000120,깨송편 4kg,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000120/image/list/1000000120_list_068.jpg,Brand Score,상태,unavailable,Brand Score unavailable
+1000000120,깨송편 4kg,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000120/image/list/1000000120_list_068.jpg,근거,반복 구매,,반복 루프 0건 / support 0
+1000000120,깨송편 4kg,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000120/image/list/1000000120_list_068.jpg,근거,동시 구매,,동시구매 pair 0건 / support 0
+1000000164,백리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000164/image/list/1000000089_list_027.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 0.0% / 역할 근거 없음
+1000000164,백리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000164/image/list/1000000089_list_027.jpg,Revenue,최근 30일 대비,0.0%,직전 동일 길이 기간과 비교 가능합니다.
+1000000164,백리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000164/image/list/1000000089_list_027.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000164,백리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000164/image/list/1000000089_list_027.jpg,Role,현재 taxonomy,관측 없음,역할 근거 없음
+1000000164,백리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000164/image/list/1000000089_list_027.jpg,Brand Score,상태,unavailable,Brand Score unavailable
+1000000164,백리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000164/image/list/1000000089_list_027.jpg,근거,반복 구매,,반복 루프 0건 / support 0
+1000000164,백리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000164/image/list/1000000089_list_027.jpg,근거,동시 구매,,동시구매 pair 0건 / support 0
+1000000169,기원상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000169/image/list/1000000169_list_079.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 0.0% / 역할 근거 없음
+1000000169,기원상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000169/image/list/1000000169_list_079.jpg,Revenue,최근 30일 대비,0.0%,직전 동일 길이 기간과 비교 가능합니다.
+1000000169,기원상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000169/image/list/1000000169_list_079.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000169,기원상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000169/image/list/1000000169_list_079.jpg,Role,현재 taxonomy,관측 없음,역할 근거 없음
+1000000169,기원상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000169/image/list/1000000169_list_079.jpg,Brand Score,상태,unavailable,Brand Score unavailable
+1000000169,기원상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000169/image/list/1000000169_list_079.jpg,근거,반복 구매,,반복 루프 0건 / support 0
+1000000169,기원상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000169/image/list/1000000169_list_079.jpg,근거,동시 구매,,동시구매 pair 0건 / support 0
+1000000165,첫맛상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000165/image/list/1000000152_list_099.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 0.0% / 역할 근거 없음
+1000000165,첫맛상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000165/image/list/1000000152_list_099.jpg,Revenue,최근 30일 대비,0.0%,직전 동일 길이 기간과 비교 가능합니다.
+1000000165,첫맛상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000165/image/list/1000000152_list_099.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000165,첫맛상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000165/image/list/1000000152_list_099.jpg,Role,현재 taxonomy,관측 없음,역할 근거 없음
+1000000165,첫맛상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000165/image/list/1000000152_list_099.jpg,Brand Score,상태,unavailable,Brand Score unavailable
+1000000165,첫맛상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000165/image/list/1000000152_list_099.jpg,근거,반복 구매,,반복 루프 0건 / support 0
+1000000165,첫맛상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000165/image/list/1000000152_list_099.jpg,근거,동시 구매,,동시구매 pair 0건 / support 0
+1000000167,화연상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000167/image/list/1000000154_list_031.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 0.0% / 역할 근거 없음
+1000000167,화연상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000167/image/list/1000000154_list_031.jpg,Revenue,최근 30일 대비,0.0%,직전 동일 길이 기간과 비교 가능합니다.
+1000000167,화연상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000167/image/list/1000000154_list_031.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000167,화연상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000167/image/list/1000000154_list_031.jpg,Role,현재 taxonomy,관측 없음,역할 근거 없음
+1000000167,화연상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000167/image/list/1000000154_list_031.jpg,Brand Score,상태,unavailable,Brand Score unavailable
+1000000167,화연상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000167/image/list/1000000154_list_031.jpg,근거,반복 구매,,반복 루프 0건 / support 0
+1000000167,화연상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000167/image/list/1000000154_list_031.jpg,근거,동시 구매,,동시구매 pair 0건 / support 0
+1000000166,유밀상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000166/image/list/1000000153_list_092.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 0.0% / 역할 근거 없음
+1000000166,유밀상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000166/image/list/1000000153_list_092.jpg,Revenue,최근 30일 대비,0.0%,직전 동일 길이 기간과 비교 가능합니다.
+1000000166,유밀상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000166/image/list/1000000153_list_092.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000166,유밀상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000166/image/list/1000000153_list_092.jpg,Role,현재 taxonomy,관측 없음,역할 근거 없음
+1000000166,유밀상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000166/image/list/1000000153_list_092.jpg,Brand Score,상태,unavailable,Brand Score unavailable
+1000000166,유밀상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000166/image/list/1000000153_list_092.jpg,근거,반복 구매,,반복 루프 0건 / support 0
+1000000166,유밀상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000166/image/list/1000000153_list_092.jpg,근거,동시 구매,,동시구매 pair 0건 / support 0
+1000000178,설 백리향 2단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000178/image/list/1000000178_list_054.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 0.0% / 역할 근거 없음
+1000000178,설 백리향 2단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000178/image/list/1000000178_list_054.jpg,Revenue,최근 30일 대비,0.0%,직전 동일 길이 기간과 비교 가능합니다.
+1000000178,설 백리향 2단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000178/image/list/1000000178_list_054.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000178,설 백리향 2단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000178/image/list/1000000178_list_054.jpg,Role,현재 taxonomy,관측 없음,역할 근거 없음
+1000000178,설 백리향 2단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000178/image/list/1000000178_list_054.jpg,Brand Score,상태,unavailable,Brand Score unavailable
+1000000178,설 백리향 2단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000178/image/list/1000000178_list_054.jpg,근거,반복 구매,,반복 루프 0건 / support 0
+1000000178,설 백리향 2단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000178/image/list/1000000178_list_054.jpg,근거,동시 구매,,동시구매 pair 0건 / support 0
+1000000179,설 백리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000179/image/list/1000000179_list_07.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 0.0% / 역할 근거 없음
+1000000179,설 백리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000179/image/list/1000000179_list_07.jpg,Revenue,최근 30일 대비,0.0%,직전 동일 길이 기간과 비교 가능합니다.
+1000000179,설 백리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000179/image/list/1000000179_list_07.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000179,설 백리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000179/image/list/1000000179_list_07.jpg,Role,현재 taxonomy,관측 없음,역할 근거 없음
+1000000179,설 백리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000179/image/list/1000000179_list_07.jpg,Brand Score,상태,unavailable,Brand Score unavailable
+1000000179,설 백리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000179/image/list/1000000179_list_07.jpg,근거,반복 구매,,반복 루프 0건 / support 0
+1000000179,설 백리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000179/image/list/1000000179_list_07.jpg,근거,동시 구매,,동시구매 pair 0건 / support 0
+1000000027,마스코바도 설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000027/image/list/1000000027_list_012.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 13.3% / 반복구매기여 기준 score 0.12
+1000000027,마스코바도 설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000027/image/list/1000000027_list_012.jpg,Revenue,최근 30일 대비,13.3%,직전 동일 길이 기간과 비교 가능합니다.
+1000000027,마스코바도 설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000027/image/list/1000000027_list_012.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000027,마스코바도 설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000027/image/list/1000000027_list_012.jpg,Role,현재 taxonomy,반복구매기여,반복구매기여 기준 score 0.12
+1000000027,마스코바도 설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000027/image/list/1000000027_list_012.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000027,마스코바도 설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000027/image/list/1000000027_list_012.jpg,근거,반복 구매,0.12,반복 루프 2건 / support 2
+1000000027,마스코바도 설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000027/image/list/1000000027_list_012.jpg,근거,동시 구매,0.04,동시구매 pair 40건 / support 40
+1000000065,흰인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000065/image/list/1000000065_list_019.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 25.0% / 반복구매기여 기준 score 0.42
+1000000065,흰인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000065/image/list/1000000065_list_019.jpg,Revenue,최근 30일 대비,25.0%,직전 동일 길이 기간과 비교 가능합니다.
+1000000065,흰인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000065/image/list/1000000065_list_019.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000065,흰인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000065/image/list/1000000065_list_019.jpg,Role,현재 taxonomy,반복구매기여,반복구매기여 기준 score 0.42
+1000000065,흰인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000065/image/list/1000000065_list_019.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000065,흰인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000065/image/list/1000000065_list_019.jpg,근거,반복 구매,0.42,반복 루프 7건 / support 7
+1000000065,흰인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000065/image/list/1000000065_list_019.jpg,근거,동시 구매,0.12,동시구매 pair 50건 / support 50
+1000000070,마스코바도 쑥설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000070/image/list/1000000070_list_027.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 34.2% / 반복구매기여 기준 score 0.13
+1000000070,마스코바도 쑥설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000070/image/list/1000000070_list_027.jpg,Revenue,최근 30일 대비,34.2%,직전 동일 길이 기간과 비교 가능합니다.
+1000000070,마스코바도 쑥설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000070/image/list/1000000070_list_027.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000070,마스코바도 쑥설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000070/image/list/1000000070_list_027.jpg,Role,현재 taxonomy,반복구매기여,반복구매기여 기준 score 0.13
+1000000070,마스코바도 쑥설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000070/image/list/1000000070_list_027.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000070,마스코바도 쑥설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000070/image/list/1000000070_list_027.jpg,근거,반복 구매,0.13,반복 루프 2건 / support 2
+1000000070,마스코바도 쑥설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000070/image/list/1000000070_list_027.jpg,근거,동시 구매,0.04,동시구매 pair 34건 / support 34
+1000000143,"경기참기름, 경기들기름",https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000143/image/list/1000000143_list_079.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 63.3% / 반복구매기여 기준 score 0.12
+1000000143,"경기참기름, 경기들기름",https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000143/image/list/1000000143_list_079.jpg,Revenue,최근 30일 대비,63.3%,직전 동일 길이 기간과 비교 가능합니다.
+1000000143,"경기참기름, 경기들기름",https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000143/image/list/1000000143_list_079.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000143,"경기참기름, 경기들기름",https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000143/image/list/1000000143_list_079.jpg,Role,현재 taxonomy,반복구매기여,반복구매기여 기준 score 0.12
+1000000143,"경기참기름, 경기들기름",https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000143/image/list/1000000143_list_079.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000143,"경기참기름, 경기들기름",https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000143/image/list/1000000143_list_079.jpg,근거,반복 구매,0.12,반복 루프 1건 / support 1
+1000000143,"경기참기름, 경기들기름",https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000143/image/list/1000000143_list_079.jpg,근거,동시 구매,0.04,동시구매 pair 36건 / support 36
+1000000074,경기 콩약과(10ea),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000074/image/list/1000000074_list_06.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 0.0% / 동시구매기여 기준 score 0.01
+1000000074,경기 콩약과(10ea),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000074/image/list/1000000074_list_06.jpg,Revenue,최근 30일 대비,0.0%,직전 동일 길이 기간과 비교 가능합니다.
+1000000074,경기 콩약과(10ea),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000074/image/list/1000000074_list_06.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000074,경기 콩약과(10ea),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000074/image/list/1000000074_list_06.jpg,Role,현재 taxonomy,동시구매기여,동시구매기여 기준 score 0.01
 1000000074,경기 콩약과(10ea),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000074/image/list/1000000074_list_06.jpg,Brand Score,상태,unavailable,필수 축이 부족해 안정 계산이 불가합니다.
-1000000074,경기 콩약과(10ea),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000074/image/list/1000000074_list_06.jpg,근거,반복 구매,0.00,반복 루프 0건
-1000000074,경기 콩약과(10ea),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000074/image/list/1000000074_list_06.jpg,근거,동시 구매,1.00,동시구매 pair 16건
-1000000027,마스코바도 설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000027/image/list/1000000027_list_012.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000027,마스코바도 설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000027/image/list/1000000027_list_012.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000027,마스코바도 설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000027/image/list/1000000027_list_012.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000027,마스코바도 설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000027/image/list/1000000027_list_012.jpg,Brand Score,상태,limited,산식은 계산했지만 basket 또는 event 재현이 제한적입니다.
-1000000027,마스코바도 설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000027/image/list/1000000027_list_012.jpg,근거,반복 구매,0.20,반복 루프 2건
-1000000027,마스코바도 설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000027/image/list/1000000027_list_012.jpg,근거,동시 구매,1.00,동시구매 pair 40건
-1000000153,유밀상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000153/image/list/1000000153_list_092.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000153,유밀상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000153/image/list/1000000153_list_092.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000153,유밀상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000153/image/list/1000000153_list_092.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000153,유밀상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000153/image/list/1000000153_list_092.jpg,Brand Score,상태,limited,산식은 계산했지만 basket 또는 event 재현이 제한적입니다.
-1000000153,유밀상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000153/image/list/1000000153_list_092.jpg,근거,반복 구매,0.50,반복 루프 5건
-1000000153,유밀상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000153/image/list/1000000153_list_092.jpg,근거,동시 구매,0.40,동시구매 pair 4건
-1000000121,깨송편 1kg,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000121/image/list/1000000121_list_089.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000121,깨송편 1kg,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000121/image/list/1000000121_list_089.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000121,깨송편 1kg,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000121/image/list/1000000121_list_089.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000121,깨송편 1kg,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000121/image/list/1000000121_list_089.jpg,Brand Score,상태,limited,산식은 계산했지만 basket 또는 event 재현이 제한적입니다.
-1000000121,깨송편 1kg,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000121/image/list/1000000121_list_089.jpg,근거,반복 구매,1.00,반복 루프 36건
-1000000121,깨송편 1kg,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000121/image/list/1000000121_list_089.jpg,근거,동시 구매,1.00,동시구매 pair 58건
-1000000065,흰인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000065/image/list/1000000065_list_019.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000065,흰인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000065/image/list/1000000065_list_019.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000065,흰인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000065/image/list/1000000065_list_019.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000065,흰인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000065/image/list/1000000065_list_019.jpg,Brand Score,상태,limited,산식은 계산했지만 basket 또는 event 재현이 제한적입니다.
-1000000065,흰인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000065/image/list/1000000065_list_019.jpg,근거,반복 구매,0.70,반복 루프 7건
-1000000065,흰인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000065/image/list/1000000065_list_019.jpg,근거,동시 구매,1.00,동시구매 pair 50건
-1000000142,경기 미숫가루,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000142/image/list/1000000142_list_011.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000142,경기 미숫가루,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000142/image/list/1000000142_list_011.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000142,경기 미숫가루,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000142/image/list/1000000142_list_011.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000142,경기 미숫가루,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000142/image/list/1000000142_list_011.jpg,Brand Score,상태,provisional,5축을 대부분 재현했지만 core intermediate와 완전 동일하지 않습니다.
-1000000142,경기 미숫가루,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000142/image/list/1000000142_list_011.jpg,근거,반복 구매,0.00,반복 루프 0건
-1000000142,경기 미숫가루,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000142/image/list/1000000142_list_011.jpg,근거,동시 구매,1.00,동시구매 pair 46건
-1000000033,가래떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000033/image/list/1000000033_list_090.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000033,가래떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000033/image/list/1000000033_list_090.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000033,가래떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000033/image/list/1000000033_list_090.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000033,가래떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000033/image/list/1000000033_list_090.jpg,Brand Score,상태,limited,산식은 계산했지만 basket 또는 event 재현이 제한적입니다.
-1000000033,가래떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000033/image/list/1000000033_list_090.jpg,근거,반복 구매,0.30,반복 루프 3건
-1000000033,가래떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000033/image/list/1000000033_list_090.jpg,근거,동시 구매,1.00,동시구매 pair 42건
-1000000143,"경기참기름, 경기들기름",https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000143/image/list/1000000143_list_079.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000143,"경기참기름, 경기들기름",https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000143/image/list/1000000143_list_079.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000143,"경기참기름, 경기들기름",https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000143/image/list/1000000143_list_079.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000143,"경기참기름, 경기들기름",https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000143/image/list/1000000143_list_079.jpg,Brand Score,상태,provisional,5축을 대부분 재현했지만 core intermediate와 완전 동일하지 않습니다.
-1000000143,"경기참기름, 경기들기름",https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000143/image/list/1000000143_list_079.jpg,근거,반복 구매,0.12,반복 루프 1건
-1000000143,"경기참기름, 경기들기름",https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000143/image/list/1000000143_list_079.jpg,근거,동시 구매,1.00,동시구매 pair 36건
-1000000128,흑임자인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000128/image/list/1000000128_list_033.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000128,흑임자인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000128/image/list/1000000128_list_033.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000128,흑임자인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000128/image/list/1000000128_list_033.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000128,흑임자인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000128/image/list/1000000128_list_033.jpg,Brand Score,상태,provisional,5축을 대부분 재현했지만 core intermediate와 완전 동일하지 않습니다.
-1000000128,흑임자인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000128/image/list/1000000128_list_033.jpg,근거,반복 구매,0.10,반복 루프 1건
-1000000128,흑임자인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000128/image/list/1000000128_list_033.jpg,근거,동시 구매,1.00,동시구매 pair 62건
-1000000154,화연상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000154/image/list/1000000154_list_031.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000154,화연상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000154/image/list/1000000154_list_031.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000154,화연상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000154/image/list/1000000154_list_031.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000154,화연상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000154/image/list/1000000154_list_031.jpg,Brand Score,상태,limited,산식은 계산했지만 basket 또는 event 재현이 제한적입니다.
-1000000154,화연상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000154/image/list/1000000154_list_031.jpg,근거,반복 구매,0.50,반복 루프 5건
-1000000154,화연상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000154/image/list/1000000154_list_031.jpg,근거,동시 구매,0.40,동시구매 pair 4건
-1000000070,마스코바도 쑥설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000070/image/list/1000000070_list_027.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000070,마스코바도 쑥설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000070/image/list/1000000070_list_027.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000070,마스코바도 쑥설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000070/image/list/1000000070_list_027.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000070,마스코바도 쑥설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000070/image/list/1000000070_list_027.jpg,Brand Score,상태,provisional,5축을 대부분 재현했지만 core intermediate와 완전 동일하지 않습니다.
-1000000070,마스코바도 쑥설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000070/image/list/1000000070_list_027.jpg,근거,반복 구매,0.20,반복 루프 2건
-1000000070,마스코바도 쑥설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000070/image/list/1000000070_list_027.jpg,근거,동시 구매,1.00,동시구매 pair 34건
-1000000071,마스코바도 호박설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000071/image/list/1000000071_list_020.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000071,마스코바도 호박설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000071/image/list/1000000071_list_020.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000071,마스코바도 호박설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000071/image/list/1000000071_list_020.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000071,마스코바도 호박설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000071/image/list/1000000071_list_020.jpg,Brand Score,상태,provisional,5축을 대부분 재현했지만 core intermediate와 완전 동일하지 않습니다.
-1000000071,마스코바도 호박설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000071/image/list/1000000071_list_020.jpg,근거,반복 구매,0.30,반복 루프 3건
-1000000071,마스코바도 호박설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000071/image/list/1000000071_list_020.jpg,근거,동시 구매,1.00,동시구매 pair 44건
-1000000156,기원상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000156/image/list/1000000156_list_085.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000156,기원상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000156/image/list/1000000156_list_085.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000156,기원상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000156/image/list/1000000156_list_085.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000156,기원상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000156/image/list/1000000156_list_085.jpg,Brand Score,상태,limited,산식은 계산했지만 basket 또는 event 재현이 제한적입니다.
-1000000156,기원상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000156/image/list/1000000156_list_085.jpg,근거,반복 구매,1.00,반복 루프 20건
-1000000156,기원상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000156/image/list/1000000156_list_085.jpg,근거,동시 구매,0.40,동시구매 pair 4건
-1000000083,백설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000083/image/list/1000000083_list_054.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000083,백설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000083/image/list/1000000083_list_054.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000083,백설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000083/image/list/1000000083_list_054.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000083,백설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000083/image/list/1000000083_list_054.jpg,Brand Score,상태,limited,산식은 계산했지만 basket 또는 event 재현이 제한적입니다.
-1000000083,백설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000083/image/list/1000000083_list_054.jpg,근거,반복 구매,0.60,반복 루프 6건
-1000000083,백설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000083/image/list/1000000083_list_054.jpg,근거,동시 구매,1.00,동시구매 pair 60건
-1000000043,모듬영양찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000043/image/list/1000000043_list_012.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000043,모듬영양찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000043/image/list/1000000043_list_012.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000043,모듬영양찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000043/image/list/1000000043_list_012.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000043,모듬영양찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000043/image/list/1000000043_list_012.jpg,Brand Score,상태,provisional,5축을 대부분 재현했지만 core intermediate와 완전 동일하지 않습니다.
-1000000043,모듬영양찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000043/image/list/1000000043_list_012.jpg,근거,반복 구매,1.00,반복 루프 26건
-1000000043,모듬영양찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000043/image/list/1000000043_list_012.jpg,근거,동시 구매,1.00,동시구매 pair 70건
-1000000066,쑥인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000066/image/list/1000000066_list_042.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000066,쑥인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000066/image/list/1000000066_list_042.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000066,쑥인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000066/image/list/1000000066_list_042.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000066,쑥인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000066/image/list/1000000066_list_042.jpg,Brand Score,상태,provisional,5축을 대부분 재현했지만 core intermediate와 완전 동일하지 않습니다.
-1000000066,쑥인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000066/image/list/1000000066_list_042.jpg,근거,반복 구매,0.90,반복 루프 9건
-1000000066,쑥인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000066/image/list/1000000066_list_042.jpg,근거,동시 구매,1.00,동시구매 pair 50건
-1000000028,마스코바도 딸기설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000028/image/list/1000000028_list_04.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000028,마스코바도 딸기설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000028/image/list/1000000028_list_04.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000028,마스코바도 딸기설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000028/image/list/1000000028_list_04.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000028,마스코바도 딸기설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000028/image/list/1000000028_list_04.jpg,Brand Score,상태,limited,산식은 계산했지만 basket 또는 event 재현이 제한적입니다.
-1000000028,마스코바도 딸기설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000028/image/list/1000000028_list_04.jpg,근거,반복 구매,0.30,반복 루프 3건
-1000000028,마스코바도 딸기설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000028/image/list/1000000028_list_04.jpg,근거,동시 구매,1.00,동시구매 pair 30건
-1000000069,설기세트,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000069/image/list/1000000069_list_033.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000069,설기세트,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000069/image/list/1000000069_list_033.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000069,설기세트,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000069/image/list/1000000069_list_033.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000069,설기세트,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000069/image/list/1000000069_list_033.jpg,Brand Score,상태,provisional,5축을 대부분 재현했지만 core intermediate와 완전 동일하지 않습니다.
-1000000069,설기세트,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000069/image/list/1000000069_list_033.jpg,근거,반복 구매,0.40,반복 루프 4건
-1000000069,설기세트,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000069/image/list/1000000069_list_033.jpg,근거,동시 구매,1.00,동시구매 pair 54건
-1000000092,일리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000092/image/list/1000000092_list_029.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000092,일리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000092/image/list/1000000092_list_029.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000092,일리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000092/image/list/1000000092_list_029.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000092,일리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000092/image/list/1000000092_list_029.jpg,Brand Score,상태,provisional,5축을 대부분 재현했지만 core intermediate와 완전 동일하지 않습니다.
-1000000092,일리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000092/image/list/1000000092_list_029.jpg,근거,반복 구매,1.00,반복 루프 14건
-1000000092,일리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000092/image/list/1000000092_list_029.jpg,근거,동시 구매,1.00,동시구매 pair 42건
-1000000044,고구마찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000044/image/list/1000000044_list_088.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000044,고구마찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000044/image/list/1000000044_list_088.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000044,고구마찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000044/image/list/1000000044_list_088.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000044,고구마찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000044/image/list/1000000044_list_088.jpg,Brand Score,상태,provisional,5축을 대부분 재현했지만 core intermediate와 완전 동일하지 않습니다.
-1000000044,고구마찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000044/image/list/1000000044_list_088.jpg,근거,반복 구매,1.00,반복 루프 17건
-1000000044,고구마찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000044/image/list/1000000044_list_088.jpg,근거,동시 구매,1.00,동시구매 pair 60건
-1000000127,흑임자이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000127/image/list/1000000127_list_053.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000127,흑임자이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000127/image/list/1000000127_list_053.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000127,흑임자이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000127/image/list/1000000127_list_053.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000127,흑임자이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000127/image/list/1000000127_list_053.jpg,Brand Score,상태,provisional,5축을 대부분 재현했지만 core intermediate와 완전 동일하지 않습니다.
-1000000127,흑임자이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000127/image/list/1000000127_list_053.jpg,근거,반복 구매,1.00,반복 루프 16건
-1000000127,흑임자이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000127/image/list/1000000127_list_053.jpg,근거,동시 구매,1.00,동시구매 pair 62건
-1000000042,약식,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000042/image/list/1000000042_list_03.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000042,약식,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000042/image/list/1000000042_list_03.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000042,약식,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000042/image/list/1000000042_list_03.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000042,약식,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000042/image/list/1000000042_list_03.jpg,Brand Score,상태,provisional,5축을 대부분 재현했지만 core intermediate와 완전 동일하지 않습니다.
-1000000042,약식,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000042/image/list/1000000042_list_03.jpg,근거,반복 구매,1.00,반복 루프 30건
-1000000042,약식,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000042/image/list/1000000042_list_03.jpg,근거,동시 구매,1.00,동시구매 pair 68건
-1000000045,완두시루떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000045/image/list/1000000045_list_095.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000045,완두시루떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000045/image/list/1000000045_list_095.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000045,완두시루떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000045/image/list/1000000045_list_095.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000045,완두시루떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000045/image/list/1000000045_list_095.jpg,Brand Score,상태,provisional,5축을 대부분 재현했지만 core intermediate와 완전 동일하지 않습니다.
-1000000045,완두시루떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000045/image/list/1000000045_list_095.jpg,근거,반복 구매,1.00,반복 루프 48건
-1000000045,완두시루떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000045/image/list/1000000045_list_095.jpg,근거,동시 구매,1.00,동시구매 pair 72건
-1000000084,십리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000084/image/list/1000000084_list_028.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000084,십리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000084/image/list/1000000084_list_028.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000084,십리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000084/image/list/1000000084_list_028.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000084,십리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000084/image/list/1000000084_list_028.jpg,Brand Score,상태,provisional,5축을 대부분 재현했지만 core intermediate와 완전 동일하지 않습니다.
-1000000084,십리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000084/image/list/1000000084_list_028.jpg,근거,반복 구매,0.50,반복 루프 5건
-1000000084,십리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000084/image/list/1000000084_list_028.jpg,근거,동시 구매,1.00,동시구매 pair 50건
-1000000090,일리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000090/image/list/1000000090_list_073.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000090,일리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000090/image/list/1000000090_list_073.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000090,일리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000090/image/list/1000000090_list_073.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000090,일리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000090/image/list/1000000090_list_073.jpg,Brand Score,상태,provisional,5축을 대부분 재현했지만 core intermediate와 완전 동일하지 않습니다.
-1000000090,일리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000090/image/list/1000000090_list_073.jpg,근거,반복 구매,0.30,반복 루프 3건
-1000000090,일리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000090/image/list/1000000090_list_073.jpg,근거,동시 구매,1.00,동시구매 pair 50건
-1000000062,흰이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000062/image/list/1000000062_list_062.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000062,흰이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000062/image/list/1000000062_list_062.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000062,흰이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000062/image/list/1000000062_list_062.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000062,흰이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000062/image/list/1000000062_list_062.jpg,Brand Score,상태,provisional,5축을 대부분 재현했지만 core intermediate와 완전 동일하지 않습니다.
-1000000062,흰이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000062/image/list/1000000062_list_062.jpg,근거,반복 구매,1.00,반복 루프 13건
-1000000062,흰이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000062/image/list/1000000062_list_062.jpg,근거,동시 구매,1.00,동시구매 pair 70건
-1000000086,십리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000086/image/list/1000000086_list_048.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000086,십리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000086/image/list/1000000086_list_048.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000086,십리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000086/image/list/1000000086_list_048.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000086,십리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000086/image/list/1000000086_list_048.jpg,Brand Score,상태,provisional,5축을 대부분 재현했지만 core intermediate와 완전 동일하지 않습니다.
-1000000086,십리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000086/image/list/1000000086_list_048.jpg,근거,반복 구매,1.00,반복 루프 43건
-1000000086,십리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000086/image/list/1000000086_list_048.jpg,근거,동시 구매,1.00,동시구매 pair 48건
-1000000063,쑥이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000063/image/list/1000000063_list_055.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000063,쑥이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000063/image/list/1000000063_list_055.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000063,쑥이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000063/image/list/1000000063_list_055.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000063,쑥이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000063/image/list/1000000063_list_055.jpg,Brand Score,상태,provisional,5축을 대부분 재현했지만 core intermediate와 완전 동일하지 않습니다.
-1000000063,쑥이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000063/image/list/1000000063_list_055.jpg,근거,반복 구매,1.00,반복 루프 24건
-1000000063,쑥이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000063/image/list/1000000063_list_055.jpg,근거,동시 구매,1.00,동시구매 pair 74건
-1000000089,백리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000089/image/list/1000000089_list_027.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000089,백리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000089/image/list/1000000089_list_027.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000089,백리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000089/image/list/1000000089_list_027.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000089,백리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000089/image/list/1000000089_list_027.jpg,Brand Score,상태,limited,산식은 계산했지만 basket 또는 event 재현이 제한적입니다.
-1000000089,백리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000089/image/list/1000000089_list_027.jpg,근거,반복 구매,0.60,반복 루프 6건
-1000000089,백리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000089/image/list/1000000089_list_027.jpg,근거,동시 구매,1.00,동시구매 pair 22건
-1000000091,일리향 2단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000091/image/list/1000000091_list_092.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000091,일리향 2단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000091/image/list/1000000091_list_092.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000091,일리향 2단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000091/image/list/1000000091_list_092.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000091,일리향 2단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000091/image/list/1000000091_list_092.jpg,Brand Score,상태,provisional,5축을 대부분 재현했지만 core intermediate와 완전 동일하지 않습니다.
-1000000091,일리향 2단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000091/image/list/1000000091_list_092.jpg,근거,반복 구매,1.00,반복 루프 17건
-1000000091,일리향 2단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000091/image/list/1000000091_list_092.jpg,근거,동시 구매,1.00,동시구매 pair 48건
-1000000085,십리향 2단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000085/image/list/1000000085_list_069.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000085,십리향 2단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000085/image/list/1000000085_list_069.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000085,십리향 2단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000085/image/list/1000000085_list_069.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000085,십리향 2단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000085/image/list/1000000085_list_069.jpg,Brand Score,상태,provisional,5축을 대부분 재현했지만 core intermediate와 완전 동일하지 않습니다.
-1000000085,십리향 2단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000085/image/list/1000000085_list_069.jpg,근거,반복 구매,1.00,반복 루프 37건
-1000000085,십리향 2단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000085/image/list/1000000085_list_069.jpg,근거,동시 구매,1.00,동시구매 pair 60건
-1000000094,매화 3송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000094/image/list/1000000094_list_039.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000094,매화 3송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000094/image/list/1000000094_list_039.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000094,매화 3송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000094/image/list/1000000094_list_039.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000094,매화 3송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000094/image/list/1000000094_list_039.jpg,Brand Score,상태,provisional,5축을 대부분 재현했지만 core intermediate와 완전 동일하지 않습니다.
-1000000094,매화 3송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000094/image/list/1000000094_list_039.jpg,근거,반복 구매,1.00,반복 루프 20건
-1000000094,매화 3송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000094/image/list/1000000094_list_039.jpg,근거,동시 구매,1.00,동시구매 pair 52건
-1000000112,매화 5송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000112/image/list/1000000112_list_032.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000112,매화 5송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000112/image/list/1000000112_list_032.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000112,매화 5송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000112/image/list/1000000112_list_032.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000112,매화 5송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000112/image/list/1000000112_list_032.jpg,Brand Score,상태,provisional,5축을 대부분 재현했지만 core intermediate와 완전 동일하지 않습니다.
-1000000112,매화 5송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000112/image/list/1000000112_list_032.jpg,근거,반복 구매,1.00,반복 루프 10건
-1000000112,매화 5송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000112/image/list/1000000112_list_032.jpg,근거,동시 구매,1.00,동시구매 pair 52건
-1000000113,매화 5송이 3호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000113/image/list/1000000113_list_070.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000113,매화 5송이 3호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000113/image/list/1000000113_list_070.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000113,매화 5송이 3호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000113/image/list/1000000113_list_070.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000113,매화 5송이 3호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000113/image/list/1000000113_list_070.jpg,Brand Score,상태,limited,산식은 계산했지만 basket 또는 event 재현이 제한적입니다.
-1000000113,매화 5송이 3호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000113/image/list/1000000113_list_070.jpg,근거,반복 구매,1.00,반복 루프 14건
-1000000113,매화 5송이 3호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000113/image/list/1000000113_list_070.jpg,근거,동시 구매,1.00,동시구매 pair 46건
-1000000110,매화 3송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000110/image/list/1000000110_list_026.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000110,매화 3송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000110/image/list/1000000110_list_026.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000110,매화 3송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000110/image/list/1000000110_list_026.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000110,매화 3송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000110/image/list/1000000110_list_026.jpg,Brand Score,상태,provisional,5축을 대부분 재현했지만 core intermediate와 완전 동일하지 않습니다.
-1000000110,매화 3송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000110/image/list/1000000110_list_026.jpg,근거,반복 구매,1.00,반복 루프 10건
-1000000110,매화 3송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000110/image/list/1000000110_list_026.jpg,근거,동시 구매,1.00,동시구매 pair 44건
-1000000087,백리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000087/image/list/1000000087_list_067.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000087,백리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000087/image/list/1000000087_list_067.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000087,백리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000087/image/list/1000000087_list_067.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000087,백리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000087/image/list/1000000087_list_067.jpg,Brand Score,상태,provisional,5축을 대부분 재현했지만 core intermediate와 완전 동일하지 않습니다.
-1000000087,백리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000087/image/list/1000000087_list_067.jpg,근거,반복 구매,1.00,반복 루프 66건
-1000000087,백리향 1단 (1호 2호 3호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000087/image/list/1000000087_list_067.jpg,근거,동시 구매,1.00,동시구매 pair 70건
-1000000088,백리향 2단 (1호 2호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000088/image/list/1000000088_list_033.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000088,백리향 2단 (1호 2호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000088/image/list/1000000088_list_033.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000088,백리향 2단 (1호 2호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000088/image/list/1000000088_list_033.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000088,백리향 2단 (1호 2호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000088/image/list/1000000088_list_033.jpg,Brand Score,상태,provisional,5축을 대부분 재현했지만 core intermediate와 완전 동일하지 않습니다.
-1000000088,백리향 2단 (1호 2호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000088/image/list/1000000088_list_033.jpg,근거,반복 구매,1.00,반복 루프 56건
-1000000088,백리향 2단 (1호 2호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000088/image/list/1000000088_list_033.jpg,근거,동시 구매,1.00,동시구매 pair 54건
-1000000111,매화 3송이 3호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000111/image/list/1000000111_list_056.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000111,매화 3송이 3호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000111/image/list/1000000111_list_056.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000111,매화 3송이 3호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000111/image/list/1000000111_list_056.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000111,매화 3송이 3호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000111/image/list/1000000111_list_056.jpg,Brand Score,상태,provisional,5축을 대부분 재현했지만 core intermediate와 완전 동일하지 않습니다.
-1000000111,매화 3송이 3호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000111/image/list/1000000111_list_056.jpg,근거,반복 구매,1.00,반복 루프 39건
-1000000111,매화 3송이 3호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000111/image/list/1000000111_list_056.jpg,근거,동시 구매,1.00,동시구매 pair 48건
-1000000064,2색 이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000064/image/list/1000000064_list_053.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000064,2색 이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000064/image/list/1000000064_list_053.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000064,2색 이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000064/image/list/1000000064_list_053.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000064,2색 이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000064/image/list/1000000064_list_053.jpg,Brand Score,상태,provisional,5축을 대부분 재현했지만 core intermediate와 완전 동일하지 않습니다.
-1000000064,2색 이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000064/image/list/1000000064_list_053.jpg,근거,반복 구매,1.00,반복 루프 214건
-1000000064,2색 이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000064/image/list/1000000064_list_053.jpg,근거,동시 구매,1.00,동시구매 pair 76건
-1000000108,매화 2송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000108/image/list/1000000108_list_020.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000108,매화 2송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000108/image/list/1000000108_list_020.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000108,매화 2송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000108/image/list/1000000108_list_020.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000108,매화 2송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000108/image/list/1000000108_list_020.jpg,Brand Score,상태,provisional,5축을 대부분 재현했지만 core intermediate와 완전 동일하지 않습니다.
-1000000108,매화 2송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000108/image/list/1000000108_list_020.jpg,근거,반복 구매,1.00,반복 루프 46건
-1000000108,매화 2송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000108/image/list/1000000108_list_020.jpg,근거,동시 구매,1.00,동시구매 pair 40건
-1000000093,매화 2송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000093/image/list/1000000093_list_057.jpg,헤더,우선순위,주의 관찰,직전기간 비교 불가 / 첫구매기여 기준 첫구매기여 근거 1.00
-1000000093,매화 2송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000093/image/list/1000000093_list_057.jpg,Revenue,최근 30일 대비,비교 불가,직전기간 비교 불가
-1000000093,매화 2송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000093/image/list/1000000093_list_057.jpg,Role,현재 taxonomy,첫구매기여,첫구매기여 기준 첫구매기여 근거 1.00
-1000000093,매화 2송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000093/image/list/1000000093_list_057.jpg,Brand Score,상태,provisional,5축을 대부분 재현했지만 core intermediate와 완전 동일하지 않습니다.
-1000000093,매화 2송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000093/image/list/1000000093_list_057.jpg,근거,반복 구매,1.00,반복 루프 103건
-1000000093,매화 2송이 1호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000093/image/list/1000000093_list_057.jpg,근거,동시 구매,1.00,동시구매 pair 56건
+1000000074,경기 콩약과(10ea),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000074/image/list/1000000074_list_06.jpg,근거,반복 구매,0.00,반복 루프 0건 / support 0
+1000000074,경기 콩약과(10ea),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000074/image/list/1000000074_list_06.jpg,근거,동시 구매,0.01,동시구매 pair 16건 / support 16
+1000000154,화연상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000154/image/list/1000000154_list_031.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 150.0% / 재구매확장기여 기준 score 0.12
+1000000154,화연상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000154/image/list/1000000154_list_031.jpg,Revenue,최근 30일 대비,150.0%,직전 동일 길이 기간과 비교 가능합니다.
+1000000154,화연상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000154/image/list/1000000154_list_031.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000154,화연상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000154/image/list/1000000154_list_031.jpg,Role,현재 taxonomy,재구매확장기여,재구매확장기여 기준 score 0.12
+1000000154,화연상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000154/image/list/1000000154_list_031.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000154,화연상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000154/image/list/1000000154_list_031.jpg,근거,반복 구매,0.11,반복 루프 5건 / support 5
+1000000154,화연상,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000154/image/list/1000000154_list_031.jpg,근거,동시 구매,0.00,동시구매 pair 4건 / support 4
+1000000071,마스코바도 호박설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000071/image/list/1000000071_list_020.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 111.0% / 반복구매기여 기준 score 0.30
+1000000071,마스코바도 호박설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000071/image/list/1000000071_list_020.jpg,Revenue,최근 30일 대비,111.0%,직전 동일 길이 기간과 비교 가능합니다.
+1000000071,마스코바도 호박설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000071/image/list/1000000071_list_020.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000071,마스코바도 호박설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000071/image/list/1000000071_list_020.jpg,Role,현재 taxonomy,반복구매기여,반복구매기여 기준 score 0.30
+1000000071,마스코바도 호박설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000071/image/list/1000000071_list_020.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000071,마스코바도 호박설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000071/image/list/1000000071_list_020.jpg,근거,반복 구매,0.30,반복 루프 3건 / support 3
+1000000071,마스코바도 호박설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000071/image/list/1000000071_list_020.jpg,근거,동시 구매,0.07,동시구매 pair 44건 / support 44
+1000000066,쑥인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000066/image/list/1000000066_list_042.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 15.7% / 반복구매기여 기준 score 0.30
+1000000066,쑥인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000066/image/list/1000000066_list_042.jpg,Revenue,최근 30일 대비,15.7%,직전 동일 길이 기간과 비교 가능합니다.
+1000000066,쑥인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000066/image/list/1000000066_list_042.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000066,쑥인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000066/image/list/1000000066_list_042.jpg,Role,현재 taxonomy,반복구매기여,반복구매기여 기준 score 0.30
+1000000066,쑥인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000066/image/list/1000000066_list_042.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000066,쑥인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000066/image/list/1000000066_list_042.jpg,근거,반복 구매,0.30,반복 루프 9건 / support 9
+1000000066,쑥인절미,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000066/image/list/1000000066_list_042.jpg,근거,동시 구매,0.17,동시구매 pair 50건 / support 50
+1000000063,쑥이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000063/image/list/1000000063_list_055.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 4.7% / 동시구매기여 기준 score 0.40
+1000000063,쑥이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000063/image/list/1000000063_list_055.jpg,Revenue,최근 30일 대비,4.7%,직전 동일 길이 기간과 비교 가능합니다.
+1000000063,쑥이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000063/image/list/1000000063_list_055.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000063,쑥이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000063/image/list/1000000063_list_055.jpg,Role,현재 taxonomy,동시구매기여,동시구매기여 기준 score 0.40
+1000000063,쑥이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000063/image/list/1000000063_list_055.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000063,쑥이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000063/image/list/1000000063_list_055.jpg,근거,반복 구매,0.26,반복 루프 24건 / support 24
+1000000063,쑥이티,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000063/image/list/1000000063_list_055.jpg,근거,동시 구매,0.40,동시구매 pair 74건 / support 74
+1000000089,백리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000089/image/list/1000000089_list_027.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 7.2% / 재구매확장기여 기준 score 0.42
+1000000089,백리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000089/image/list/1000000089_list_027.jpg,Revenue,최근 30일 대비,7.2%,직전 동일 길이 기간과 비교 가능합니다.
+1000000089,백리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000089/image/list/1000000089_list_027.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000089,백리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000089/image/list/1000000089_list_027.jpg,Role,현재 taxonomy,재구매확장기여,재구매확장기여 기준 score 0.42
+1000000089,백리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000089/image/list/1000000089_list_027.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000089,백리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000089/image/list/1000000089_list_027.jpg,근거,반복 구매,0.17,반복 루프 6건 / support 6
+1000000089,백리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000089/image/list/1000000089_list_027.jpg,근거,동시 구매,0.02,동시구매 pair 22건 / support 22
+1000000086,십리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000086/image/list/1000000086_list_048.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 18.4% / 재구매확장기여 기준 score 0.64
+1000000086,십리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000086/image/list/1000000086_list_048.jpg,Revenue,최근 30일 대비,18.4%,직전 동일 길이 기간과 비교 가능합니다.
+1000000086,십리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000086/image/list/1000000086_list_048.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000086,십리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000086/image/list/1000000086_list_048.jpg,Role,현재 taxonomy,재구매확장기여,재구매확장기여 기준 score 0.64
+1000000086,십리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000086/image/list/1000000086_list_048.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000086,십리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000086/image/list/1000000086_list_048.jpg,근거,반복 구매,0.27,반복 루프 43건 / support 43
+1000000086,십리향 3단,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000086/image/list/1000000086_list_048.jpg,근거,동시 구매,0.07,동시구매 pair 48건 / support 48
+1000000044,고구마찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000044/image/list/1000000044_list_088.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 49.3% / 동시구매기여 기준 score 0.37
+1000000044,고구마찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000044/image/list/1000000044_list_088.jpg,Revenue,최근 30일 대비,49.3%,직전 동일 길이 기간과 비교 가능합니다.
+1000000044,고구마찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000044/image/list/1000000044_list_088.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000044,고구마찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000044/image/list/1000000044_list_088.jpg,Role,현재 taxonomy,동시구매기여,동시구매기여 기준 score 0.37
+1000000044,고구마찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000044/image/list/1000000044_list_088.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000044,고구마찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000044/image/list/1000000044_list_088.jpg,근거,반복 구매,0.34,반복 루프 17건 / support 17
+1000000044,고구마찰떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000044/image/list/1000000044_list_088.jpg,근거,동시 구매,0.37,동시구매 pair 60건 / support 60
+1000000083,백설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000083/image/list/1000000083_list_054.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 568.9% / 반복구매기여 기준 score 0.32
+1000000083,백설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000083/image/list/1000000083_list_054.jpg,Revenue,최근 30일 대비,568.9%,직전 동일 길이 기간과 비교 가능합니다.
+1000000083,백설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000083/image/list/1000000083_list_054.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000083,백설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000083/image/list/1000000083_list_054.jpg,Role,현재 taxonomy,반복구매기여,반복구매기여 기준 score 0.32
+1000000083,백설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000083/image/list/1000000083_list_054.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000083,백설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000083/image/list/1000000083_list_054.jpg,근거,반복 구매,0.32,반복 루프 6건 / support 6
+1000000083,백설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000083/image/list/1000000083_list_054.jpg,근거,동시 구매,0.13,동시구매 pair 60건 / support 60
+1000000088,백리향 2단 (1호 2호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000088/image/list/1000000088_list_033.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 9.0% / 재구매확장기여 기준 score 0.35
+1000000088,백리향 2단 (1호 2호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000088/image/list/1000000088_list_033.jpg,Revenue,최근 30일 대비,9.0%,직전 동일 길이 기간과 비교 가능합니다.
+1000000088,백리향 2단 (1호 2호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000088/image/list/1000000088_list_033.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000088,백리향 2단 (1호 2호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000088/image/list/1000000088_list_033.jpg,Role,현재 taxonomy,재구매확장기여,재구매확장기여 기준 score 0.35
+1000000088,백리향 2단 (1호 2호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000088/image/list/1000000088_list_033.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000088,백리향 2단 (1호 2호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000088/image/list/1000000088_list_033.jpg,근거,반복 구매,0.11,반복 루프 56건 / support 56
+1000000088,백리향 2단 (1호 2호),https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000088/image/list/1000000088_list_033.jpg,근거,동시 구매,0.10,동시구매 pair 54건 / support 54
+1000000069,설기세트,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000069/image/list/1000000069_list_033.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 263.4% / 동시구매기여 기준 score 0.19
+1000000069,설기세트,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000069/image/list/1000000069_list_033.jpg,Revenue,최근 30일 대비,263.4%,직전 동일 길이 기간과 비교 가능합니다.
+1000000069,설기세트,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000069/image/list/1000000069_list_033.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000069,설기세트,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000069/image/list/1000000069_list_033.jpg,Role,현재 taxonomy,동시구매기여,동시구매기여 기준 score 0.19
+1000000069,설기세트,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000069/image/list/1000000069_list_033.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000069,설기세트,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000069/image/list/1000000069_list_033.jpg,근거,반복 구매,0.16,반복 루프 4건 / support 4
+1000000069,설기세트,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000069/image/list/1000000069_list_033.jpg,근거,동시 구매,0.19,동시구매 pair 54건 / support 54
+1000000045,완두시루떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000045/image/list/1000000045_list_095.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 47.5% / 동시구매기여 기준 score 0.63
+1000000045,완두시루떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000045/image/list/1000000045_list_095.jpg,Revenue,최근 30일 대비,47.5%,직전 동일 길이 기간과 비교 가능합니다.
+1000000045,완두시루떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000045/image/list/1000000045_list_095.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000045,완두시루떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000045/image/list/1000000045_list_095.jpg,Role,현재 taxonomy,동시구매기여,동시구매기여 기준 score 0.63
+1000000045,완두시루떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000045/image/list/1000000045_list_095.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000045,완두시루떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000045/image/list/1000000045_list_095.jpg,근거,반복 구매,0.51,반복 루프 48건 / support 48
+1000000045,완두시루떡,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000045/image/list/1000000045_list_095.jpg,근거,동시 구매,0.63,동시구매 pair 72건 / support 72
+1000000028,마스코바도 딸기설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000028/image/list/1000000028_list_04.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 0.0% / 반복구매기여 기준 score 0.15
+1000000028,마스코바도 딸기설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000028/image/list/1000000028_list_04.jpg,Revenue,최근 30일 대비,0.0%,직전 동일 길이 기간과 비교 가능합니다.
+1000000028,마스코바도 딸기설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000028/image/list/1000000028_list_04.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000028,마스코바도 딸기설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000028/image/list/1000000028_list_04.jpg,Role,현재 taxonomy,반복구매기여,반복구매기여 기준 score 0.15
+1000000028,마스코바도 딸기설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000028/image/list/1000000028_list_04.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000028,마스코바도 딸기설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000028/image/list/1000000028_list_04.jpg,근거,반복 구매,0.15,반복 루프 3건 / support 3
+1000000028,마스코바도 딸기설기,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000028/image/list/1000000028_list_04.jpg,근거,동시 구매,0.02,동시구매 pair 30건 / support 30
+1000000110,매화 3송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000110/image/list/1000000110_list_026.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 65.9% / 재구매확장기여 기준 score 0.16
+1000000110,매화 3송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000110/image/list/1000000110_list_026.jpg,Revenue,최근 30일 대비,65.9%,직전 동일 길이 기간과 비교 가능합니다.
+1000000110,매화 3송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000110/image/list/1000000110_list_026.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000110,매화 3송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000110/image/list/1000000110_list_026.jpg,Role,현재 taxonomy,재구매확장기여,재구매확장기여 기준 score 0.16
+1000000110,매화 3송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000110/image/list/1000000110_list_026.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000110,매화 3송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000110/image/list/1000000110_list_026.jpg,근거,반복 구매,0.08,반복 루프 10건 / support 10
+1000000110,매화 3송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000110/image/list/1000000110_list_026.jpg,근거,동시 구매,0.04,동시구매 pair 44건 / support 44
+1000000108,매화 2송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000108/image/list/1000000108_list_020.jpg,헤더,우선순위,정상 유지,최근 30일 매출이 직전기간 대비 76.2% / 재구매확장기여 기준 score 0.29
+1000000108,매화 2송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000108/image/list/1000000108_list_020.jpg,Revenue,최근 30일 대비,76.2%,직전 동일 길이 기간과 비교 가능합니다.
+1000000108,매화 2송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000108/image/list/1000000108_list_020.jpg,Revenue,비교 상태,available,직전 동일 길이 기간과 비교 가능합니다.
+1000000108,매화 2송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000108/image/list/1000000108_list_020.jpg,Role,현재 taxonomy,재구매확장기여,재구매확장기여 기준 score 0.29
+1000000108,매화 2송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000108/image/list/1000000108_list_020.jpg,Brand Score,상태,limited,event 또는 basket freshness 제약으로 provisional을 제한했습니다.
+1000000108,매화 2송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000108/image/list/1000000108_list_020.jpg,근거,반복 구매,0.22,반복 루프 46건 / support 46
+1000000108,매화 2송이 2호,https://godomall.speedycdn.net/a1ce4a197810c4cd52677b215337ca9e/goods/1000000108/image/list/1000000108_list_020.jpg,근거,동시 구매,0.06,동시구매 pair 40건 / support 40

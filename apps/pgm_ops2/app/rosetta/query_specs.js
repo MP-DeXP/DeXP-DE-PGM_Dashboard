@@ -5,10 +5,6 @@ function buildDateWindowClause(fieldName, startDate, asOfDate) {
     return `CAST(${fieldName} AS DATE) BETWEEN DATE '${startDate}' AND DATE '${asOfDate}'`;
 }
 
-function buildAsOfDateClause(fieldName, asOfDate) {
-    return `CAST(${fieldName} AS DATE) = DATE '${asOfDate}'`;
-}
-
 function buildPagedQuery({ selectSql, fromSql, whereSql, orderBySql, limit, offset }) {
     return [
         'SELECT *',
@@ -32,6 +28,7 @@ export function getRawDatasetColumns() {
         product_revenue_daily: ['date', 'product_id', 'product_name', 'order_count', 'quantity', 'order_amount_sum', 'cart_count', 'cart_amount_sum', 'cart_quantity_sum', 'mx_channel_id', 'mx_platform'],
         pgm_scored: ['date', 'product_id', 'product_name_latest', 'first_customer_cnt', 'revenue_90d', 'entry_gravity_primary_type', 'entry_gravity_score', 'expansion_gravity_primary_type', 'expansion_gravity_score'],
         pgm_demand_signals: ['date', 'product_id', 'product_name_latest', 'convergence_gravity_score', 'return_gravity_score', 'distinct_source_product_cnt_90d', 'return_customer_rate_90d', 'return_loop_rate_90d', 'simple_repeat_rate_90d'],
+        pgm_entry_to_expansion_transition: ['date', 'product_id', 'aa_product_id', 'pca_product_id', 'entry_product_id', 'expansion_product_id', 'source_product_id', 'target_product_id', 'transition_customer_cnt', 'transition_rate', 'avg_days_to_pca', 'avg_days_to_expansion'],
         pgm_transition_edges: ['date', 'source_product_id', 'target_product_id', 'transition_customer_cnt', 'source_cohort_customer_cnt', 'transition_rate', 'avg_days_to_transition'],
         pgm_return_loops: ['date', 'customer_id', 'source_product_id', 'return_product_id', 'source_order_id', 'return_order_id', 'return_days', 'intermediate_step_cnt', 'intermediate_distinct_product_cnt', 'intermediate_path', 'qualified_return_flag', 'simple_repeat_comparison_flag'],
         pgm_basket_pairs: ['date', 'i', 'j', 'co_order_cnt', 'rn'],
@@ -40,11 +37,7 @@ export function getRawDatasetColumns() {
     };
 }
 
-export function getRosettaQuerySpecs({ asOfDate, lookbackStart }) {
-    const windowedOrderAt = buildDateWindowClause('order_at', lookbackStart, asOfDate);
-    const windowedDate = buildDateWindowClause('date', lookbackStart, asOfDate);
-    const latestPgmDate = buildAsOfDateClause('date', asOfDate);
-
+export function getRosettaQuerySpecs() {
     return [
         {
             datasetKey: 'orders_header',
@@ -54,7 +47,7 @@ export function getRosettaQuerySpecs({ asOfDate, lookbackStart }) {
             columns: getRawDatasetColumns().orders_header,
             dateFields: ['order_at'],
             pageSize: 500,
-            buildSql: ({ limit, offset }) => buildPagedQuery({
+            buildSql: ({ asOfDate, lookbackStart, limit, offset }) => buildPagedQuery({
                 selectSql: [
                     'SELECT',
                     '    CAST(order_id AS VARCHAR) AS order_id,',
@@ -66,7 +59,7 @@ export function getRosettaQuerySpecs({ asOfDate, lookbackStart }) {
                     '    CAST(mx_platform AS VARCHAR) AS mx_platform'
                 ].join('\n'),
                 fromSql: 'FROM silver_meta_order',
-                whereSql: windowedOrderAt,
+                whereSql: buildDateWindowClause('order_at', lookbackStart, asOfDate),
                 orderBySql: 'order_at, order_id',
                 limit,
                 offset
@@ -80,7 +73,7 @@ export function getRosettaQuerySpecs({ asOfDate, lookbackStart }) {
             columns: getRawDatasetColumns().order_lines,
             dateFields: ['order_at'],
             pageSize: 500,
-            buildSql: ({ limit, offset }) => buildPagedQuery({
+            buildSql: ({ asOfDate, lookbackStart, limit, offset }) => buildPagedQuery({
                 selectSql: [
                     'SELECT',
                     '    CAST(order_id AS VARCHAR) AS order_id,',
@@ -96,7 +89,7 @@ export function getRosettaQuerySpecs({ asOfDate, lookbackStart }) {
                     '    CAST(mx_platform AS VARCHAR) AS mx_platform'
                 ].join('\n'),
                 fromSql: 'FROM silver_meta_order_item',
-                whereSql: windowedOrderAt,
+                whereSql: buildDateWindowClause('order_at', lookbackStart, asOfDate),
                 orderBySql: 'order_at, order_id, product_id',
                 limit,
                 offset
@@ -143,7 +136,7 @@ export function getRosettaQuerySpecs({ asOfDate, lookbackStart }) {
             columns: getRawDatasetColumns().order_utm,
             dateFields: ['order_at'],
             pageSize: 500,
-            buildSql: ({ limit, offset }) => buildPagedQuery({
+            buildSql: ({ asOfDate, lookbackStart, limit, offset }) => buildPagedQuery({
                 selectSql: [
                     'SELECT',
                     '    CAST(order_id AS VARCHAR) AS order_id,',
@@ -159,7 +152,7 @@ export function getRosettaQuerySpecs({ asOfDate, lookbackStart }) {
                     '    CAST(mx_platform AS VARCHAR) AS mx_platform'
                 ].join('\n'),
                 fromSql: 'FROM silver_order_with_utm',
-                whereSql: windowedOrderAt,
+                whereSql: buildDateWindowClause('order_at', lookbackStart, asOfDate),
                 orderBySql: 'order_at, order_id',
                 limit,
                 offset
@@ -173,7 +166,7 @@ export function getRosettaQuerySpecs({ asOfDate, lookbackStart }) {
             columns: getRawDatasetColumns().product_revenue_daily,
             dateFields: ['date'],
             pageSize: 500,
-            buildSql: ({ limit, offset }) => buildPagedQuery({
+            buildSql: ({ asOfDate, lookbackStart, limit, offset }) => buildPagedQuery({
                 selectSql: [
                     'SELECT',
                     '    CAST(date AS VARCHAR) AS date,',
@@ -189,7 +182,7 @@ export function getRosettaQuerySpecs({ asOfDate, lookbackStart }) {
                     '    CAST(mx_platform AS VARCHAR) AS mx_platform'
                 ].join('\n'),
                 fromSql: 'FROM silver_fact_product',
-                whereSql: windowedDate,
+                whereSql: buildDateWindowClause('date', lookbackStart, asOfDate),
                 orderBySql: 'date, product_id',
                 limit,
                 offset
@@ -203,7 +196,7 @@ export function getRosettaQuerySpecs({ asOfDate, lookbackStart }) {
             columns: getRawDatasetColumns().pgm_scored,
             dateFields: ['date'],
             pageSize: 500,
-            buildSql: ({ limit, offset }) => buildPagedQuery({
+            buildSql: ({ asOfDate, lookbackStart, limit, offset }) => buildPagedQuery({
                 selectSql: [
                     'SELECT',
                     '    CAST(date AS VARCHAR) AS date,',
@@ -217,7 +210,7 @@ export function getRosettaQuerySpecs({ asOfDate, lookbackStart }) {
                     '    CAST(expansion_gravity_score AS VARCHAR) AS expansion_gravity_score'
                 ].join('\n'),
                 fromSql: 'FROM gold_pgm_scored',
-                whereSql: windowedDate,
+                whereSql: buildDateWindowClause('date', lookbackStart, asOfDate),
                 orderBySql: 'date, product_id',
                 limit,
                 offset
@@ -231,7 +224,7 @@ export function getRosettaQuerySpecs({ asOfDate, lookbackStart }) {
             columns: getRawDatasetColumns().pgm_demand_signals,
             dateFields: ['date'],
             pageSize: 500,
-            buildSql: ({ limit, offset }) => buildPagedQuery({
+            buildSql: ({ asOfDate, lookbackStart, limit, offset }) => buildPagedQuery({
                 selectSql: [
                     'SELECT',
                     '    CAST(date AS VARCHAR) AS date,',
@@ -245,8 +238,39 @@ export function getRosettaQuerySpecs({ asOfDate, lookbackStart }) {
                     '    CAST(simple_repeat_rate_90d AS VARCHAR) AS simple_repeat_rate_90d'
                 ].join('\n'),
                 fromSql: 'FROM gold_pgm_product_demand_gravity',
-                whereSql: windowedDate,
+                whereSql: buildDateWindowClause('date', lookbackStart, asOfDate),
                 orderBySql: 'date, product_id',
+                limit,
+                offset
+            })
+        },
+        {
+            datasetKey: 'pgm_entry_to_expansion_transition',
+            sourceKey: 'dma_pgm_entry_to_expansion_transition',
+            sourceTable: 'gold_pgm_entry_to_expansion_transition',
+            connectionId: DMA_CONNECTION_ID,
+            columns: getRawDatasetColumns().pgm_entry_to_expansion_transition,
+            dateFields: ['date'],
+            pageSize: 500,
+            buildSql: ({ asOfDate, lookbackStart, limit, offset }) => buildPagedQuery({
+                selectSql: [
+                    'SELECT',
+                    '    CAST(date AS VARCHAR) AS date,',
+                    '    CAST(aa_product_id AS VARCHAR) AS product_id,',
+                    '    CAST(aa_product_id AS VARCHAR) AS aa_product_id,',
+                    '    CAST(pca_product_id AS VARCHAR) AS pca_product_id,',
+                    '    CAST(aa_product_id AS VARCHAR) AS entry_product_id,',
+                    '    CAST(pca_product_id AS VARCHAR) AS expansion_product_id,',
+                    '    CAST(aa_product_id AS VARCHAR) AS source_product_id,',
+                    '    CAST(pca_product_id AS VARCHAR) AS target_product_id,',
+                    '    CAST(transition_customer_cnt AS VARCHAR) AS transition_customer_cnt,',
+                    '    CAST(transition_rate AS VARCHAR) AS transition_rate,',
+                    '    CAST(avg_days_to_pca AS VARCHAR) AS avg_days_to_pca,',
+                    '    CAST(avg_days_to_pca AS VARCHAR) AS avg_days_to_expansion'
+                ].join('\n'),
+                fromSql: 'FROM gold_pgm_entry_to_expansion_transition',
+                whereSql: buildDateWindowClause('date', lookbackStart, asOfDate),
+                orderBySql: 'date, aa_product_id, pca_product_id',
                 limit,
                 offset
             })
@@ -259,7 +283,7 @@ export function getRosettaQuerySpecs({ asOfDate, lookbackStart }) {
             columns: getRawDatasetColumns().pgm_transition_edges,
             dateFields: ['date'],
             pageSize: 500,
-            buildSql: ({ limit, offset }) => buildPagedQuery({
+            buildSql: ({ asOfDate, lookbackStart, limit, offset }) => buildPagedQuery({
                 selectSql: [
                     'SELECT',
                     '    CAST(date AS VARCHAR) AS date,',
@@ -271,7 +295,7 @@ export function getRosettaQuerySpecs({ asOfDate, lookbackStart }) {
                     '    CAST(avg_days_to_transition AS VARCHAR) AS avg_days_to_transition'
                 ].join('\n'),
                 fromSql: 'FROM gold_pgm_product_transition_edge',
-                whereSql: latestPgmDate,
+                whereSql: buildDateWindowClause('date', lookbackStart, asOfDate),
                 orderBySql: 'date, source_product_id, target_product_id',
                 limit,
                 offset
@@ -285,7 +309,7 @@ export function getRosettaQuerySpecs({ asOfDate, lookbackStart }) {
             columns: getRawDatasetColumns().pgm_return_loops,
             dateFields: ['date'],
             pageSize: 500,
-            buildSql: ({ limit, offset }) => buildPagedQuery({
+            buildSql: ({ asOfDate, lookbackStart, limit, offset }) => buildPagedQuery({
                 selectSql: [
                     'SELECT',
                     '    CAST(date AS VARCHAR) AS date,',
@@ -302,7 +326,7 @@ export function getRosettaQuerySpecs({ asOfDate, lookbackStart }) {
                     '    CAST(simple_repeat_comparison_flag AS VARCHAR) AS simple_repeat_comparison_flag'
                 ].join('\n'),
                 fromSql: 'FROM gold_pgm_return_gravity_loop_detail',
-                whereSql: latestPgmDate,
+                whereSql: buildDateWindowClause('date', lookbackStart, asOfDate),
                 orderBySql: 'date, source_product_id, return_product_id, customer_id',
                 limit,
                 offset
@@ -316,7 +340,7 @@ export function getRosettaQuerySpecs({ asOfDate, lookbackStart }) {
             columns: getRawDatasetColumns().pgm_basket_pairs,
             dateFields: ['date'],
             pageSize: 500,
-            buildSql: ({ limit, offset }) => buildPagedQuery({
+            buildSql: ({ asOfDate, lookbackStart, limit, offset }) => buildPagedQuery({
                 selectSql: [
                     'SELECT',
                     '    CAST(date AS VARCHAR) AS date,',
@@ -326,7 +350,7 @@ export function getRosettaQuerySpecs({ asOfDate, lookbackStart }) {
                     '    CAST(rn AS VARCHAR) AS rn'
                 ].join('\n'),
                 fromSql: 'FROM gold_pgm_basket_gravity_detail',
-                whereSql: latestPgmDate,
+                whereSql: buildDateWindowClause('date', lookbackStart, asOfDate),
                 orderBySql: 'date, i, j, rn',
                 limit,
                 offset
@@ -340,7 +364,7 @@ export function getRosettaQuerySpecs({ asOfDate, lookbackStart }) {
             columns: getRawDatasetColumns().brand_purchase_daily,
             dateFields: ['date'],
             pageSize: 500,
-            buildSql: ({ limit, offset }) => buildPagedQuery({
+            buildSql: ({ asOfDate, lookbackStart, limit, offset }) => buildPagedQuery({
                 selectSql: [
                     'SELECT',
                     '    CAST(date AS VARCHAR) AS date,',
@@ -349,7 +373,7 @@ export function getRosettaQuerySpecs({ asOfDate, lookbackStart }) {
                     '    CAST(re_purchase_amount AS VARCHAR) AS re_purchase_amount'
                 ].join('\n'),
                 fromSql: 'FROM gold_purchase_analysis_daily',
-                whereSql: windowedDate,
+                whereSql: buildDateWindowClause('date', lookbackStart, asOfDate),
                 orderBySql: 'date',
                 limit,
                 offset

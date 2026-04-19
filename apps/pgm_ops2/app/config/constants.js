@@ -4,6 +4,22 @@ export const BRAND_SCORE_STATUSES = ['unavailable', 'limited', 'provisional', 'n
 export const DEFAULT_LOOKBACK_DAYS = 120;
 export const DEFAULT_AS_OF_DATE = '';
 
+export const RAW_DATASET_MIN_HISTORY_DAYS = {
+    products: 0,
+    product_revenue_daily: 180,
+    brand_purchase_daily: 180,
+    orders_header: 90,
+    order_lines: 90,
+    order_utm: 90,
+    brand_score_events: 90,
+    pgm_scored: 30,
+    pgm_demand_signals: 30,
+    pgm_entry_to_expansion_transition: 30,
+    pgm_transition_edges: 30,
+    pgm_return_loops: 30,
+    pgm_basket_pairs: 30
+};
+
 export const RAW_FILE_NAMES = {
     orders_header: 'orders_header.csv',
     order_lines: 'order_lines.csv',
@@ -12,6 +28,7 @@ export const RAW_FILE_NAMES = {
     product_revenue_daily: 'product_revenue_daily.csv',
     pgm_scored: 'pgm_scored.csv',
     pgm_demand_signals: 'pgm_demand_signals.csv',
+    pgm_entry_to_expansion_transition: 'pgm_entry_to_expansion_transition.csv',
     pgm_transition_edges: 'pgm_transition_edges.csv',
     pgm_return_loops: 'pgm_return_loops.csv',
     pgm_basket_pairs: 'pgm_basket_pairs.csv',
