@@ -136,6 +136,10 @@ function formatDecimal(value, { digits = 2, fallback = '-' } = {}) {
     return number == null ? fallback : number.toFixed(digits);
 }
 
+function toText(value, fallback = '') {
+    return value == null ? fallback : String(value);
+}
+
 function textOrFallback(value, fallback = '-') {
     const text = String(value ?? '').trim();
     return text || fallback;
@@ -163,11 +167,20 @@ function translateCompareState(value) {
 }
 
 function translateBrandStatus(value) {
-    if (value === 'limited') return '참고용 집계';
-    if (value === 'provisional') return '임시 집계';
-    if (value === 'unavailable') return '미집계';
+    if (value === 'limited') return '브랜드 점수 참고용';
+    if (value === 'provisional') return '브랜드 점수 임시 반영';
+    if (value === 'unavailable') return '브랜드 점수 산출 없음';
+    if (value === 'near-core' || value === 'near_core') return '브랜드 점수 고유사도 후보';
+    if (value === 'available') return '브랜드 점수 반영 완료';
+    return textOrFallback(value);
+}
+
+function translateBrandStatusCompact(value) {
+    if (value === 'limited') return '참고용';
+    if (value === 'provisional') return '임시 반영';
+    if (value === 'unavailable') return '산출 없음';
     if (value === 'near-core' || value === 'near_core') return '고유사도 후보';
-    if (value === 'available') return '정상 반영';
+    if (value === 'available') return '반영 완료';
     return textOrFallback(value);
 }
 
@@ -185,6 +198,13 @@ function coverageStateClass(value) {
     return 'status-neutral';
 }
 
+function translateConfidenceLabel(value) {
+    if (value === 'High') return '높음';
+    if (value === 'Medium') return '보통';
+    if (value === 'Low') return '낮음';
+    return textOrFallback(value);
+}
+
 function translateRuleGroup(value) {
     if (value === 'Revenue') return '매출 흐름';
     if (value === 'Role') return '역할 분류';
@@ -197,6 +217,9 @@ function translateRuleName(value) {
     if (value === 'same-date snapshot only') return '동일 일자 기준 분류';
     if (value === 'canonical score 우선') return '대표 점수 우선';
     if (value === 'freshness cap') return '최신 반영 범위 적용';
+    if (value === 'reconstruction registry') return '재구성 기준 기록';
+    if (value === 'freshness 공개') return '최신일 공개';
+    if (value === 'Rosetta products 기준') return '상품 이미지 기준';
     return textOrFallback(value);
 }
 
@@ -207,18 +230,26 @@ function translateRuleStatus(value) {
 
 function translateDetailSection(value) {
     if (value === 'Revenue') return '매출 흐름';
+    if (value === '매출') return '매출 흐름';
     if (value === 'Role') return '역할 분류';
+    if (value === '역할 분류') return '역할 분류';
     if (value === 'Brand Score') return '브랜드 상태';
+    if (value === '브랜드 점수') return '브랜드 상태';
     return textOrFallback(value);
 }
 
 function translateDetailLabel(section, label) {
     if (section === 'Role' && label === '현재 taxonomy') return '현재 역할 분류';
+    if (section === '역할 분류' && label === '현재 역할') return '현재 역할 분류';
     if (section === 'Revenue' && label === '최근 30일 대비') return '30일 매출 변화';
+    if (section === '매출' && label === '최근 30일 대비') return '30일 매출 변화';
     if (section === 'Revenue' && label === '비교 상태') return '비교 가능 여부';
+    if (section === '매출' && label === '비교 상태') return '비교 가능 여부';
     if (section === 'Brand Score' && label === '상태') return '브랜드 반영 상태';
     if (section === 'Brand Score' && label === 'brand-level 상태') return '브랜드 반영 상태';
+    if (section === '브랜드 점수' && label === '브랜드 반영 상태') return '브랜드 반영 상태';
     if (section === 'Brand Score' && label === '상품 기여 상태') return '상품 기여 상태';
+    if (section === '브랜드 점수' && label === '상품 기여 상태') return '상품 기여 상태';
     if (section === '근거' && label === '반복 구매') return '반복 구매 기여';
     if (section === '근거' && label === '동시 구매') return '동시 구매 기여';
     if (section === '근거' && label === '동시구매 분류') return '동시 구매 분류';
@@ -227,7 +258,7 @@ function translateDetailLabel(section, label) {
 }
 
 function translateDetailValue(section, label, value) {
-    if (section === 'Revenue' && label === '비교 상태') {
+    if ((section === 'Revenue' || section === '매출') && label === '비교 상태') {
         return translateCompareState(value);
     }
 
@@ -249,6 +280,9 @@ function sanitizeOperatingCopy(value) {
         ['Brand Score limited', '브랜드 상태는 참고용으로 제공합니다.'],
         ['Brand Score provisional', '브랜드 상태는 임시 집계로 제공합니다.'],
         ['Brand Score unavailable', '브랜드 상태는 아직 집계되지 않았습니다.'],
+        ['Revenue 비교 가능 상태', '매출 비교 가능 범위'],
+        ['Role 관측 가능 상태', '역할 분류 확인 범위'],
+        ['Brand Score 반영 상태', '브랜드 상태 반영 범위'],
         ['event 또는 basket freshness 제약으로 provisional을 제한했습니다.', '브랜드 신호 최신 반영 범위를 확인 중이라 참고용으로 제공합니다.'],
         ['event 또는 basket freshness 제약으로 provisional을 제한합니다.', '브랜드 신호 최신 반영 범위를 확인 중이라 참고용으로 제공합니다.'],
         ['직전 동일 길이 기간과 비교 가능합니다.', '직전 같은 길이 기간과 바로 비교할 수 있습니다.'],
@@ -257,7 +291,9 @@ function sanitizeOperatingCopy(value) {
         ['same-date snapshot', '동일 일자 기준'],
         ['canonical score', '대표 점수'],
         ['source freshness', '데이터 반영 현황'],
-        ['source history', '이력 범위']
+        ['source history', '이력 범위'],
+        ['raw_rosetta.products.csv', 'Rosetta 상품 기준'],
+        ['list_image', '상품 이미지 기준']
     ];
 
     replacements.forEach(([from, to]) => {
@@ -277,6 +313,159 @@ function sanitizeOperatingCopy(value) {
     text = text.replace(/\bRole\b/g, '역할');
 
     return text;
+}
+
+function normalizeBrandReason(value, fallback = '브랜드 점수는 참고용으로만 표시합니다.') {
+    const text = String(value ?? '').trim();
+    const cleanedText = text
+        .replace(/^제한 반영:\s*/g, '')
+        .replace(/^산출 보류:\s*/g, '')
+        .replace(/^운영 참고 기준:\s*/g, '')
+        .replace(/^검증 단계:\s*/g, '');
+    const parts = cleanedText.split(/[|/]/).map((part) => part.trim()).filter(Boolean);
+    const normalizedParts = [];
+
+    const pushUnique = (message) => {
+        if (message && !normalizedParts.includes(message)) {
+            normalizedParts.push(message);
+        }
+    };
+
+    parts.forEach((part) => {
+        const lowered = part.toLowerCase();
+
+        if (
+            lowered.includes('event freshness')
+            || part.includes('최근 주문 기준')
+            || part.includes('최신일이 늦')
+            || part.includes('최근 반영이 늦')
+            || part.includes('이벤트 최신성 지연')
+        ) {
+            pushUnique('최근 주문 기준이 늦습니다');
+            return;
+        }
+
+        if (
+            lowered.includes('basket parity')
+            || part.includes('raw basket detail')
+            || part.includes('동시구매 구조')
+            || part.includes('유사도')
+            || part.includes('동시구매 재구성 안정성 낮음')
+        ) {
+            pushUnique('동시구매 구조는 참고용입니다');
+            return;
+        }
+
+        if (
+            part.includes('핵심 축')
+            || part.includes('핵심 입력')
+            || part.includes('재구성하지 못')
+            || part.includes('구성하지 못')
+            || part.includes('집계되지 않았')
+            || part.includes('입력 부족')
+            || part.includes('핵심 근거 부족')
+            || part.includes('상품별 핵심 근거 부족')
+        ) {
+            pushUnique('핵심 입력이 아직 부족합니다');
+            return;
+        }
+
+        if (part.includes('정합성 검증 필요') || part.includes('신뢰도 검증 필요')) {
+            pushUnique('정합성 확인이 더 필요합니다');
+            return;
+        }
+
+        if (
+            lowered.includes('brand-level')
+            || lowered.includes('canonical')
+            || lowered.includes('contributor signal')
+        ) {
+            pushUnique('상품 기여 정보는 참고용으로 제공합니다');
+            return;
+        }
+
+        if (part.includes('재구성 제약')) {
+            pushUnique('재구성 범위를 더 확인해야 합니다');
+            return;
+        }
+
+        pushUnique(sanitizeOperatingCopy(part));
+    });
+
+    return normalizedParts.length ? normalizedParts.join(' · ') : fallback;
+}
+
+function buildBrandCaution(status) {
+    if (isBrandRestrictedStatus(status)) {
+        return '매출과 역할 분류를 먼저 확인하세요.';
+    }
+    return '브랜드 상태는 보조 정보로 함께 봅니다.';
+}
+
+function isBrandRestrictedStatus(value) {
+    return ['limited', 'unavailable', 'provisional', '제한 반영', '산출 불가', '운영 참고'].includes(toText(value));
+}
+
+function getRoleTaxonomyHelper(roleTaxonomy) {
+    if (roleTaxonomy === '첫구매기여') return '첫구매 유입이 모이는 상품군';
+    if (roleTaxonomy === '재구매확장기여') return '재구매 확장 흐름이 보이는 상품군';
+    if (roleTaxonomy === '반복구매기여') return '반복구매 비중이 높은 상품군';
+    if (roleTaxonomy === '동시구매기여') return '동시구매 근거가 있는 상품군';
+    return '역할 근거가 약한 상품군';
+}
+
+function summarizeHealthTrust(overviewRows = []) {
+    const revenue = overviewRows.find((row) => row.area_key === 'revenue_compare') ?? {};
+    const role = overviewRows.find((row) => row.area_key === 'role_observation') ?? {};
+    const parts = [];
+
+    if (toText(revenue.summary_value)) {
+        parts.push(`매출은 ${sanitizeOperatingCopy(revenue.summary_value)}`);
+    }
+    if (toText(role.summary_value)) {
+        parts.push(`역할 분류는 ${sanitizeOperatingCopy(role.summary_value)}`);
+    }
+
+    return {
+        value: parts.length ? '매출과 역할 분류를 우선 확인할 수 있습니다' : '기본 운영 기준을 확인할 수 있습니다',
+        note: parts.length ? `${parts.join(' · ')}.` : '매출 흐름과 역할 분류를 우선 기준으로 봅니다.'
+    };
+}
+
+function summarizeHealthLimitations(overviewRows = [], imageSummary = '') {
+    const brand = overviewRows.find((row) => row.area_key === 'brand_score') ?? {};
+    const product = overviewRows.find((row) => row.area_key === 'product_reference') ?? {};
+    const limitationParts = [];
+    const imageLimited = Boolean(imageSummary && imageSummary !== '상품 이미지 반영 완료');
+
+    if (isBrandRestrictedStatus(brand.status_label)) {
+        limitationParts.push(normalizeBrandReason(brand.note));
+    }
+
+    if (imageLimited && toText(product.status_label) && product.status_label !== '정상') {
+        limitationParts.push(imageSummary || '상품 기준 정보 일부를 다시 확인해야 합니다.');
+    }
+
+    return {
+        value: limitationParts.length
+            ? (imageLimited ? '브랜드 상태와 일부 기준 정보는 제한됩니다' : '브랜드 상태는 제한됩니다')
+            : '큰 제한 없이 확인할 수 있습니다',
+        note: limitationParts.length ? limitationParts.join(' · ') : '현재 화면에서 큰 제한 없이 해석할 수 있습니다.'
+    };
+}
+
+function summarizeHealthCaution(overviewRows = []) {
+    const brand = overviewRows.find((row) => row.area_key === 'brand_score') ?? {};
+    const cautionParts = ['우선순위 판단은 매출과 역할 분류를 먼저 봅니다'];
+
+    if (isBrandRestrictedStatus(brand.status_label)) {
+        cautionParts.push('브랜드 상태는 참고용으로만 해석합니다');
+    }
+
+    return {
+        value: '보조 지표보다 우선순위 기준을 먼저 봅니다',
+        note: `${cautionParts.join(' · ')}.`
+    };
 }
 
 function priorityClass(level) {
@@ -401,7 +590,7 @@ function summarizeBrandStatuses(rows) {
 
     return Array.from(counts.entries()).map(([status, count]) => ({
         status,
-        label: `${translateBrandStatus(status)} ${formatNumber(count)}개`,
+        label: `${translateBrandStatusCompact(status)} ${formatNumber(count)}개`,
         className: brandStatusClass(status)
     }));
 }
@@ -559,7 +748,7 @@ function renderSegmentsView() {
                     <div class="section-kicker">구조 맵</div>
                     <h3 class="section-title">매출 변화 x 역할 분류</h3>
                 </div>
-                <p class="muted">Revenue 열과 역할 분류 행을 기준으로 큐를 묶고, 셀 안에서 상품 수와 브랜드 상태를 함께 봅니다.</p>
+                <p class="muted">매출 변화와 역할 분류를 기준으로, 어느 상품군에서 즉시 확인 항목이 몰리는지 먼저 봅니다.</p>
             </div>
         </section>
         <section class="panel matrix-shell">
@@ -592,24 +781,33 @@ function renderSegmentsView() {
                                 : summarizePriorityCounts(cellRows);
                             const brandSummary = structureRows.length
                                 ? [
-                                    { label: `${translateBrandStatus('limited')} ${formatNumber(cellRecord?.brand_limited_count, '0')}개`, className: brandStatusClass('limited') },
-                                    { label: `${translateBrandStatus('provisional')} ${formatNumber(cellRecord?.brand_provisional_count, '0')}개`, className: brandStatusClass('provisional') },
-                                    { label: `${translateBrandStatus('unavailable')} ${formatNumber(cellRecord?.brand_unavailable_count, '0')}개`, className: brandStatusClass('unavailable') }
+                                    { status: 'limited', label: `${translateBrandStatusCompact('limited')} ${formatNumber(cellRecord?.brand_limited_count, '0')}개`, className: brandStatusClass('limited') },
+                                    { status: 'provisional', label: `${translateBrandStatusCompact('provisional')} ${formatNumber(cellRecord?.brand_provisional_count, '0')}개`, className: brandStatusClass('provisional') },
+                                    { status: 'unavailable', label: `${translateBrandStatusCompact('unavailable')} ${formatNumber(cellRecord?.brand_unavailable_count, '0')}개`, className: brandStatusClass('unavailable') }
                                 ].filter((item) => !item.label.includes('0개'))
                                 : summarizeBrandStatuses(cellRows);
                             const topProducts = structureRows.length
-                                ? [1, 2, 3]
+                                ? [1, 2]
                                     .map((index) => ({
                                         product_id: cellRecord?.[`top_product_${index}_id`] || '',
                                         product_name: cellRecord?.[`top_product_${index}_name`] || '',
+                                        product_image_url: cellRecord?.[`top_product_${index}_image_url`] || '',
                                         priority_level: cellRecord?.[`top_product_${index}_priority`] || ''
                                     }))
                                     .filter((product) => product.product_id || product.product_name)
-                                : cellRows.slice(0, 3);
+                                : cellRows.slice(0, 2);
                             const productCount = structureRows.length ? (toNumber(cellRecord?.product_count) ?? 0) : cellRows.length;
                             const attentionCount = structureRows.length
                                 ? ((toNumber(cellRecord?.immediate_count) ?? 0) + (toNumber(cellRecord?.watch_count) ?? 0))
                                 : cellRows.filter((row) => row.priority_level !== '정상 유지').length;
+                            const overflowCount = Math.max(0, productCount - topProducts.length);
+                            const helperNote = getRoleTaxonomyHelper(roleTaxonomy);
+                            const brandSummaryVisible = [...brandSummary]
+                                .sort((left, right) => {
+                                    const priority = { unavailable: 0, limited: 1, provisional: 2, 'near-core': 3, available: 4 };
+                                    return (priority[left.status] ?? 9) - (priority[right.status] ?? 9);
+                                })
+                                .slice(0, 2);
 
                             if (!productCount) {
                                 return `
@@ -625,19 +823,26 @@ function renderSegmentsView() {
                                         <strong class="matrix-count">${escapeHtml(`${formatNumber(productCount)}개 상품`)}</strong>
                                         <span class="matrix-meta">${escapeHtml(`${formatNumber(attentionCount, '0')}건 확인 필요`)}</span>
                                     </div>
+                                    <p class="matrix-helper-note">${escapeHtml(helperNote)}</p>
                                     <div class="matrix-chip-row">
                                         ${prioritySummary.map((item) => `<span class="pill ${item.className}">${escapeHtml(`${item.label} ${item.count}`)}</span>`).join('')}
                                     </div>
                                     <div class="matrix-product-list">
                                         ${topProducts.map((product) => `
                                             <div class="matrix-product-item">
-                                                <strong>${escapeHtml(product.product_name || product.product_id)}</strong>
-                                                <span>${escapeHtml(structureRows.length ? `${textOrFallback(product.priority_level, '상태 확인')}` : `${product.priority_level} · 기여 ${formatDecimal(product.role_score, { digits: 2, fallback: '-' })} · 매출 ${formatPercent(product.revenue_change_rate_30d, { fallback: '보류' })}`)}</span>
+                                                <div class="matrix-product-row">
+                                                    ${renderProductThumb(product, { size: 'small' })}
+                                                    <div class="matrix-product-copy">
+                                                        <strong>${escapeHtml(product.product_name || product.product_id)}</strong>
+                                                        <span>${escapeHtml(structureRows.length ? `${textOrFallback(product.priority_level, '상태 확인')}` : `${product.priority_level} · 기여 ${formatDecimal(product.role_score, { digits: 2, fallback: '-' })} · 매출 ${formatPercent(product.revenue_change_rate_30d, { fallback: '보류' })}`)}</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         `).join('')}
+                                        ${overflowCount > 0 ? `<div class="matrix-product-more">외 ${escapeHtml(formatNumber(overflowCount, '0'))}개</div>` : ''}
                                     </div>
                                     <div class="matrix-chip-row is-secondary">
-                                        ${brandSummary.map((item) => renderStatusChip(item.label, item.className)).join('')}
+                                        ${brandSummaryVisible.map((item) => renderStatusChip(item.label, item.className)).join('')}
                                     </div>
                                 </div>
                             `;
@@ -656,11 +861,13 @@ function renderDetailOverviewCards(selectedQueueRow, roleRow, revenueRow, contri
     ].join(' · ');
 
     const brandNote = brandLevelRow.confidence_label
-        ? `신뢰도 ${textOrFallback(brandLevelRow.confidence_label)}`
+        ? `신뢰도 ${translateConfidenceLabel(brandLevelRow.confidence_label)}`
         : '신뢰도 집계 전';
     const contributorNote = contributorRow.contribution_status
-        ? `상품 기여 ${translateBrandStatus(contributorRow.contribution_status)}`
+        ? `상품 기여 ${translateBrandStatusCompact(contributorRow.contribution_status)}`
         : '상품 기여 집계 전';
+    const brandReason = normalizeBrandReason(brandLevelRow.status_reason || selectedQueueRow.brand_score_reason);
+    const brandStatusKey = brandLevelRow.brand_score_status || selectedQueueRow.brand_score_status;
 
     return `
         <div class="detail-overview-grid">
@@ -681,15 +888,16 @@ function renderDetailOverviewCards(selectedQueueRow, roleRow, revenueRow, contri
             </article>
             <article class="overview-card">
                 <div class="section-kicker">브랜드 반영 상태</div>
-                <strong class="overview-value">${escapeHtml(translateBrandStatus(brandLevelRow.status_label || brandLevelRow.brand_score_status || selectedQueueRow.brand_score_status))}</strong>
-                <p class="overview-note">${escapeHtml(`${brandNote} · ${contributorNote} · ${sanitizeOperatingCopy(brandLevelRow.status_reason || selectedQueueRow.brand_score_reason)}`)}</p>
+                <strong class="overview-value">${escapeHtml(translateBrandStatus(brandLevelRow.status_label || brandStatusKey))}</strong>
+                <p class="overview-note">${escapeHtml(`${brandReason} · ${brandNote} · ${contributorNote}`)}</p>
+                <p class="overview-note is-subtle">${escapeHtml(buildBrandCaution(brandStatusKey))}</p>
             </article>
         </div>
     `;
 }
 
 function renderDetailSectionRows(rows) {
-    const sectionOrder = ['헤더', 'Revenue', 'Role', '근거', 'Brand Score'];
+    const sectionOrder = ['헤더', '매출', '역할 분류', '근거', '브랜드 점수', 'Revenue', 'Role', 'Brand Score'];
     const groups = sectionOrder
         .map((section) => ({
             section,
@@ -707,7 +915,11 @@ function renderDetailSectionRows(rows) {
                             <div class="definition-pair">
                                 <dt>${escapeHtml(translateDetailLabel(group.section, row.label))}</dt>
                                 <dd>${escapeHtml(translateDetailValue(group.section, row.label, row.value))}</dd>
-                                <small>${escapeHtml(sanitizeOperatingCopy(row.note))}</small>
+                                <small>${escapeHtml(
+                                    group.section === 'Brand Score' || group.section === '브랜드 점수'
+                                        ? normalizeBrandReason(row.note, '브랜드 상태는 참고용으로만 표시합니다.')
+                                        : sanitizeOperatingCopy(row.note)
+                                )}</small>
                             </div>
                         `).join('')}
                     </dl>
@@ -787,7 +999,7 @@ function renderDefinitionsView() {
         return '<div class="empty-state">운영 기준 데이터가 없습니다.</div>';
     }
 
-    const groupOrder = ['Revenue', 'Role', 'Brand Score', '데이터 상태', '상품 이미지'];
+    const groupOrder = ['매출 비교', '역할 분류', '브랜드 점수', '데이터 상태', '상품 이미지', 'Revenue', 'Role', 'Brand Score'];
     const groups = groupOrder
         .map((group) => ({
             group,
@@ -802,7 +1014,7 @@ function renderDefinitionsView() {
                     <div class="section-kicker">운영 기준</div>
                     <h3 class="section-title">화면에서 쓰는 기준과 안내</h3>
                 </div>
-                <p class="muted">운영자가 바로 이해할 수 있는 문구로 현재 적용 기준을 정리했습니다.</p>
+                <p class="muted">현재 화면에서 어떤 기준으로 보고 있는지, 운영 문구로만 간단히 정리했습니다.</p>
             </div>
         </section>
         <section class="definition-groups">
@@ -829,9 +1041,9 @@ function renderDefinitionsView() {
 
 function renderOverviewCard(title, value, note, className = '') {
     return `
-        <article class="overview-card">
+        <article class="overview-card ${className}">
             <div class="section-kicker">${escapeHtml(title)}</div>
-            <strong class="overview-value ${className}">${escapeHtml(value)}</strong>
+            <strong class="overview-value">${escapeHtml(value)}</strong>
             <p class="overview-note">${escapeHtml(note)}</p>
         </article>
     `;
@@ -841,22 +1053,27 @@ function renderHealthView() {
     const overviewRows = getViewModel('vm_data_health_overview');
     const healthRows = getViewModel('vm_data_health_detail').length ? getViewModel('vm_data_health_detail') : getViewModel('vm_data_health');
     const queueRows = getViewModel('vm_priority_queue');
-    const brandValidationRows = getMartRows('mart_brand_score_validation_status');
     const rawManifestRows = getQaRows('raw_manifest');
-    const validationRows = getQaRows('validation_summary');
-    const toneAuditRows = getQaRows('tone_audit');
-    const iterationRows = getViewModel('vm_iteration_log');
-
-    const brandValidation = brandValidationRows[0] ?? {};
     const productImageManifest = rawManifestRows.find((row) => row.dataset_key === 'products') ?? {};
-    const productImageValidation = validationRows.find((row) => row.check_name === 'product_image_provenance') ?? {};
     const imageSummary = productImageManifest.data_provenance === 'rosetta_direct'
         ? '상품 이미지 반영 완료'
-        : sanitizeOperatingCopy(productImageValidation.message || '상품 이미지 연결 확인 필요');
+        : '상품 이미지 일부를 다시 확인해야 합니다';
     const queueState = state.bundle?.raw_data_status === 'real_source_loaded'
         ? (queueRows.length ? '운영 가능' : '산출물 확인 필요')
         : '데이터 반영 대기';
-    const toneState = toneAuditRows.every((row) => row.status === 'pass') ? '기본 문구 정리 완료' : '문구 확인 필요';
+    const trustSummary = summarizeHealthTrust(overviewRows);
+    const limitationSummary = summarizeHealthLimitations(overviewRows, imageSummary);
+    const cautionSummary = summarizeHealthCaution(overviewRows);
+    const detailRows = healthRows.filter((row) => toText(row.source_label || row.source_key));
+    const limitedRows = overviewRows.filter((row) => {
+        if (row.area_key === 'brand_score') {
+            return isBrandRestrictedStatus(row.status_label);
+        }
+        if (row.area_key === 'product_reference') {
+            return imageSummary !== '상품 이미지 반영 완료';
+        }
+        return row.status_label && row.status_label !== '정상';
+    });
 
     return `
         <section class="hero">
@@ -865,38 +1082,34 @@ function renderHealthView() {
                     <div class="section-kicker">운영 현황</div>
                     <h3 class="section-title">오늘 바로 볼 운영 개요</h3>
                 </div>
-                <p class="muted">기본 화면에는 운영 준비도와 반영 범위만 두고, 원천 상세와 점검 내역은 아래 접힌 영역으로 내렸습니다.</p>
+                <p class="muted">지금 믿고 볼 수 있는 것과 제한되는 것을 먼저 보고, 세부 근거는 필요할 때만 펼쳐서 봅니다.</p>
             </div>
         </section>
         <section class="overview-grid">
-            ${renderOverviewCard('운영 준비도', queueState, `우선순위 큐 ${formatNumber(queueRows.length, '0')}건`)}
-            ${overviewRows.map((row) => renderOverviewCard(row.area_title, translateBrandStatus(row.status_label) === row.status_label ? textOrFallback(row.summary_value) : `${translateBrandStatus(row.status_label)} · ${textOrFallback(row.summary_value)}`, sanitizeOperatingCopy(row.note))).join('')}
-            ${renderOverviewCard('상품/연결 상태', imageSummary, toneState)}
+            ${renderOverviewCard('지금 믿고 볼 수 있는 것', trustSummary.value, trustSummary.note, queueState === '운영 가능' ? 'status-ready' : 'status-warning')}
+            ${renderOverviewCard('지금 제한되는 것', limitationSummary.value, limitationSummary.note, 'status-warning')}
+            ${renderOverviewCard('해석 시 주의할 것', cautionSummary.value, cautionSummary.note, 'status-muted')}
         </section>
         <details class="detail-disclosure">
-            <summary>데이터 연결 상세</summary>
+            <summary>세부 근거 보기</summary>
             <div class="detail-disclosure-body">
                 <table class="detail-disclosure-table">
                     <thead>
                         <tr>
                             <th>데이터 항목</th>
-                            <th>행 수</th>
-                            <th>시작일</th>
                             <th>최근일</th>
-                            <th>반영 차이</th>
                             <th>운영 상태</th>
                             <th>비교 범위</th>
+                            <th>주의 메모</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${healthRows.map((row) => `
+                        ${detailRows.map((row) => `
                             <tr>
                                 <td>${escapeHtml(textOrFallback(row.source_label, row.source_key))}</td>
-                                <td>${escapeHtml(formatNumber(row.row_count, '0'))}</td>
-                                <td>${escapeHtml(textOrFallback(row.min_date))}</td>
                                 <td>${escapeHtml(textOrFallback(row.max_date))}</td>
-                                <td>${escapeHtml(`${formatNumber(row.freshness_gap_days, '0')}일`)}</td>
                                 <td>${renderStatusChip(textOrFallback(row.data_state), coverageStateClass(row.data_state))}</td>
+                                <td>${escapeHtml(sanitizeOperatingCopy(row.coverage_state))}</td>
                                 <td>${escapeHtml(sanitizeOperatingCopy(row.coverage_note || row.coverage_state))}</td>
                             </tr>
                         `).join('')}
@@ -905,37 +1118,30 @@ function renderHealthView() {
             </div>
         </details>
         <details class="detail-disclosure">
-            <summary>운영 확인 상세</summary>
-            <div class="detail-disclosure-body detail-disclosure-grid">
-                <article class="grid-card">
-                    <div class="section-kicker">화면 확인</div>
-                    <h3>문구 점검</h3>
-                    <ul class="inline-list">
-                        ${toneAuditRows.map((row) => `<li>${escapeHtml(`${row.term}: ${row.status === 'pass' ? '사용 안 함' : '확인 필요'}`)}</li>`).join('')}
-                    </ul>
-                </article>
-                <article class="grid-card">
-                    <div class="section-kicker">운영 체크</div>
-                    <h3>반영 상태</h3>
-                    <ul class="inline-list">
-                        ${validationRows.map((row) => `<li>${escapeHtml(sanitizeOperatingCopy(row.message))}</li>`).join('')}
-                    </ul>
-                </article>
-            </div>
-        </details>
-        <details class="detail-disclosure">
-            <summary>반영 이력</summary>
+            <summary>제한 사유 보기</summary>
             <div class="detail-disclosure-body">
-                ${iterationRows.length ? `
-                    <div class="history-list">
-                        ${iterationRows.map((row) => `
-                            <article class="history-item">
-                                <strong>${escapeHtml(`${row.iteration}차 반영`)}</strong>
-                                <p>${escapeHtml(sanitizeOperatingCopy(row.change_applied))}</p>
-                            </article>
-                        `).join('')}
-                    </div>
-                ` : '<div class="empty-state">표시할 반영 이력이 없습니다.</div>'}
+                <div class="health-note-list">
+                    <article class="health-note-item">
+                        <strong>운영 준비도</strong>
+                        <p>${escapeHtml(`현재 우선순위 큐 ${formatNumber(queueRows.length, '0')}건을 기준으로 확인할 수 있습니다.`)}</p>
+                    </article>
+                    <article class="health-note-item">
+                        <strong>상품 기준 정보</strong>
+                        <p>${escapeHtml(imageSummary)}</p>
+                    </article>
+                    ${limitedRows.map((row) => `
+                        <article class="health-note-item">
+                            <strong>${escapeHtml(sanitizeOperatingCopy(row.area_title))}</strong>
+                            <p>${escapeHtml(
+                                row.area_key === 'brand_score'
+                                    ? normalizeBrandReason(row.note)
+                                    : row.area_key === 'product_reference'
+                                        ? imageSummary
+                                        : sanitizeOperatingCopy(row.note)
+                            )}</p>
+                        </article>
+                    `).join('')}
+                </div>
             </div>
         </details>
     `;

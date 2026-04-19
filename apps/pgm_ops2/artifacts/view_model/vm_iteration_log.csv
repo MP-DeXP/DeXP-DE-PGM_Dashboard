@@ -7,3 +7,5 @@ iteration,issue_found,change_applied,brand_score_level
 6,timestamp freshness가 비어도 데이터 상태 화면에서 정상처럼 보였음,날짜 정규화 공통 함수를 도입하고 freshness/coverage 상태를 source별로 다시 계산,limited
 7,Role/Brand Score 판정이 support count와 stale source에 과도하게 끌렸음,Role taxonomy를 canonical score 중심으로 재정의하고 Brand Score freshness cap 및 QA 검증을 추가,limited
 8,Brand Score가 상품별 canonical처럼 읽히고 event/basket reconstruction 계약이 brand-level과 분리되지 않았음,"reconstructed event/basket staging, brand-level Brand Score, contributor mart, reconstruction registry를 추가하고 limited 숫자 노출 정책을 분리",provisional
+9,Brand Score 제한 사유가 길고 내부 용어가 섞여 운영 화면에서 바로 읽기 어려웠음,제한 사유 요약 규칙을 추가해 status_reason과 기본 note를 짧은 운영 문구로 정리,provisional
+10,운영 현황/구조 맵 화면에 Revenue·Role·Brand Score 내부 표현이 그대로 남아 사용자 표면 마감이 덜 되었음,"정의 규칙, 데이터 상태 개요, 상품 상세 섹션 문구를 운영툴 기준 한글 표면으로 마감",provisional

@@ -1,15 +1,15 @@
 rule_group,rule_name,rule_definition,status_label
-Revenue,직전기간 rolling 비교,7/30/90일 rolling은 직전 동일 길이 기간과 비교한다.,정상
-Revenue,비교 가능 조건,source history가 직전 동일 길이 window 시작일까지 확보된 경우에만 Revenue 비교를 사용한다.,정상
-Role,same-date snapshot only,Role taxonomy는 관측된 동일 날짜 snapshot만 사용한다.,정상
-Role,canonical score 우선,Role taxonomy는 entry/expansion/repeat/basket canonical score로 결정하고 count는 근거로만 사용한다.,정상
-Brand Score,큐 미반영,Brand Score는 상세/정의/데이터 상태 화면에만 표시하고 큐 랭킹에는 사용하지 않는다.,제한적 반영
-Brand Score,brand-level 계약,"Brand Score는 brand-level mart와 product contributor mart로 분리하고, 상품별 canonical처럼 보이는 구조는 최종 계약으로 사용하지 않는다.",제한적 반영
-Brand Score,상태 및 숫자 노출,상태는 unavailable/limited/provisional/near-core를 사용하고 limited 이하에서는 numeric_display_policy로 최종 숫자 노출을 제어한다.,제한적 반영
-Brand Score,reconstruction registry,"reconstruction_level, parity_level, limitation_reason를 registry와 brand/contributor 산출에 모두 남긴다.",제한적 반영
-Brand Score,freshness cap,event 또는 basket freshness가 부족하면 provisional 대신 limited로 제한하고 near-core는 기본 비활성으로 둔다.,제한적 반영
-Brand Score,숫자 노출 규칙,limited와 unavailable 상태에서는 최종 Brand Score 숫자를 숨기고 상태와 제한 사유만 노출한다.,제한적 반영
-Role,동시구매 근거,"동시구매기여는 reconstructed basket summary를 근거로 하며, 상세 보기에서는 분류와 attach_rate, 상위 연관 상품을 함께 보여준다.",제한적 반영
-데이터 상태,freshness 공개,source 최신일 차이를 숨기지 않고 그대로 표시한다.,정상
-데이터 상태,history 부족 공개,직전기간 비교에 필요한 history가 부족하면 비교 불가를 그대로 표시한다.,정상
-상품 이미지,Rosetta products 기준,상품 이미지는 raw_rosetta.products.csv의 list_image를 기준으로 사용한다.,정상
+매출 비교,직전 기간 비교,7/30/90일 매출은 같은 길이의 직전 기간과 비교합니다.,정상
+매출 비교,비교 이력 기준,비교 시작일 이전까지 이력이 확보된 경우에만 증감 비교를 사용합니다.,정상
+역할 분류,기준일 스냅샷 사용,역할 분류는 기준일에 관측된 동일 일자 데이터만 사용합니다.,정상
+역할 분류,점수 우선 판정,"역할 분류는 첫구매·확장·반복·동시구매 점수를 우선 보고, 건수는 보조 근거로만 사용합니다.",정상
+브랜드 점수,큐 미반영,브랜드 점수는 상세·정의·데이터 상태 화면에만 표시하고 큐 랭킹에는 사용하지 않습니다.,제한적 반영
+브랜드 점수,브랜드 단위 운영 계약,"브랜드 점수는 브랜드 단위 값과 상품별 기여도로 나눠 관리하며, 상품별 최종 점수처럼 사용하지 않습니다.",제한적 반영
+브랜드 점수,상태와 숫자 노출,"산출 불가·제한 반영·운영 참고·검증 후보 상태로 나누고, 제한 반영 이하에서는 최종 숫자를 숨깁니다.",제한적 반영
+브랜드 점수,재구성 관리 기록,"재구성 수준, 정합성 수준, 제한 사유를 관리 기록과 브랜드·상품 기여 산출에 함께 남깁니다.",제한적 반영
+브랜드 점수,최신성 제한,"이벤트나 동시구매 데이터 최신성이 부족하면 운영 참고 대신 제한 반영으로 낮추고, 검증 후보는 기본 비활성으로 둡니다.",제한적 반영
+브랜드 점수,숫자 노출 규칙,제한 반영과 산출 불가 상태에서는 최종 브랜드 점수 숫자를 숨기고 상태와 제한 사유만 보여줍니다.,제한적 반영
+역할 분류,동시구매 근거,"동시구매 기여는 재구성된 동시구매 요약을 근거로 하며, 상세 보기에서는 분류와 동반구매율, 상위 연관 상품을 함께 보여줍니다.",제한적 반영
+데이터 상태,freshness 공개,원천 데이터 최신일 차이를 숨기지 않고 그대로 표시합니다.,정상
+데이터 상태,비교 이력 부족 공개,직전 기간 비교에 필요한 이력이 부족하면 비교 불가 상태를 그대로 표시합니다.,정상
+상품 이미지,Rosetta products 기준,상품 이미지는 raw_rosetta.products.csv의 list_image를 기준으로 사용합니다.,정상

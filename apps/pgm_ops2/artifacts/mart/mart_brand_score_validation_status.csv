@@ -1,2 +1,2 @@
 as_of_date,brand_level_status,unavailable_count,limited_count,provisional_count,near_core_count,numeric_display_policy,basket_source_max_date,event_source_max_date,basket_freshness_gap_days,event_freshness_gap_days,status_cap_reason,reconstruction_registry_count,validation_note
-2026-04-18,limited,1,41,0,0,hide,2026-04-18,2026-03-22,0,27,event freshness가 7일을 초과합니다. | basket parity가 낮습니다.,10,Brand Score는 큐 랭킹에 연결하지 않고 brand-level panel + contributor contract로만 노출합니다.
+2026-04-18,limited,1,41,0,0,hide,2026-04-18,2026-03-22,0,27,이벤트 최신성 지연 / 동시구매 재구성 안정성 낮음,10,Brand Score는 큐 랭킹에 연결하지 않고 brand-level panel + contributor contract로만 노출합니다.

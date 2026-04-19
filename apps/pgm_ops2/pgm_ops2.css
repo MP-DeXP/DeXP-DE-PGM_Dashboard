@@ -234,6 +234,11 @@ button {
     line-height: 1.45;
 }
 
+.overview-note.is-subtle {
+    margin-top: 6px;
+    font-size: 12px;
+}
+
 .queue-list {
     display: grid;
     gap: 8px;
@@ -508,6 +513,13 @@ button {
     color: var(--muted);
 }
 
+.matrix-helper-note {
+    margin: -2px 0 0;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
 .matrix-product-list {
     gap: 8px;
 }
@@ -519,8 +531,32 @@ button {
     border: 1px solid rgba(31, 26, 20, 0.06);
 }
 
+.matrix-product-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.matrix-product-copy {
+    min-width: 0;
+}
+
+.matrix-product-more {
+    font-size: 12px;
+    color: var(--muted);
+    padding: 0 4px;
+}
+
 .matrix-chip-row.is-secondary {
     margin-top: auto;
+    opacity: 0.92;
+}
+
+.matrix-chip-row.is-secondary .status-chip {
+    padding: 4px 8px;
+    min-height: 24px;
+    font-size: 11px;
 }
 
 .matrix-cell-empty {
@@ -695,6 +731,29 @@ button {
     padding-left: 18px;
     display: grid;
     gap: 6px;
+}
+
+.health-note-list {
+    display: grid;
+    gap: 10px;
+}
+
+.health-note-item {
+    padding: 12px;
+    border-radius: 12px;
+    background: var(--surface-soft);
+    border: 1px solid rgba(31, 26, 20, 0.06);
+}
+
+.health-note-item strong {
+    display: block;
+    margin-bottom: 6px;
+}
+
+.health-note-item p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.5;
 }
 
 .history-list {

@@ -132,6 +132,150 @@ function toBooleanFlag(value) {
     return ['true', '1', 'yes'].includes(toText(value).toLowerCase());
 }
 
+function translateUserFacingText(value) {
+    return [
+        [/Brand Score/g, '브랜드 점수'],
+        [/brand-level/g, '브랜드 단위'],
+        [/brand level/g, '브랜드 단위'],
+        [/Revenue/g, '매출'],
+        [/Role/g, '역할'],
+        [/same-date snapshot only/g, '기준일 스냅샷만 사용'],
+        [/same-date snapshot/g, '기준일 스냅샷'],
+        [/canonical score/g, '기준 점수'],
+        [/freshness cap/g, '최신성 제한'],
+        [/freshness/g, '최신성'],
+        [/reconstruction registry/g, '재구성 관리 기록'],
+        [/contributor signal/g, '기여 신호'],
+        [/contributor/g, '기여'],
+        [/canonical/g, '기준값'],
+        [/near-core/g, '검증 후보'],
+        [/provisional/g, '운영 참고'],
+        [/limited/g, '제한 반영'],
+        [/unavailable/g, '산출 불가'],
+        [/event/g, '이벤트'],
+        [/basket/g, '동시구매'],
+        [/source history/g, '비교 이력'],
+        [/history/g, '비교 이력'],
+        [/window/g, '기간'],
+        [/taxonomy/g, '역할 분류'],
+        [/attach_rate/g, '동반구매율'],
+        [/top1/g, '상위 1개'],
+        [/top3/g, '상위 3개'],
+        [/companion/g, '연관 조합'],
+        [/score/g, '점수']
+    ].reduce((text, [pattern, replacement]) => text.replace(pattern, replacement), toText(value))
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function toRevenueCompareStateLabel(state) {
+    const labels = {
+        available: '비교 가능',
+        history_insufficient: '비교 이력 부족'
+    };
+    return labels[toText(state)] ?? translateUserFacingText(state);
+}
+
+function toBrandScoreStatusLabel(status) {
+    const labels = {
+        unavailable: '산출 불가',
+        limited: '제한 반영',
+        provisional: '운영 참고',
+        'near-core': '검증 후보'
+    };
+    return labels[toText(status)] ?? translateUserFacingText(status);
+}
+
+function toStructureLabel(value) {
+    const labels = {
+        Broad: '넓은 유입',
+        Qualified: '선별 유입',
+        Core: '핵심 확장',
+        Deep: '깊은 확장',
+        Scale: '확산 확장',
+        Pair: '강한 짝상품',
+        Set: '묶음 중심',
+        None: '관측 약함'
+    };
+    return labels[toText(value)] ?? toText(value, '관측 약함');
+}
+
+function summarizeBrandScoreReason(status, rawReason, fallback = '') {
+    const rawText = toText(rawReason);
+    const labels = [];
+    const append = (label) => {
+        if (label && !labels.includes(label)) {
+            labels.push(label);
+        }
+    };
+
+    [
+        ['brand-level 집계를 위한 product input이 없습니다.', '집계 대상 부족'],
+        ['reconstructed event가 없습니다.', '이벤트 근거 부족'],
+        ['event 재구성 결과가 비어 있습니다.', '이벤트 근거 부족'],
+        ['reconstructed basket summary가 없습니다.', '동시구매 근거 부족'],
+        ['scored/demand 기반 핵심 축이 비어 있습니다.', '핵심 축 근거 부족'],
+        ['event freshness가 7일을 초과합니다.', '이벤트 최신성 지연'],
+        ['basket freshness가 7일을 초과합니다.', '동시구매 최신성 지연'],
+        ['event product coverage가 낮습니다.', '반영 상품 범위 협소'],
+        ['basket parity가 낮습니다.', '동시구매 재구성 안정성 낮음'],
+        ['raw basket detail과의 유사도가 낮아 exact parity를 주장할 수 없습니다.', '동시구매 재구성 안정성 낮음'],
+        ['역할 근거로는 사용하지만 core basket summary와 동일성은 아직 입증되지 않았습니다.', '동시구매 정합성 검증 필요'],
+        ['near-core 상태는 기본 비활성이라 provisional로 유지했습니다.', '운영 반영 전 검증 단계'],
+        ['상품 단위 핵심 축이 모두 재구성되지 않았습니다.', '상품별 핵심 근거 부족'],
+        ['일부 상품은 contributor 상태가 limited입니다.', '일부 상품 제한 반영'],
+        ['core canonical output과의 field-by-field diff 검증이 없어 near-core나 exact parity를 주장할 수 없습니다.', '정합성 검증 필요'],
+        ['confidence label은 core threshold를 참고하지만 direct diff 검증은 아직 없습니다.', '신뢰도 검증 필요']
+    ].forEach(([pattern, label]) => {
+        if (rawText.includes(pattern)) {
+            append(label);
+        }
+    });
+
+    if (!labels.length && rawText) {
+        append(translateUserFacingText(rawText));
+    }
+
+    if (labels.length) {
+        const head = labels.slice(0, 2).join(' / ');
+        return labels.length > 2 ? `${head} 외 ${labels.length - 2}건` : head;
+    }
+
+    if (fallback) {
+        return fallback;
+    }
+
+    if (status === 'unavailable') {
+        return '핵심 근거 부족';
+    }
+    if (status === 'limited') {
+        return '일부 근거 제한';
+    }
+    if (status === 'near-core') {
+        return '운영 반영 전 검증';
+    }
+    return '운영 참고값 제공';
+}
+
+function buildBrandScoreNote(status, rawReason, fallback = '') {
+    const summary = summarizeBrandScoreReason(status, rawReason, fallback).replace(/[.]+$/g, '');
+
+    if (status === 'unavailable') {
+        return `산출 보류: ${summary}`;
+    }
+    if (status === 'limited') {
+        return `제한 반영: ${summary}`;
+    }
+    if (status === 'near-core') {
+        return summary.endsWith('단계')
+            ? `${summary}입니다.`
+            : `검증 단계: ${summary}`;
+    }
+    return summary === '운영 참고값 제공'
+        ? '운영 참고용 점수를 제공합니다.'
+        : `운영 참고 기준: ${summary}`;
+}
+
 function toConfidenceLabel(score) {
     if (score >= 0.67) {
         return 'High';
@@ -219,11 +363,11 @@ function summarizeCoverageState(row, asOfDate) {
     const { requiredStartDates, historyReady7d, historyReady30d, historyReady90d } = getCoverageFlags(row.min_date, row.max_date, asOfDate);
 
     let coverageState = '관측 불가';
-    let coverageNote = '기간 계산 불가';
+    let coverageNote = '비교 기준을 계산할 수 없습니다.';
 
     if (!toNumber(row.row_count) || !normalizeDateValue(row.max_date)) {
         coverageState = '관측 불가';
-        coverageNote = '기간 계산 불가';
+        coverageNote = '비교 기준을 계산할 수 없습니다.';
     } else if (historyReady90d) {
         coverageState = '90일 비교 가능';
         coverageNote = '7/30/90일 직전기간 비교가 모두 가능합니다.';
@@ -234,8 +378,8 @@ function summarizeCoverageState(row, asOfDate) {
         coverageState = '7일까지만 가능';
         coverageNote = '7일 비교까지만 가능하고 30/90일 비교는 불가합니다.';
     } else {
-        coverageState = 'history 부족';
-        coverageNote = '직전기간 비교를 위한 history가 부족합니다.';
+        coverageState = '비교 이력 부족';
+        coverageNote = '비교 이력이 부족해 직전 기간 비교가 어렵습니다.';
     }
 
     return {
@@ -754,7 +898,7 @@ function buildRevenueWindows(rows, asOfDate, productNameByProduct = new Map(), p
                 const compareState = coverageFlags[`historyReady${windowDays}d`] ? 'available' : 'history_insufficient';
                 const compareNote = compareState === 'available'
                     ? '직전 동일 길이 기간과 비교 가능합니다.'
-                    : 'source history가 부족해 직전기간 비교가 불가합니다.';
+                    : '비교 이력이 부족해 직전 기간 비교가 어렵습니다.';
 
                 for (let offset = 0; offset < windowDays; offset += 1) {
                     currentRevenue += toNumber(revenueByDate.get(shiftDate(asOfDate, -offset)));
@@ -880,7 +1024,7 @@ function buildRoleTaxonomy(
         const finalRole = primaryScore < 0.05 && !hasAnySupportEvidence ? '관측 없음' : primaryRole;
         const roleReason = finalRole === '관측 없음'
             ? '역할 관측 없음'
-            : `score ${primaryScore.toFixed(2)}`;
+            : `주요 신호 ${primaryScore.toFixed(2)}`;
 
         return {
             as_of_date: asOfDate,
@@ -1107,13 +1251,14 @@ function buildBrandScoreBrandLevel(rows, asOfDate, freshnessRows, reconstructedE
     }
 
     const numericDisplayPolicy = ['provisional', 'near-core'].includes(meta.brandScoreStatus) ? 'show' : 'hide';
-    const note = meta.brandScoreStatus === 'unavailable'
-        ? '핵심 축 결손으로 brand-level Brand Score를 안정적으로 계산할 수 없습니다.'
-        : meta.brandScoreStatus === 'limited'
-            ? `산식은 계산했지만 ${meta.limitationReason || 'event/basket 재구성이 제한적입니다.'}`
-            : meta.nearCoreCandidate && !ENABLE_NEAR_CORE_STATUS
-                ? 'near-core 후보지만 기본 비활성 정책으로 provisional에 머뭅니다.'
-                : 'brand-level 산식은 core를 참고했지만 intermediate parity는 별도 registry로 관리합니다.';
+    const limitationSummary = summarizeBrandScoreReason(meta.brandScoreStatus, meta.limitationReason);
+    const note = buildBrandScoreNote(
+        meta.brandScoreStatus,
+        meta.limitationReason,
+        meta.nearCoreCandidate && !ENABLE_NEAR_CORE_STATUS
+            ? '운영 반영 전 검증 단계'
+            : '운영 참고값 제공'
+    );
 
     return [{
         as_of_date: asOfDate,
@@ -1136,7 +1281,7 @@ function buildBrandScoreBrandLevel(rows, asOfDate, freshnessRows, reconstructedE
         brand_score_numeric: brandScoreNumeric,
         brand_score_display_value: numericDisplayPolicy === 'show' && brandScoreNumeric !== '' ? brandScoreNumeric : '',
         brand_score_status: meta.brandScoreStatus,
-        status_label: meta.brandScoreStatus,
+        status_label: toBrandScoreStatusLabel(meta.brandScoreStatus),
         status_reason: note,
         freshness_status: (meta.eventFreshnessGapDays === '' || meta.eventFreshnessGapDays > 7 || meta.basketFreshnessGapDays === '' || meta.basketFreshnessGapDays > 7)
             ? 'limited'
@@ -1146,7 +1291,8 @@ function buildBrandScoreBrandLevel(rows, asOfDate, freshnessRows, reconstructedE
         confidence: confidence,
         reconstruction_level: meta.reconstructionLevel,
         parity_level: meta.parityLevel,
-        limitation_reason: meta.limitationReason,
+        limitation_reason: limitationSummary,
+        limitation_reason_detail: meta.limitationReason,
         near_core_candidate_flag: meta.nearCoreCandidate ? 'true' : 'false',
         near_core_enabled_flag: ENABLE_NEAR_CORE_STATUS ? 'true' : 'false',
         parity_score: meta.parityScore,
@@ -1200,8 +1346,8 @@ function buildBrandScoreProductContributors(rows, asOfDate, brandLevelRow, produ
         if (toText(row.basket_limitation_reason)) {
             limitationParts.push(toText(row.basket_limitation_reason));
         }
-        if (toText(brandLevelRow.limitation_reason)) {
-            limitationParts.push(toText(brandLevelRow.limitation_reason));
+        if (toText(brandLevelRow.limitation_reason_detail || brandLevelRow.limitation_reason)) {
+            limitationParts.push(toText(brandLevelRow.limitation_reason_detail || brandLevelRow.limitation_reason));
         }
 
         let contributorStatus = brandLevelRow.brand_score_status;
@@ -1222,6 +1368,9 @@ function buildBrandScoreProductContributors(rows, asOfDate, brandLevelRow, produ
                 : contributorStatus === 'near-core'
                     ? 'high_similarity_reconstruction'
                     : 'contract_shaped_reconstruction';
+        const limitationDetail = limitationParts.filter(Boolean).join(' | ');
+        const limitationSummary = summarizeBrandScoreReason(contributorStatus, limitationDetail);
+        const contributorNote = buildBrandScoreNote(contributorStatus, limitationDetail);
 
         return {
             as_of_date: asOfDate,
@@ -1236,9 +1385,10 @@ function buildBrandScoreProductContributors(rows, asOfDate, brandLevelRow, produ
             reconstruction_level: reconstructionLevel,
             parity_level: getParityLevel(parityScore),
             parity_score: parityScore,
-            status_label: contributorStatus,
-            status_reason: limitationParts.filter(Boolean).join(' | '),
-            limitation_reason: limitationParts.filter(Boolean).join(' | '),
+            status_label: toBrandScoreStatusLabel(contributorStatus),
+            status_reason: contributorNote,
+            limitation_reason: limitationSummary,
+            limitation_reason_detail: limitationDetail,
             entry_axis: row.entry_axis,
             expansion_axis: row.expansion_axis,
             convergence_axis: row.convergence_axis,
@@ -1260,7 +1410,7 @@ function buildBrandScoreProductContributors(rows, asOfDate, brandLevelRow, produ
             basket_parity_level: row.basket_parity_level,
             event_freshness_gap_days: brandLevelRow.event_freshness_gap_days,
             basket_freshness_gap_days: brandLevelRow.basket_freshness_gap_days,
-            role_alignment_note: `${row.entry_primary_type || 'None'} / ${row.expansion_primary_type || 'None'} / ${row.basket_type || 'None'}`
+            role_alignment_note: `${toStructureLabel(row.entry_primary_type || 'None')} / ${toStructureLabel(row.expansion_primary_type || 'None')} / ${toStructureLabel(row.basket_type || 'None')}`
         };
     });
 
@@ -1303,13 +1453,14 @@ function buildLegacyBrandScoreReconstruction(contributorRows, brandLevelRow) {
         reconstruction_level: row.reconstruction_level,
         parity_level: row.parity_level,
         limitation_reason: row.limitation_reason,
+        limitation_reason_detail: row.limitation_reason_detail,
         reconstructed_product_signal: row.reconstructed_product_signal,
         contribution_share: row.contribution_share,
         brand_score_note: row.contributor_status === 'unavailable'
-            ? '상품별 Brand Score canonical이 아니라 brand-level contributor signal을 구성하지 못한 상태입니다.'
+            ? '상품별 최종 점수는 아직 산출하지 못했습니다.'
             : row.contributor_status === 'limited'
-                ? `상품별 Brand Score canonical이 아니라 brand-level contributor signal이며 ${row.limitation_reason || '재구성 제약이 있습니다.'}`
-                : '상품별 Brand Score canonical이 아니라 brand-level contributor signal입니다.'
+                ? buildBrandScoreNote(row.contributor_status, row.limitation_reason_detail || row.limitation_reason, '상품별 기여 신호만 참고용으로 제공합니다.')
+                : '상품별 최종 점수 대신 기여 신호를 참고용으로 제공합니다.'
     }));
 }
 
@@ -1518,7 +1669,7 @@ function buildPriorityBasis(revenueRows, roleRows, brandScoreRows, freshnessRows
         const role = roleByProduct.get(row.product_id) ?? {};
         const brand = brandByProduct.get(row.product_id) ?? {};
         const revenueCompareState30d = toText(row.revenue_30d_compare_state, 'history_insufficient');
-        const revenueCompareNote30d = toText(row.revenue_30d_compare_note, 'source history가 부족해 직전기간 비교가 불가합니다.');
+        const revenueCompareNote30d = toText(row.revenue_30d_compare_note, '비교 이력이 부족해 직전 기간 비교가 어렵습니다.');
         const deltaRate30 = revenueCompareState30d === 'available' ? Number(row.revenue_30d_delta_rate) : null;
 
         let priorityLevel = PRIORITY_LEVELS[2];
@@ -1537,13 +1688,13 @@ function buildPriorityBasis(revenueRows, roleRows, brandScoreRows, freshnessRows
             : '역할 근거 없음';
 
         const brandReason = brand.brand_score_status === 'limited'
-            ? '브랜드 점수 참고용'
+            ? '브랜드 점수 제한 반영'
             : brand.brand_score_status === 'provisional'
-                ? '브랜드 점수 임시 반영'
+                ? '브랜드 점수 운영 참고'
                 : brand.brand_score_status === 'unavailable'
-                    ? '브랜드 점수 산출 없음'
+                    ? '브랜드 점수 산출 보류'
                     : brand.brand_score_status === 'near-core'
-                        ? '브랜드 점수 고유사도 확인'
+                        ? '브랜드 점수 검증 후보'
                         : '브랜드 점수 상태 없음';
 
         return {
@@ -1697,28 +1848,28 @@ function buildDataHealthOverview(healthRows, brandLevelRow = {}) {
     return [
         {
             area_key: 'revenue_compare',
-            area_title: 'Revenue 비교 가능 상태',
+            area_title: '매출 비교 준비 상태',
             status_label: toText(revenueHealth.data_state, '비교 불가'),
-            summary_value: toText(revenueHealth.coverage_state, 'history 부족'),
-            note: toText(revenueHealth.coverage_note, '직전기간 비교 범위를 확인할 수 없습니다.')
+            summary_value: toText(revenueHealth.coverage_state, '비교 이력 부족'),
+            note: toText(revenueHealth.coverage_note, '직전 기간 비교 가능 범위를 확인할 수 없습니다.')
         },
         {
             area_key: 'role_observation',
-            area_title: 'Role 관측 가능 상태',
+            area_title: '역할 분류 반영 상태',
             status_label: toText(roleHealth.data_state, '비교 불가'),
-            summary_value: toText(roleHealth.coverage_state, 'history 부족'),
+            summary_value: toText(roleHealth.coverage_state, '비교 이력 부족'),
             note: toText(roleHealth.coverage_note, '역할 관측 범위를 확인할 수 없습니다.')
         },
         {
             area_key: 'brand_score',
-            area_title: 'Brand Score 반영 상태',
-            status_label: toText(brandLevelRow.status_label || brandLevelRow.brand_score_status, 'unavailable'),
+            area_title: '브랜드 점수 반영 상태',
+            status_label: toText(brandLevelRow.status_label || toBrandScoreStatusLabel(brandLevelRow.brand_score_status), '산출 불가'),
             summary_value: brandSummaryValue,
             note: toText(brandLevelRow.status_reason || brandLevelRow.limitation_reason, '브랜드 점수는 아직 안정적으로 반영되지 않았습니다.')
         },
         {
             area_key: 'product_reference',
-            area_title: '상품 이미지 / 기준 정보 상태',
+            area_title: '상품 기준 정보 상태',
             status_label: toText(productHealth.data_state, '비교 불가'),
             summary_value: `${normalRows}개 정상 / ${limitedRows}개 제한`,
             note: toText(productHealth.coverage_note, '상품 기준 정보와 이미지 반영 상태를 확인할 수 있습니다.')
@@ -1848,18 +1999,12 @@ function buildProductDetail(priorityRows, revenueRows, roleRows, brandLevelRows,
     const roleByProduct = indexBy(roleRows, (row) => row.product_id);
     const contributorByProduct = indexBy(contributorRows, (row) => row.product_id);
     const brandLevelRow = brandLevelRows[0] ?? {};
-    const basketLabelMap = {
-        Core: '넓은 동반',
-        Pair: '강한 짝상품',
-        Set: '묶음 중심',
-        None: '관측 약함'
-    };
 
     return priorityRows.flatMap((row) => {
         const revenue = revenueByProduct.get(row.product_id) ?? {};
         const role = roleByProduct.get(row.product_id) ?? {};
         const contributor = contributorByProduct.get(row.product_id) ?? {};
-        const basketTypeLabel = basketLabelMap[toText(contributor.basket_type)] ?? '관측 약함';
+        const basketTypeLabel = toStructureLabel(contributor.basket_type || 'None');
 
         return [
             {
@@ -1875,7 +2020,7 @@ function buildProductDetail(priorityRows, revenueRows, roleRows, brandLevelRows,
                 product_id: row.product_id,
                 product_name: row.product_name,
                 product_image_url: row.product_image_url,
-                section: 'Revenue',
+                section: '매출',
                 label: '최근 30일 대비',
                 value: revenue.revenue_30d_delta_rate === '' ? '비교 불가' : `${(toNumber(revenue.revenue_30d_delta_rate) * 100).toFixed(1)}%`,
                 note: toText(revenue.revenue_30d_compare_note, row.revenue_reason)
@@ -1884,17 +2029,17 @@ function buildProductDetail(priorityRows, revenueRows, roleRows, brandLevelRows,
                 product_id: row.product_id,
                 product_name: row.product_name,
                 product_image_url: row.product_image_url,
-                section: 'Revenue',
+                section: '매출',
                 label: '비교 상태',
-                value: toText(revenue.revenue_30d_compare_state, 'history_insufficient'),
-                note: toText(revenue.revenue_30d_compare_note, 'source history가 부족해 직전기간 비교가 불가합니다.')
+                value: toRevenueCompareStateLabel(revenue.revenue_30d_compare_state || 'history_insufficient'),
+                note: toText(revenue.revenue_30d_compare_note, '비교 이력이 부족해 직전 기간 비교가 어렵습니다.')
             },
             {
                 product_id: row.product_id,
                 product_name: row.product_name,
                 product_image_url: row.product_image_url,
-                section: 'Role',
-                label: '현재 taxonomy',
+                section: '역할 분류',
+                label: '현재 역할',
                 value: row.role_taxonomy,
                 note: row.role_reason
             },
@@ -1902,19 +2047,19 @@ function buildProductDetail(priorityRows, revenueRows, roleRows, brandLevelRows,
                 product_id: row.product_id,
                 product_name: row.product_name,
                 product_image_url: row.product_image_url,
-                section: 'Brand Score',
-                label: 'brand-level 상태',
-                value: toText(brandLevelRow.status_label, row.brand_score_status),
+                section: '브랜드 점수',
+                label: '브랜드 반영 상태',
+                value: toText(brandLevelRow.status_label, toBrandScoreStatusLabel(row.brand_score_status)),
                 note: toText(brandLevelRow.status_reason, row.brand_score_reason)
             },
             {
                 product_id: row.product_id,
                 product_name: row.product_name,
                 product_image_url: row.product_image_url,
-                section: 'Brand Score',
+                section: '브랜드 점수',
                 label: '상품 기여 상태',
-                value: toText(contributor.contribution_status, 'unavailable'),
-                note: toText(contributor.limitation_reason, '상품 기여 상태를 아직 안정적으로 계산하지 못했습니다.')
+                value: toText(contributor.status_label, toBrandScoreStatusLabel(contributor.contribution_status || 'unavailable')),
+                note: toText(contributor.status_reason, '상품 기여 상태를 아직 안정적으로 계산하지 못했습니다.')
             },
             {
                 product_id: row.product_id,
@@ -1932,7 +2077,7 @@ function buildProductDetail(priorityRows, revenueRows, roleRows, brandLevelRows,
                 section: '근거',
                 label: '동시구매 분류',
                 value: basketTypeLabel,
-                note: `attach_rate ${toNumber(contributor.attach_rate).toFixed(2)} / companion ${toNumber(contributor.basket_pair_rows)}건`
+                note: `동반구매율 ${toNumber(contributor.attach_rate).toFixed(2)} / 연관 조합 ${toNumber(contributor.basket_pair_rows)}건`
             },
             {
                 product_id: row.product_id,
@@ -1941,7 +2086,7 @@ function buildProductDetail(priorityRows, revenueRows, roleRows, brandLevelRows,
                 section: '근거',
                 label: '상위 연관 상품',
                 value: toText(contributor.top_pair_product_id, '관측 없음'),
-                note: `top1 ${toNumber(contributor.basket_top1_share).toFixed(2)} / top3 ${toNumber(contributor.basket_top3_share).toFixed(2)}`
+                note: `상위 1개 ${toNumber(contributor.basket_top1_share).toFixed(2)} / 상위 3개 ${toNumber(contributor.basket_top3_share).toFixed(2)}`
             }
         ];
     });
@@ -1950,87 +2095,87 @@ function buildProductDetail(priorityRows, revenueRows, roleRows, brandLevelRows,
 function buildDefinitionRules() {
     return [
         {
-            rule_group: 'Revenue',
-            rule_name: '직전기간 rolling 비교',
-            rule_definition: '7/30/90일 rolling은 직전 동일 길이 기간과 비교한다.',
+            rule_group: '매출 비교',
+            rule_name: '직전 기간 비교',
+            rule_definition: '7/30/90일 매출은 같은 길이의 직전 기간과 비교합니다.',
             status_label: '정상'
         },
         {
-            rule_group: 'Revenue',
-            rule_name: '비교 가능 조건',
-            rule_definition: 'source history가 직전 동일 길이 window 시작일까지 확보된 경우에만 Revenue 비교를 사용한다.',
+            rule_group: '매출 비교',
+            rule_name: '비교 이력 기준',
+            rule_definition: '비교 시작일 이전까지 이력이 확보된 경우에만 증감 비교를 사용합니다.',
             status_label: '정상'
         },
         {
-            rule_group: 'Role',
-            rule_name: 'same-date snapshot only',
-            rule_definition: 'Role taxonomy는 관측된 동일 날짜 snapshot만 사용한다.',
+            rule_group: '역할 분류',
+            rule_name: '기준일 스냅샷 사용',
+            rule_definition: '역할 분류는 기준일에 관측된 동일 일자 데이터만 사용합니다.',
             status_label: '정상'
         },
         {
-            rule_group: 'Role',
-            rule_name: 'canonical score 우선',
-            rule_definition: 'Role taxonomy는 entry/expansion/repeat/basket canonical score로 결정하고 count는 근거로만 사용한다.',
+            rule_group: '역할 분류',
+            rule_name: '점수 우선 판정',
+            rule_definition: '역할 분류는 첫구매·확장·반복·동시구매 점수를 우선 보고, 건수는 보조 근거로만 사용합니다.',
             status_label: '정상'
         },
         {
-            rule_group: 'Brand Score',
+            rule_group: '브랜드 점수',
             rule_name: '큐 미반영',
-            rule_definition: 'Brand Score는 상세/정의/데이터 상태 화면에만 표시하고 큐 랭킹에는 사용하지 않는다.',
+            rule_definition: '브랜드 점수는 상세·정의·데이터 상태 화면에만 표시하고 큐 랭킹에는 사용하지 않습니다.',
             status_label: '제한적 반영'
         },
         {
-            rule_group: 'Brand Score',
-            rule_name: 'brand-level 계약',
-            rule_definition: 'Brand Score는 brand-level mart와 product contributor mart로 분리하고, 상품별 canonical처럼 보이는 구조는 최종 계약으로 사용하지 않는다.',
+            rule_group: '브랜드 점수',
+            rule_name: '브랜드 단위 운영 계약',
+            rule_definition: '브랜드 점수는 브랜드 단위 값과 상품별 기여도로 나눠 관리하며, 상품별 최종 점수처럼 사용하지 않습니다.',
             status_label: '제한적 반영'
         },
         {
-            rule_group: 'Brand Score',
-            rule_name: '상태 및 숫자 노출',
-            rule_definition: '상태는 unavailable/limited/provisional/near-core를 사용하고 limited 이하에서는 numeric_display_policy로 최종 숫자 노출을 제어한다.',
+            rule_group: '브랜드 점수',
+            rule_name: '상태와 숫자 노출',
+            rule_definition: '산출 불가·제한 반영·운영 참고·검증 후보 상태로 나누고, 제한 반영 이하에서는 최종 숫자를 숨깁니다.',
             status_label: '제한적 반영'
         },
         {
-            rule_group: 'Brand Score',
-            rule_name: 'reconstruction registry',
-            rule_definition: 'reconstruction_level, parity_level, limitation_reason를 registry와 brand/contributor 산출에 모두 남긴다.',
+            rule_group: '브랜드 점수',
+            rule_name: '재구성 관리 기록',
+            rule_definition: '재구성 수준, 정합성 수준, 제한 사유를 관리 기록과 브랜드·상품 기여 산출에 함께 남깁니다.',
             status_label: '제한적 반영'
         },
         {
-            rule_group: 'Brand Score',
-            rule_name: 'freshness cap',
-            rule_definition: 'event 또는 basket freshness가 부족하면 provisional 대신 limited로 제한하고 near-core는 기본 비활성으로 둔다.',
+            rule_group: '브랜드 점수',
+            rule_name: '최신성 제한',
+            rule_definition: '이벤트나 동시구매 데이터 최신성이 부족하면 운영 참고 대신 제한 반영으로 낮추고, 검증 후보는 기본 비활성으로 둡니다.',
             status_label: '제한적 반영'
         },
         {
-            rule_group: 'Brand Score',
+            rule_group: '브랜드 점수',
             rule_name: '숫자 노출 규칙',
-            rule_definition: 'limited와 unavailable 상태에서는 최종 Brand Score 숫자를 숨기고 상태와 제한 사유만 노출한다.',
+            rule_definition: '제한 반영과 산출 불가 상태에서는 최종 브랜드 점수 숫자를 숨기고 상태와 제한 사유만 보여줍니다.',
             status_label: '제한적 반영'
         },
         {
-            rule_group: 'Role',
+            rule_group: '역할 분류',
             rule_name: '동시구매 근거',
-            rule_definition: '동시구매기여는 reconstructed basket summary를 근거로 하며, 상세 보기에서는 분류와 attach_rate, 상위 연관 상품을 함께 보여준다.',
+            rule_definition: '동시구매 기여는 재구성된 동시구매 요약을 근거로 하며, 상세 보기에서는 분류와 동반구매율, 상위 연관 상품을 함께 보여줍니다.',
             status_label: '제한적 반영'
         },
         {
             rule_group: '데이터 상태',
             rule_name: 'freshness 공개',
-            rule_definition: 'source 최신일 차이를 숨기지 않고 그대로 표시한다.',
+            rule_definition: '원천 데이터 최신일 차이를 숨기지 않고 그대로 표시합니다.',
             status_label: '정상'
         },
         {
             rule_group: '데이터 상태',
-            rule_name: 'history 부족 공개',
-            rule_definition: '직전기간 비교에 필요한 history가 부족하면 비교 불가를 그대로 표시한다.',
+            rule_name: '비교 이력 부족 공개',
+            rule_definition: '직전 기간 비교에 필요한 이력이 부족하면 비교 불가 상태를 그대로 표시합니다.',
             status_label: '정상'
         },
         {
             rule_group: '상품 이미지',
             rule_name: 'Rosetta products 기준',
-            rule_definition: '상품 이미지는 raw_rosetta.products.csv의 list_image를 기준으로 사용한다.',
+            rule_definition: '상품 이미지는 raw_rosetta.products.csv의 list_image를 기준으로 사용합니다.',
             status_label: '정상'
         }
     ];
@@ -2084,6 +2229,18 @@ function buildIterationLog() {
             iteration: 8,
             issue_found: 'Brand Score가 상품별 canonical처럼 읽히고 event/basket reconstruction 계약이 brand-level과 분리되지 않았음',
             change_applied: 'reconstructed event/basket staging, brand-level Brand Score, contributor mart, reconstruction registry를 추가하고 limited 숫자 노출 정책을 분리',
+            brand_score_level: 'provisional'
+        },
+        {
+            iteration: 9,
+            issue_found: 'Brand Score 제한 사유가 길고 내부 용어가 섞여 운영 화면에서 바로 읽기 어려웠음',
+            change_applied: '제한 사유 요약 규칙을 추가해 status_reason과 기본 note를 짧은 운영 문구로 정리',
+            brand_score_level: 'provisional'
+        },
+        {
+            iteration: 10,
+            issue_found: '운영 현황/구조 맵 화면에 Revenue·Role·Brand Score 내부 표현이 그대로 남아 사용자 표면 마감이 덜 되었음',
+            change_applied: '정의 규칙, 데이터 상태 개요, 상품 상세 섹션 문구를 운영툴 기준 한글 표면으로 마감',
             brand_score_level: 'provisional'
         }
     ];

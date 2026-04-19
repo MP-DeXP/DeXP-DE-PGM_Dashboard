@@ -12,7 +12,7 @@
 - freshness_timestamp_consistency: pass - raw manifest와 데이터 상태 화면의 최신일이 일치합니다.
 - role_contract_source_presence: pass - Role 확장 전이 source가 적재되어 있습니다.
 - role_primary_axis_not_support_only: pass - Role taxonomy는 canonical score 축으로 결정됩니다.
-- brand_score_freshness_cap: pass - event freshness가 7일을 초과합니다. | basket parity가 낮습니다.
+- brand_score_freshness_cap: pass - 이벤트 최신성 지연 / 동시구매 재구성 안정성 낮음
 - reconstruction_registry_contracts: pass - reconstruction registry가 event/basket/brand/contributor 계약을 모두 포함합니다.
 - detail_picker_covers_full_queue: pass - 상세 선택 목록이 전체 큐를 모두 덮습니다.
 - brand_revenue_context_present: pass - 브랜드 30일 Revenue 컨텍스트가 큐 요약에 포함되어 있습니다.
