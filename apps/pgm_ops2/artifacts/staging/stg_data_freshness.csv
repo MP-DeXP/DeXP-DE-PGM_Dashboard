@@ -1,0 +1,13 @@
+source_key,row_count,min_date,max_date
+orders_header,0,,
+order_lines,0,,
+products,0,,
+order_utm,0,,
+product_revenue_daily,0,,
+pgm_scored,0,,
+pgm_demand_signals,0,,
+pgm_transition_edges,0,,
+pgm_return_loops,0,,
+pgm_basket_pairs,0,,
+brand_purchase_daily,0,,
+brand_score_events,0,,

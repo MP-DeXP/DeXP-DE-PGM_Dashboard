@@ -1,0 +1,7 @@
+as_of_date,source_key,row_count,min_date,max_date,freshness_gap_days,data_state
+2026-04-18,products(filtered_export),20,,2026-04-18,0,정상
+2026-04-18,product_revenue_daily(summary_export),20,2026-02-18,2026-04-18,0,정상
+2026-04-18,pgm_scored(snapshot_export),20,2026-04-18,2026-04-18,0,정상
+2026-04-18,pgm_demand_signals(snapshot_export),20,2026-04-18,2026-04-18,0,정상
+2026-04-18,order_lines,0,,2026-03-22,27,데이터 부족
+2026-04-18,pgm_basket_pairs,0,,2026-04-18,0,데이터 부족
