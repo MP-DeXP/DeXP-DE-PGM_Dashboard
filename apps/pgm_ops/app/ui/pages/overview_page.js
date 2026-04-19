@@ -17,17 +17,17 @@ const PERIOD_META = {
     daily: {
         label: '어제(최근 확정일)',
         question: '어제 대비 매출이 왜 흔들렸는가',
-        intent: '즉시성 있는 매출 변동 원인을 먼저 읽는 구간입니다.'
+        intent: '즉시성 있는 매출 변동 원인을 읽는 구간입니다.'
     },
     weekly: {
         label: '최근 7일',
         question: '최근 7일 매출 변화의 주요 역할 신호는 무엇인가',
-        intent: '최근 운영 실행의 효과와 흔들린 역할 축을 같이 보는 구간입니다.'
+        intent: '최근 운영 실행 효과를 읽는 구간입니다.'
     },
     monthly: {
         label: '최근 30일',
         question: '최근 30일 매출 엔진 구조가 어떻게 달라졌는가',
-        intent: '구조적 추세와 매출 엔진 변화를 읽는 구간입니다.'
+        intent: '구조적 추세를 읽는 구간입니다.'
     }
 };
 const OFFICIAL_ROLES = ['entry', 'expansion', 'return', 'convergence'];
@@ -155,8 +155,8 @@ function buildCoverageSupportCopy(storyRow) {
     }
 
     return storyRow?.partial_history_flag === 'true'
-        ? '역할 이력이 일부만 확보된 구간이라 매출은 실매출 기준으로 보고, 역할 해석은 관측된 날짜 범위 안에서만 읽어 주세요.'
-        : '역할 이력이 비교 구간을 충분히 덮고 있어 기간 비교를 같은 기준으로 읽을 수 있습니다.';
+        ? '역할 해석은 관측된 날짜 범위 안에서만 읽어 주세요.'
+        : '역할 비교는 같은 기준으로 읽을 수 있습니다.';
 }
 
 function sumRevenue(rows, field) {
@@ -205,13 +205,16 @@ function renderCoverageBadges(storyRow) {
         return '';
     }
 
+    const noteParts = [`역할 관측 ${currentCoveredDays}/${expectedWindowDays}일`, `비교 ${previousCoveredDays}/${expectedWindowDays}일`];
+    if (hasSyntheticHistory(storyRow)) {
+        noteParts.push('latest-role assumption');
+    }
+    if (hasPartialHistory(storyRow)) {
+        noteParts.push('해석 제한');
+    }
+
     return `
-        <div class="ops-product-head-meta ops-overview-coverage-badges">
-            <span class="ops-pill badge">현재 역할 관측 ${escapeHtml(`${currentCoveredDays}/${expectedWindowDays}일`)}</span>
-            <span class="ops-pill badge">비교 역할 관측 ${escapeHtml(`${previousCoveredDays}/${expectedWindowDays}일`)}</span>
-            ${hasSyntheticHistory(storyRow) ? '<span class="ops-pill badge">latest-role assumption</span>' : ''}
-            ${hasPartialHistory(storyRow) ? '<span class="ops-pill badge">역할 비교 해석 제한</span>' : ''}
-        </div>
+        <p class="ops-overview-coverage-note">${escapeHtml(noteParts.join(' · '))}</p>
     `;
 }
 
@@ -307,17 +310,21 @@ function getTopProducts(rows, mode) {
 function renderMiniProductRow(row, productLookup, tone = '') {
     const product = productLookup.get(row.product_id) ?? row;
     const imageUrl = product.image_url || product.product_image_url || product.list_image || product.detail_image || '';
+    const deltaTone = tone || getDeltaTone(row.revenue_delta);
 
     return `
-        <button class="ops-mini-product-row ${tone}" type="button" data-product-id="${escapeHtml(row.product_id)}" data-product-jump="true">
+        <button class="ops-mini-product-row ${deltaTone}" type="button" data-product-id="${escapeHtml(row.product_id)}" data-product-jump="true">
             <div class="ops-mini-product-main">
                 ${renderThumbnail({ imageUrl, alt: row.product_name, size: 'xs' })}
-                <div>
+                <div class="ops-mini-product-copy">
                     <strong>${escapeHtml(row.product_name)}</strong>
-                    <small>${escapeHtml(`${formatCurrency(row.current_revenue)} · 변화 ${formatDeltaAmount(row.revenue_delta)}`)}</small>
+                    <small>${escapeHtml(formatCurrency(row.current_revenue))}</small>
                 </div>
             </div>
-            <span>${escapeHtml(formatPercent(row.current_share_in_role))}</span>
+            <div class="ops-mini-product-meta">
+                <strong class="ops-inline-delta ${escapeHtml(deltaTone)}">${escapeHtml(formatDeltaAmount(row.revenue_delta))}</strong>
+                <small>${escapeHtml(`비중 ${formatPercent(row.current_share_in_role)}`)}</small>
+            </div>
         </button>
     `;
 }
@@ -331,7 +338,6 @@ function buildPriorityAttrs(row) {
 function renderPriorityAction(row, { lead = false } = {}) {
     return `
         <button class="ops-priority-drilldown ${lead ? 'ops-overview-priority-lead is-selected' : ''} is-${escapeHtml(row.priority)}" type="button"${buildPriorityAttrs(row)}>
-            ${lead ? '<span class="ops-eyebrow">Priority Block</span>' : ''}
             <div class="ops-priority-drilldown-head">
                 <strong>${escapeHtml(cleanDisplayText(row.label))}</strong>
                 <span class="ops-pill badge">${escapeHtml(getPriorityLabel(row.priority))}</span>
@@ -355,18 +361,15 @@ function renderOperatingStatePanel({
     const coverageLabel = roleSectionScope.observedCurrentShareOfTruth == null
         ? '데이터 없음'
         : formatPercent(roleSectionScope.observedCurrentShareOfTruth);
-    const coverageCopy = hasRoleHistoryGuard(selectedStory)
-        ? buildCoverageSupportCopy(selectedStory)
-        : buildCoverageBadgeLabel(selectedStory);
     const swingLabel = swingRole?.role_label ?? friendlyRoleLabel(selectedStory?.swing_role_state_primary || '');
     const swingDelta = swingRole?.revenue_delta ?? selectedStory?.swing_role_delta_revenue ?? 0;
 
     return `
-        <section class="ops-panel ops-section card ops-overview-state-panel">
+        <section class="ops-overview-state-panel">
             <div class="ops-section-head ops-overview-head">
                 <div>
-                    <h2>운영 상태</h2>
-                    <p>${escapeHtml(cleanDisplayText(selectedStory?.question_label ?? selectedStory?.story_headline ?? activeMeta.question))}</p>
+                    <h3>현재 상태</h3>
+                    <p>${escapeHtml(cleanDisplayText(selectedStory?.period_label ?? activeMeta.label))} 실매출 기준 요약</p>
                 </div>
                 <div class="ops-product-head-meta">
                     <span class="ops-pill badge">${escapeHtml(selectedStory?.as_of_date ?? latestDate ?? '기준일 없음')}</span>
@@ -401,8 +404,8 @@ function renderOperatingStatePanel({
                 <article class="ops-overview-state-card">
                     <span>${escapeHtml(hasSyntheticHistory(selectedStory) ? '가정 역할 분해 범위' : hasPartialHistory(selectedStory) ? '관측 역할 분해 범위' : '역할 분해 범위')}</span>
                     <strong>${escapeHtml(coverageLabel)}</strong>
-                    <small>${escapeHtml(`역할 근거 ${formatCurrency(roleSectionScope.observedCurrentRevenue)} / 기간 매출 ${formatCurrency(roleSectionScope.truthCurrentRevenue)}`)}</small>
-                    <p>${escapeHtml(cleanDisplayText(coverageCopy))}</p>
+                    <small>${escapeHtml(`근거 ${formatCurrency(roleSectionScope.observedCurrentRevenue)} / 전체 ${formatCurrency(roleSectionScope.truthCurrentRevenue)}`)}</small>
+                    <p>${escapeHtml(buildCoverageBadgeLabel(selectedStory))}</p>
                 </article>
             </div>
             ${hasRoleHistoryGuard(selectedStory) ? `
@@ -418,7 +421,7 @@ function renderPriorityBlock(priorityRows, selectedStory) {
             <section class="ops-panel ops-section card ops-overview-priority-panel">
                 <div class="ops-section-head">
                     <div>
-                        <h3>우선 점검</h3>
+                        <h2>먼저 볼 항목</h2>
                         <p>${escapeHtml(cleanDisplayText(selectedStory?.period_label ?? '선택 구간'))}에 바로 이어서 볼 항목이 없습니다.</p>
                     </div>
                 </div>
@@ -435,8 +438,8 @@ function renderPriorityBlock(priorityRows, selectedStory) {
         <section class="ops-panel ops-section card ops-overview-priority-panel">
             <div class="ops-section-head">
                 <div>
-                    <h3>우선 점검</h3>
-                    <p>${escapeHtml(cleanDisplayText(selectedStory?.period_label ?? '선택 구간'))} 운영 상태를 읽은 뒤 바로 확인할 순서입니다.</p>
+                    <h2>먼저 볼 항목</h2>
+                    <p>${escapeHtml(cleanDisplayText(selectedStory?.period_label ?? '선택 구간'))} 기준 우선 점검 순서입니다.</p>
                 </div>
                 <span class="ops-pill badge">${escapeHtml(`${priorityRows.length}개`)}</span>
             </div>
@@ -446,6 +449,7 @@ function renderPriorityBlock(priorityRows, selectedStory) {
                     ${queueRows.map((row) => renderPriorityAction(row)).join('')}
                 </div>
             ` : ''}
+            <p class="chart-hint">SKU 항목을 누르면 SKU 작업면으로 이어집니다.</p>
         </section>
     `;
 }
@@ -468,7 +472,7 @@ function renderEvidencePanel(roleCards, selectedOverviewRole, storyRow, roleSect
         <section class="ops-panel ops-section card ops-overview-evidence-panel">
             <div class="ops-section-head">
                 <div>
-                    <h3>매출 / 역할 근거</h3>
+                    <h3>왜 그런가</h3>
                     <p>${escapeHtml(cleanDisplayText(storyRow?.story_headline ?? storyRow?.question_label ?? PERIOD_META[storyRow?.period ?? 'daily'].question))}</p>
                 </div>
                 <span class="ops-pill badge">${escapeHtml(selectedRoleRow?.role_label ?? '역할 선택')}</span>
@@ -483,34 +487,27 @@ function renderEvidencePanel(roleCards, selectedOverviewRole, storyRow, roleSect
                 <article class="ops-overview-evidence-card">
                     <span>${escapeHtml(currentRevenueLabel)}</span>
                     <strong>${escapeHtml(formatCurrency(selectedRoleRow?.current_revenue ?? 0))}</strong>
-                    <small>${escapeHtml(`현재 비중 ${formatPercent(selectedRoleRow?.current_revenue_share ?? 0)}`)}</small>
-                    <p>${escapeHtml(`직전 ${formatCurrency(selectedRoleRow?.previous_revenue ?? 0)}`)}</p>
+                    <small>${escapeHtml(`직전 ${formatCurrency(selectedRoleRow?.previous_revenue ?? 0)}`)}</small>
+                    <p class="${escapeHtml(getDeltaTone(selectedRoleRow?.revenue_delta ?? 0))}">${escapeHtml(`${formatDeltaAmount(selectedRoleRow?.revenue_delta ?? 0)} · ${formatDeltaRate(selectedRoleRow?.revenue_delta_rate)}`)}</p>
                 </article>
                 <article class="ops-overview-evidence-card">
                     <span>${escapeHtml(deltaLabel)}</span>
                     <strong class="${escapeHtml(getDeltaTone(selectedRoleRow?.revenue_delta ?? 0))}">${escapeHtml(formatDeltaAmount(selectedRoleRow?.revenue_delta ?? 0))}</strong>
-                    <small>${escapeHtml(formatDeltaRate(selectedRoleRow?.revenue_delta_rate))}</small>
+                    <small>${escapeHtml(`현재 비중 ${formatPercent(selectedRoleRow?.current_revenue_share ?? 0)}`)}</small>
                     <p>${escapeHtml(`비중 변화 ${formatPercent(selectedRoleRow?.revenue_share_delta ?? 0)}`)}</p>
                 </article>
                 <article class="ops-overview-evidence-card">
                     <span>${escapeHtml(syntheticHistory ? '가정 역할 분해 범위' : partialHistory ? '관측 역할 분해 범위' : '역할 분해 범위')}</span>
                     <strong>${escapeHtml(currentObservedShareLabel)}</strong>
                     <small>${escapeHtml(`현재 ${formatCurrency(roleSectionScope.observedCurrentRevenue)} · 직전 ${formatCurrency(roleSectionScope.observedPreviousRevenue)}`)}</small>
-                    <p>${escapeHtml(`${buildCoverageBadgeLabel(storyRow)} · 직전 ${previousObservedShareLabel}`)}</p>
+                    <p>${escapeHtml(`${buildCoverageBadgeLabel(storyRow)} · 직전 분해 ${previousObservedShareLabel}`)}</p>
                 </article>
             </div>
             ${hasRoleHistoryGuard(storyRow) ? `
                 <p class="ops-overview-guard">${escapeHtml(buildCoverageSupportCopy(storyRow))}</p>
             ` : ''}
             <div class="ops-overview-role-toolbar">
-                <div>
-                    <strong>역할 선택</strong>
-                    <p class="chart-hint">${escapeHtml(syntheticHistory
-                        ? 'latest-role assumption 기준으로 역할별 매출을 비교합니다.'
-                        : partialHistory
-                            ? '관측 확보된 역할 범위 안에서 매출을 비교합니다.'
-                            : '같은 기준의 역할별 매출과 비중 변화를 함께 봅니다.')}</p>
-                </div>
+                <strong>역할 선택</strong>
                 <div class="pgm-seg-group" role="tablist" aria-label="역할 선택">
                     ${roleCards.map((row) => `
                         <button class="pgm-seg-btn ${selectedOverviewRole === normalizeOverviewRoleKey(row.role_state_primary) ? 'is-active' : ''}" type="button" role="tab" aria-selected="${selectedOverviewRole === normalizeOverviewRoleKey(row.role_state_primary) ? 'true' : 'false'}" data-overview-role="${escapeHtml(normalizeOverviewRoleKey(row.role_state_primary))}">
@@ -596,16 +593,25 @@ function renderFocusPanel({ storyRow, selectedRoleRow, drilldownRows, productLoo
     const roleDeltaMetricLabel = syntheticHistory ? '가정 매출 변화' : partialHistory ? '관측 매출 변화' : '매출 변화';
     const positiveSkuTitle = syntheticHistory ? '상승 기여 SKU(latest-role assumption)' : partialHistory ? '상승 기여 SKU(관측분)' : '상승 기여 SKU';
     const negativeSkuTitle = syntheticHistory ? '하락 기여 SKU(latest-role assumption)' : partialHistory ? '하락 기여 SKU(관측분)' : '하락 기여 SKU';
+    const positiveSkuMarkup = positiveRows.length
+        ? positiveRows.map((row) => renderMiniProductRow(row, productLookup, 'is-positive')).join('')
+        : '<p class="chart-hint">상승 기여 SKU 없음</p>';
+    const negativeSkuMarkup = negativeRows.length
+        ? negativeRows.map((row) => renderMiniProductRow(row, productLookup, 'is-negative')).join('')
+        : '<p class="chart-hint">하락 기여 SKU 없음</p>';
 
     return `
         <aside class="ops-overview-focus-panel ops-panel ops-section card">
             <div class="ops-overview-focus-top">
                 <div>
-                    <span class="ops-eyebrow">Follow-up Drilldown</span>
+                    <span class="ops-eyebrow">더 들어가 보기</span>
                     <h3>${escapeHtml(selectedRoleRow?.role_label ?? '역할 선택')}</h3>
                     <p>${escapeHtml(buildRoleReason(selectedRoleRow, storyRow))}</p>
                 </div>
-                ${renderCoverageBadges(storyRow)}
+                <div class="ops-overview-focus-actions">
+                    <button class="pgm-chart-tab" type="button" data-top-level-tab="sku_workspace">SKU 작업면 열기</button>
+                    ${hasRoleHistoryGuard(storyRow) ? renderCoverageBadges(storyRow) : ''}
+                </div>
             </div>
             <div class="ops-overview-focus-metrics">
                 <article class="ops-overview-focus-metric-card">
@@ -637,22 +643,18 @@ function renderFocusPanel({ storyRow, selectedRoleRow, drilldownRows, productLoo
                 <div class="ops-overview-focus-lists">
                     <div class="ops-overview-focus-column">
                         <strong>${escapeHtml(positiveSkuTitle)}</strong>
-                        <div class="ops-support-list">
-                            ${positiveRows.length ? positiveRows.map((row) => renderMiniProductRow(row, productLookup, 'is-positive')).join('') : '<div class="ops-empty empty-state compact"><strong>상승 기여 SKU가 없습니다.</strong></div>'}
-                        </div>
+                        ${positiveSkuMarkup}
                     </div>
                     <div class="ops-overview-focus-column">
                         <strong>${escapeHtml(negativeSkuTitle)}</strong>
-                        <div class="ops-support-list">
-                            ${negativeRows.length ? negativeRows.map((row) => renderMiniProductRow(row, productLookup, 'is-negative')).join('') : '<div class="ops-empty empty-state compact"><strong>하락 기여 SKU가 없습니다.</strong></div>'}
-                        </div>
+                        ${negativeSkuMarkup}
                     </div>
                 </div>
             </section>
             <section class="ops-overview-focus-block">
                 <div class="ops-overview-focus-section-head">
                     <h4>추가 확인</h4>
-                    <span>priority와 해석 기준</span>
+                    <span>priority / 해석 기준</span>
                 </div>
                 <div class="ops-support-list">
                     ${renderRelatedPriorityRows(priorityRows, drilldownRows)}
@@ -702,30 +704,26 @@ export function renderOverviewPage({
 
     return `
         <section class="ops-overview-stack">
-            <div class="ops-overview-console">
-                ${renderOperatingStatePanel({
-                    storiesByPeriod,
-                    selectedOverviewPeriod: activePeriod,
-                    selectedStory,
-                    latestDate,
-                    statusBadge,
-                    roleSectionScope,
-                    swingRole
-                })}
-                ${renderPriorityBlock(priorityRows, selectedStory)}
-            </div>
-            <div class="ops-overview-workspace">
-                ${renderEvidencePanel(roleCards, activeRole, selectedStory, roleSectionScope, selectedRoleRow)}
-                ${renderFocusPanel({
-                    storyRow: selectedStory,
-                    selectedRoleRow,
-                    drilldownRows,
-                    productLookup,
-                    priorityRows,
-                    blankRoleRow,
-                    roleSectionScope
-                })}
-            </div>
+            ${renderPriorityBlock(priorityRows, selectedStory)}
+            ${renderOperatingStatePanel({
+                storiesByPeriod,
+                selectedOverviewPeriod: activePeriod,
+                selectedStory,
+                latestDate,
+                statusBadge,
+                roleSectionScope,
+                swingRole
+            })}
+            ${renderEvidencePanel(roleCards, activeRole, selectedStory, roleSectionScope, selectedRoleRow)}
+            ${renderFocusPanel({
+                storyRow: selectedStory,
+                selectedRoleRow,
+                drilldownRows,
+                productLookup,
+                priorityRows,
+                blankRoleRow,
+                roleSectionScope
+            })}
         </section>
     `;
 }

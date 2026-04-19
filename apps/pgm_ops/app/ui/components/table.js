@@ -109,6 +109,27 @@ function formatText(value) {
     return text || '데이터 없음';
 }
 
+function buildChooserSummary(row) {
+    const observed = row?.pgm_observed_flag === 'true' ? '관측 있음' : '관측 없음';
+    return `${observed} · ${formatCurrency(row?.revenue)}`;
+}
+
+function buildCompactDetailSummary(value) {
+    const text = formatText(value);
+
+    if (text === '데이터 없음') {
+        return text;
+    }
+
+    const firstChunk = text
+        .split(/\s+[·|/]\s+|(?<=[.!?])\s+/u)
+        .map((chunk) => chunk.trim())
+        .find(Boolean);
+
+    const compact = firstChunk || text;
+    return compact.length > 72 ? `${compact.slice(0, 72).trim()}...` : compact;
+}
+
 function buildInitials(text) {
     return String(text ?? '')
         .replace(/\s+/g, '')
@@ -169,13 +190,11 @@ export function renderProductGallery(rows, selectedProductId) {
                 return `
                     <tr class="clickable ${row.product_id === selectedProductId ? 'row-focused' : ''}" data-product-id="${escapeHtml(row.product_id)}">
                         <td>
-                            <div class="ops-product-list-item">
+                            <div class="ops-role-product-main">
                                 ${renderThumbnail({ imageUrl, alt: row.product_name, size: 'xs', className: 'ops-product-thumb' })}
-                                <div class="ops-product-list-body">
-                                    <div class="ops-product-list-head">
-                                        <strong>${escapeHtml(row.product_name)}</strong>
-                                    </div>
-                                    <p class="ops-product-list-summary">${escapeHtml(formatText(`${row.pgm_observed_flag === 'true' ? '기준일 관측 반영' : '기준일 관측 상태 없음'} · ${formatCurrency(row.revenue)} · 최근 확정일 기준`))}</p>
+                                <div class="ops-compact-row">
+                                    <strong>${escapeHtml(row.product_name)}</strong>
+                                    <small class="ops-product-list-summary">${escapeHtml(buildChooserSummary(row))}</small>
                                 </div>
                             </div>
                         </td>
@@ -206,51 +225,54 @@ export function renderProductDetail(detailRow, productRow) {
     const imageUrl = getImageUrl(productRow);
     const detailUrl = getDetailUrl(productRow);
     const observedLabel = productRow.pgm_observed_flag === 'true' ? '기준일 관측 있음' : '기준일 관측 상태 없음';
+    const compactSummary = buildCompactDetailSummary(detailRow.summary);
+    const priorityHint = formatText(detailRow.priority_hint);
 
     return `
         <aside class="ops-detail-panel pgm-side card">
             <div class="pgm-side-summary">
-                <div class="pgm-side-hero">
-                    <span class="pgm-badge badge">${escapeHtml(observedLabel)}</span>
-                    <div class="ops-detail-hero">
+                <section class="pgm-side-section-card">
+                    <div class="ops-product-head-meta">
+                        <span class="pgm-badge badge">${escapeHtml(observedLabel)}</span>
+                        ${detailUrl ? `<a class="btn-primary ops-product-link" href="${escapeHtml(detailUrl)}" target="_blank" rel="noreferrer">상품 상세 열기</a>` : ''}
+                    </div>
+                    <div class="ops-role-product-main">
                         ${renderThumbnail({ imageUrl, alt: productRow.product_name, className: 'ops-detail-thumb' })}
-                        <div class="ops-detail-hero-copy">
-                            <span class="ops-detail-eyebrow">선택 상품</span>
+                        <div class="ops-compact-row">
                             <strong>${escapeHtml(productRow.product_name)}</strong>
-                            <p class="chart-hint">${escapeHtml(cleanDisplayText(detailRow.summary))}</p>
+                            <p class="chart-hint">${escapeHtml(compactSummary)}</p>
                         </div>
                     </div>
-                </div>
+                </section>
 
-                <section class="pgm-side-section-card pgm-side-section-card--insight">
+                <section class="pgm-side-section-card">
                     <h4>핵심 지표</h4>
                     <div class="pgm-metrics">
                         <div>
                             <label>기준일 매출</label>
                             <strong>${escapeHtml(formatCurrency(productRow.revenue))}</strong>
-                            <span>최근 확정일 기준</span>
+                            <span>최근 확정일</span>
                         </div>
                         <div>
                             <label>직전 7일 누적</label>
                             <strong>${escapeHtml(formatCurrency(productRow.revenue_7d))}</strong>
-                            <span>짧은 기간 비교</span>
+                            <span>비교 구간</span>
                         </div>
                         <div>
                             <label>기준일 브랜드 내 비중</label>
                             <strong>${escapeHtml(formatPercent(productRow.revenue_share_in_brand_day))}</strong>
-                            <span>브랜드 내 당일 비중</span>
+                            <span>기준일 비중</span>
                         </div>
                         <div>
                             <label>직전 30일 누적</label>
                             <strong>${escapeHtml(formatCurrency(productRow.revenue_30d))}</strong>
-                            <span>보조 기간 비교</span>
+                            <span>누적 참고</span>
                         </div>
                     </div>
-                    ${detailUrl ? `<a class="btn-primary ops-product-link" href="${escapeHtml(detailUrl)}" target="_blank" rel="noreferrer">상품 상세 열기</a>` : ''}
                 </section>
 
                 <section class="pgm-side-section-card">
-                    <h4>역할 문맥</h4>
+                    <h4>작업 기준</h4>
                     <div class="pgm-demand-share-grid">
                         <div class="pgm-demand-share-card">
                             <label>상품 기준 프로필</label>
@@ -265,7 +287,9 @@ export function renderProductDetail(detailRow, productRow) {
                     </div>
                 </section>
 
-                <div class="insight-note">${escapeHtml(cleanDisplayText(detailRow.priority_hint))}</div>
+                ${priorityHint !== '데이터 없음' ? `
+                    <p class="chart-hint">우선 확인: ${escapeHtml(priorityHint)}</p>
+                ` : ''}
             </div>
         </aside>
     `;

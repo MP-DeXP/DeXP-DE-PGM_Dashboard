@@ -56,7 +56,7 @@ function isSelfTransition(row) {
 
 function renderCompactPanel(title, subtitle, rows, emptyMessage, renderRow) {
     return `
-        <section class="ops-panel ops-section ops-compact-panel card">
+        <section class="ops-compact-panel">
             <div class="ops-section-head">
                 <div>
                     <h3>${escapeHtml(title)}</h3>
@@ -64,19 +64,15 @@ function renderCompactPanel(title, subtitle, rows, emptyMessage, renderRow) {
                 </div>
             </div>
             ${rows.length ? `
-                <div class="table-container">
-                    <div class="ops-compact-list">
-                        ${rows.map((row) => `
-                            <article class="ops-compact-item">
-                                ${renderRow(row)}
-                            </article>
-                        `).join('')}
-                    </div>
+                <div class="ops-compact-list">
+                    ${rows.map((row) => `
+                        <article class="ops-compact-item">
+                            ${renderRow(row)}
+                        </article>
+                    `).join('')}
                 </div>
             ` : `
-                <div class="ops-empty empty-state compact">
-                    <strong>${escapeHtml(emptyMessage)}</strong>
-                </div>
+                <p class="chart-hint">${escapeHtml(emptyMessage)}</p>
             `}
         </section>
     `;
@@ -118,6 +114,19 @@ function renderReturnRow(row) {
     `;
 }
 
+function renderWorkspaceContext(selectedProduct) {
+    const focusCopy = selectedProduct?.product_name
+        ? `운영 요약에서 넘겨받은 SKU: ${cleanDisplayText(selectedProduct.product_name)}`
+        : '운영 요약에서 넘겨받은 SKU를 여기서 이어 확인합니다.';
+
+    return `
+        <header class="ops-workspace-context">
+            <span class="ops-workspace-kicker">SKU 작업면</span>
+            <p class="ops-workspace-context-line">${escapeHtml(focusCopy)}</p>
+        </header>
+    `;
+}
+
 export function renderProductsPage({
     productRows,
     detailRows,
@@ -140,63 +149,60 @@ export function renderProductsPage({
     const selectedLoopRows = returnLoopSummaryRows
         .filter((row) => row.product_id === selectedProduct?.product_id)
         .slice(0, 1);
+    const transitionPanel = renderCompactPanel(
+        '전환 참고',
+        '다음 선택 흐름만 짧게 확인합니다.',
+        selectedTransitionRows,
+        '다음 선택 신호 없음',
+        renderTransitionRow
+    );
+    const returnPanel = renderCompactPanel(
+        '복귀 참고',
+        '반복 구매 신호만 보조로 붙입니다.',
+        selectedLoopRows,
+        '재방문 신호 없음',
+        renderReturnRow
+    );
 
     return `
         <section class="ops-products-stack" id="ops-products-section">
-            <section class="ops-panel ops-section ops-secondary-workspace-panel card">
-                <div class="ops-section-head">
-                    <div>
-                        <h3>SKU 탐색 데스크</h3>
-                        <p class="chart-hint">overview에서 고른 SKU를 이어 보고, 전환·복귀 신호만 붙여 빠르게 읽는 작업면입니다.</p>
-                    </div>
-                    <span class="ops-pill badge">보조 탐색</span>
-                </div>
-                <div class="ops-workspace-shell ops-secondary-workspace">
-                    <aside class="ops-selection-panel pgm-product-table-card card">
-                        <div class="pgm-product-table-top">
-                            <div>
-                                <h3>SKU 선택</h3>
-                                <p class="chart-hint">overview에서 이어서 확인할 SKU를 고르거나, 복귀할 상품을 다시 찾는 탐색기입니다.</p>
-                            </div>
-                            <div class="ops-product-head-meta">
-                                <span class="ops-pill badge">${escapeHtml(`${productRows.length}개`)}</span>
-                            </div>
+            <div class="ops-workspace-shell">
+                <aside class="ops-selection-panel">
+                    <div class="pgm-product-table-top">
+                        <div>
+                            <h3>SKU 선택</h3>
+                            <p class="chart-hint">운영 요약에서 이어 볼 SKU를 고릅니다.</p>
                         </div>
-                        <div class="pgm-product-table-filter-row">
-                            <div class="search-container ops-product-search-shell">
-                                <div class="search-combo">
-                                    <div class="search-wrapper pgm-product-table-search-wrap">
-                                        <i class="ph ph-magnifying-glass"></i>
-                                        <input class="search-input pgm-product-table-search-input" type="search" id="ops-product-search" placeholder="상품명 또는 상품 번호로 찾기" value="${escapeHtml(searchQuery)}">
-                                    </div>
+                        <div class="ops-product-head-meta">
+                            <span class="ops-pill badge">${escapeHtml(`${productRows.length}개`)}</span>
+                        </div>
+                    </div>
+                    <div class="pgm-product-table-filter-row">
+                        <div class="search-container ops-product-search-shell">
+                            <div class="search-combo">
+                                <div class="search-wrapper pgm-product-table-search-wrap">
+                                    <i class="ph ph-magnifying-glass"></i>
+                                    <input class="search-input pgm-product-table-search-input" type="search" id="ops-product-search" placeholder="상품명 또는 상품 번호로 찾기" value="${escapeHtml(searchQuery)}">
                                 </div>
                             </div>
                         </div>
-                        ${renderProductGallery(productRows, selectedProduct?.product_id)}
-                    </aside>
+                    </div>
+                    ${renderProductGallery(productRows, selectedProduct?.product_id)}
+                </aside>
 
-                    <div class="ops-analysis-workspace">
+                <div class="ops-analysis-workspace">
+                    ${renderWorkspaceContext(selectedProduct)}
+
+                    <div class="ops-workspace-body">
                         ${renderProductDetail(selectedDetail, selectedProduct)}
 
                         <div class="ops-support-stack">
-                            ${renderCompactPanel(
-                                '전환 보조 진단',
-                                '선택 SKU 다음 흐름만 빠르게 확인합니다. 역할 서사를 확정하는 카드가 아닙니다.',
-                                selectedTransitionRows,
-                                '선택한 상품의 다음 선택 신호가 아직 없습니다.',
-                                renderTransitionRow
-                            )}
-                            ${renderCompactPanel(
-                                '복귀 보조 진단',
-                                '반복 구매와 재방문 신호를 보조로 붙여 봅니다.',
-                                selectedLoopRows,
-                                '선택한 상품의 재방문 신호가 아직 없습니다.',
-                                renderReturnRow
-                            )}
+                            ${transitionPanel}
+                            ${returnPanel}
                         </div>
                     </div>
                 </div>
-            </section>
+            </div>
         </section>
     `;
 }

@@ -10,12 +10,12 @@ const OPTIONAL_VIEW_MODEL_FILES = {};
 const BLANK_OVERVIEW_ROLE_KEY = '__blank__';
 const TOP_LEVEL_TAB_META = {
     overview: {
-        label: '운영 현황',
-        description: '매출 원인 분해와 우선 점검을 먼저 읽는 메인 화면입니다.'
+        label: '운영 요약',
+        description: '먼저 볼 운영 이슈와 근거를 읽는 화면입니다.'
     },
     sku_workspace: {
         label: 'SKU 작업면',
-        description: 'overview에서 고른 SKU를 이어서 전환·복귀 신호까지 확인하는 작업면입니다.'
+        description: '선택한 SKU를 이어서 전환·복귀 신호까지 확인하는 작업면입니다.'
     }
 };
 
@@ -277,12 +277,10 @@ function renderTopLevelTabNav(activeTab) {
     const activeTabMeta = TOP_LEVEL_TAB_META[normalizedActiveTab];
 
     return `
-        <section class="ops-panel ops-section card">
-            <div class="ops-section-head">
-                <div>
-                    <h2>PGM Ops 화면</h2>
-                    <p class="chart-hint">${activeTabMeta.description}</p>
-                </div>
+        <nav class="ops-view-switcher" aria-label="PGM Ops 화면 전환">
+            <div class="ops-view-switcher-copy">
+                <span class="ops-view-switcher-kicker">PGM Ops</span>
+                <strong>${activeTabMeta.label}</strong>
             </div>
             <div class="pgm-chart-tab-group" role="tablist" aria-label="PGM Ops 화면 전환">
                 ${Object.entries(TOP_LEVEL_TAB_META).map(([tabKey, tabMeta]) => `
@@ -296,7 +294,7 @@ function renderTopLevelTabNav(activeTab) {
                     </button>
                 `).join('')}
             </div>
-        </section>
+        </nav>
     `;
 }
 
