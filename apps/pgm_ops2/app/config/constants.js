@@ -3,6 +3,7 @@ export const PRIORITY_LEVELS = ['즉시 확인', '주의 관찰', '정상 유지
 export const BRAND_SCORE_STATUSES = ['unavailable', 'limited', 'provisional', 'near-core'];
 export const DEFAULT_LOOKBACK_DAYS = 120;
 export const DEFAULT_AS_OF_DATE = '';
+export const ENABLE_NEAR_CORE_STATUS = false;
 
 export const RAW_DATASET_MIN_HISTORY_DAYS = {
     products: 0,
@@ -43,6 +44,8 @@ export const STAGING_FILE_NAMES = {
     stg_role_source_daily: 'stg_role_source_daily.csv',
     stg_priority_inputs_daily: 'stg_priority_inputs_daily.csv',
     stg_data_freshness: 'stg_data_freshness.csv',
+    stg_reconstructed_order_product_events: 'stg_reconstructed_order_product_events.csv',
+    stg_reconstructed_basket_summary: 'stg_reconstructed_basket_summary.csv',
     stg_brand_score_reconstruction_inputs: 'stg_brand_score_reconstruction_inputs.csv'
 };
 
@@ -53,6 +56,9 @@ export const MART_FILE_NAMES = {
     mart_priority_queue_snapshot: 'mart_priority_queue_snapshot.csv',
     mart_segment_structure_snapshot: 'mart_segment_structure_snapshot.csv',
     mart_data_health_snapshot: 'mart_data_health_snapshot.csv',
+    mart_brand_score_brand_level: 'mart_brand_score_brand_level.csv',
+    mart_brand_score_product_contributors: 'mart_brand_score_product_contributors.csv',
+    mart_reconstruction_registry: 'mart_reconstruction_registry.csv',
     mart_brand_score_reconstruction: 'mart_brand_score_reconstruction.csv',
     mart_brand_score_validation_status: 'mart_brand_score_validation_status.csv'
 };
@@ -61,10 +67,15 @@ export const VIEW_MODEL_FILE_NAMES = {
     vm_priority_queue: 'vm_priority_queue.csv',
     vm_queue_summary: 'vm_queue_summary.csv',
     vm_segment_map: 'vm_segment_map.csv',
+    vm_structure_map_cells: 'vm_structure_map_cells.csv',
     vm_product_detail: 'vm_product_detail.csv',
     vm_definition_rules: 'vm_definition_rules.csv',
     vm_data_health: 'vm_data_health.csv',
+    vm_data_health_overview: 'vm_data_health_overview.csv',
+    vm_data_health_detail: 'vm_data_health_detail.csv',
     vm_brand_score_panel: 'vm_brand_score_panel.csv',
+    vm_brand_score_product_contributors: 'vm_brand_score_product_contributors.csv',
+    vm_reconstruction_registry: 'vm_reconstruction_registry.csv',
     vm_iteration_log: 'vm_iteration_log.csv'
 };
 

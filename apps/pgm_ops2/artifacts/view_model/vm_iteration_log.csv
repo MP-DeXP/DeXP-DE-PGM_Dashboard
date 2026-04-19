@@ -6,3 +6,4 @@ iteration,issue_found,change_applied,brand_score_level
 5,Revenue source history가 부족해 직전기간 rolling 비교가 전부 무너졌음,dataset별 최소 history 적재와 Revenue compare state를 추가해 비교 가능 여부를 분리,limited
 6,timestamp freshness가 비어도 데이터 상태 화면에서 정상처럼 보였음,날짜 정규화 공통 함수를 도입하고 freshness/coverage 상태를 source별로 다시 계산,limited
 7,Role/Brand Score 판정이 support count와 stale source에 과도하게 끌렸음,Role taxonomy를 canonical score 중심으로 재정의하고 Brand Score freshness cap 및 QA 검증을 추가,limited
+8,Brand Score가 상품별 canonical처럼 읽히고 event/basket reconstruction 계약이 brand-level과 분리되지 않았음,"reconstructed event/basket staging, brand-level Brand Score, contributor mart, reconstruction registry를 추가하고 limited 숫자 노출 정책을 분리",provisional

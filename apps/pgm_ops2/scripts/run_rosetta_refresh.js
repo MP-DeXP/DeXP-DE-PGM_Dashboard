@@ -89,6 +89,39 @@ function buildRuntimeState() {
     };
 }
 
+function toText(value) {
+    return value == null ? '' : String(value).trim();
+}
+
+function toNumber(value) {
+    const parsed = Number.parseFloat(String(value ?? '').replace(/,/g, ''));
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function normalizeDateTimeText(value) {
+    const text = toText(value);
+    return text ? text.slice(0, 19) : '';
+}
+
+function isBlockedOrderStatus(status) {
+    const normalized = toText(status).toLowerCase();
+    if (!normalized) {
+        return false;
+    }
+
+    return [
+        'cancel',
+        'return',
+        'refund',
+        'exchange',
+        'fail',
+        '취소',
+        '반품',
+        '환불',
+        '교환'
+    ].some((token) => normalized.includes(token));
+}
+
 function collectDateValues(rows, dateFields = []) {
     return rows
         .flatMap((row) => dateFields.map((field) => String(row[field] ?? '')))
@@ -254,16 +287,56 @@ async function writeDataset(datasetKey, rows) {
     );
 }
 
-function deriveBrandScoreEvents(orderLinesRows) {
-    return orderLinesRows.map((row) => ({
-        order_id: row.order_id ?? '',
-        order_at: row.order_at ?? '',
-        product_id: row.product_id ?? '',
-        member_id: row.customer_id ?? '',
-        event_type: 'purchase',
-        quantity: row.quantity ?? '',
-        payment_amount: row.payment_amount ?? ''
-    }));
+function deriveBrandScoreEvents(orderLinesRows, orderHeaderRows = []) {
+    const orderHeaderById = orderHeaderRows.reduce((map, row) => {
+        const orderId = toText(row.order_id);
+        if (orderId) {
+            map.set(orderId, row);
+        }
+        return map;
+    }, new Map());
+    const eventByKey = new Map();
+
+    orderLinesRows.forEach((row) => {
+        const orderId = toText(row.order_id);
+        const productId = toText(row.product_id);
+        const orderHeader = orderHeaderById.get(orderId) ?? {};
+        const orderAt = normalizeDateTimeText(row.order_at ?? orderHeader.order_at);
+        const memberId = toText(row.customer_id ?? orderHeader.member_id);
+
+        if (!orderId || !productId || !orderAt || !memberId || isBlockedOrderStatus(row.order_status)) {
+            return;
+        }
+
+        const key = [orderId, orderAt, memberId, productId].join('|');
+        const current = eventByKey.get(key) ?? {
+            order_id: orderId,
+            order_at: orderAt,
+            product_id: productId,
+            member_id: memberId,
+            event_type: 'purchase',
+            quantity: 0,
+            payment_amount: 0
+        };
+
+        current.quantity += toNumber(row.quantity);
+        current.payment_amount += toNumber(row.payment_amount ?? orderHeader.order_amount);
+        eventByKey.set(key, current);
+    });
+
+    return [...eventByKey.values()]
+        .map((row) => ({
+            ...row,
+            quantity: row.quantity ? String(row.quantity) : '',
+            payment_amount: row.payment_amount ? String(row.payment_amount) : ''
+        }))
+        .sort((left, right) => {
+            return (
+                left.order_at.localeCompare(right.order_at)
+                || left.order_id.localeCompare(right.order_id)
+                || left.product_id.localeCompare(right.product_id)
+            );
+        });
 }
 
 async function executeQueryWithFallback(runtimeState, { connectionId, sql }) {
@@ -536,7 +609,10 @@ export async function refreshRawExtractFromRosetta(options = {}) {
         }
     }
 
-    const brandScoreEvents = deriveBrandScoreEvents(datasetRows.order_lines ?? []);
+    const brandScoreEvents = deriveBrandScoreEvents(
+        datasetRows.order_lines ?? [],
+        datasetRows.orders_header ?? []
+    );
     if (brandScoreEvents.length) {
         await writeDataset('brand_score_events', brandScoreEvents);
     }
@@ -548,10 +624,10 @@ export async function refreshRawExtractFromRosetta(options = {}) {
         brandScoreEvents,
         brandScoreEvents.length ? 'completed' : REFRESH_FAILURE_STATUS_CODES.source_empty,
         brandScoreEvents.length
-            ? 'order_lines 기반 최소 event layer를 파생했습니다.'
+            ? 'order_lines + orders_header 기반 reconstructed event layer를 파생했습니다.'
             : buildFailureNote(
                 REFRESH_FAILURE_STATUS_CODES.source_empty,
-                'order_lines 기반 최소 event layer를 만들 수 없었습니다.',
+                'order_lines + orders_header 기반 reconstructed event layer를 만들 수 없었습니다.',
                 preservedBrandScoreRows.length
             ),
         brandScorePlan,

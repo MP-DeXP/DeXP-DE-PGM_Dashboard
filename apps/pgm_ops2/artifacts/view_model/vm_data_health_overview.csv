@@ -1,0 +1,5 @@
+area_key,area_title,status_label,summary_value,note
+revenue_compare,Revenue 비교 가능 상태,정상,90일 비교 가능,7/30/90일 직전기간 비교가 모두 가능합니다.
+role_observation,Role 관측 가능 상태,정상,7일까지만 가능,7일 비교까지만 가능하고 30/90일 비교는 불가합니다.
+brand_score,Brand Score 반영 상태,limited,재구성 반영,산식은 계산했지만 event freshness가 7일을 초과합니다. | basket parity가 낮습니다.
+product_reference,상품 이미지 / 기준 정보 상태,비교 불가,10개 정상 / 3개 제한,직전기간 비교를 위한 history가 부족합니다.
