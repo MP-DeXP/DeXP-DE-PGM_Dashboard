@@ -1,4 +1,9 @@
 metric_name,metric_value,message
-product_master_fallback_usage_rate,0,product_name fallback usage on the latest snapshot
-pgm_observed_coverage,0.7,same-date PGM observation coverage on the latest snapshot
-role_state_blank_rate,0.3,blank role state rate on the latest snapshot; no latest-role fallback applied
+product_master_fallback_usage_rate,0,최근 확정일 상품명 fallback 사용률
+pgm_observed_coverage,0.7,최근 확정일 동일 일자 PGM 관측 커버리지
+role_state_blank_rate,0.3,최근 확정일 관측 상태 공백 비율; 최신 역할 보정 미적용
+role_history_mode,same_date_only,현재 파이프라인이 role state history를 해석하는 모드
+raw_product_daily_lookback_coverage,0.008333333333333333,요청 lookback 대비 product_daily 날짜 커버리지
+raw_pgm_scored_lookback_coverage,0.008333333333333333,요청 lookback 대비 pgm_scored 날짜 커버리지
+synthetic_raw_artifact_count,0,원본 파일 부재/불일치로 synthetic 생성된 raw artifact 수
+raw_extract_warning_count,0,run_extract/raw snapshot 해석 단계에서 누적된 warning 수

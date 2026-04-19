@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "extract": "node ./scripts/run_extract.js",
+    "refresh-rosetta": "node ./scripts/run_rosetta_refresh.js",
     "transform": "node ./scripts/run_transform.js",
     "view-models": "node ./scripts/run_view_models.js",
     "validate": "node ./scripts/run_validations.js",

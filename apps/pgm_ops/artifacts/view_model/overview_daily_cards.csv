@@ -1,5 +1,5 @@
 period,card_key,label,value,delta,reason,as_of_date,support_window_days
-daily,brand_revenue,오늘 브랜드 매출,2714300,0.0062279888785912885,Revenue 변화가 크지 않으므로 role-state와 집중도에서 우선 점검 대상을 좁히는 편이 안전합니다.,2026-04-17,1
+daily,brand_revenue,어제(최근 확정일) 브랜드 매출,2714300,0.0062279888785912885,매출 변화가 크지 않으므로 역할 관측 상태와 집중도에서 우선 점검 대상을 좁히는 편이 안전합니다.,2026-04-17,1
 daily,active_products,활성 상품 수,14,,활성 정의는 판매 발생 상품 기준입니다. 노출/판매중 상태와 혼용하지 않습니다.,2026-04-17,1
-daily,pgm_coverage,PGM 관측 커버리지,1,,same-date role snapshot이 없는 상품은 blank로 유지하고 coverage gap으로 드러냅니다.,2026-04-17,1
-daily,top_share,상위 상품 매출 비중,0.22123567770695943,,Revenue 집중도는 Daily 운영 리스크를 읽는 최소 지표입니다.,2026-04-17,1
+daily,pgm_coverage,PGM 관측 커버리지,1,,동일 일자 역할 스냅샷이 없는 상품은 관측 상태 없음으로 유지하고 관측 공백을 그대로 드러냅니다.,2026-04-17,1
+daily,top_share,상위 상품 매출 비중,0.22123567770695943,,매출 집중도는 일별 운영 리스크를 읽는 최소 지표입니다.,2026-04-17,1

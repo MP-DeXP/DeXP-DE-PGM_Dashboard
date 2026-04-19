@@ -2,7 +2,11 @@ export const WINDOWS = [7, 30, 90];
 export const PERIODS = ['daily', 'weekly', 'monthly'];
 export const PRIORITY_LEVELS = ['high', 'medium', 'low'];
 export const ROLE_KEYS = ['entry', 'expansion', 'return', 'convergence'];
-export const ROLE_LABEL_FALLBACK = '상태 미확인';
+export const ROLE_HISTORY_MODES = ['same_date_only', 'latest_available'];
+export const DEFAULT_ROLE_HISTORY_MODE = ROLE_HISTORY_MODES[0];
+export const DEFAULT_EXTRACT_LOOKBACK_DAYS = 120;
+export const ROLE_LABEL_FALLBACK = '관측 상태 없음';
+export const PROFILE_LABEL_FALLBACK = '프로필 정보 없음';
 export const ROLE_LABELS = {
     entry: '첫구매 유도',
     expansion: '단골 유도',
@@ -55,6 +59,9 @@ export const VIEW_MODEL_FILES = {
     overview_weekly_cards: 'overview_weekly_cards.csv',
     overview_monthly_cards: 'overview_monthly_cards.csv',
     overview_role_contribution: 'overview_role_contribution.csv',
+    overview_revenue_story: 'overview_revenue_story.csv',
+    overview_role_delta: 'overview_role_delta.csv',
+    overview_role_drilldown: 'overview_role_drilldown.csv',
     product_table: 'product_table.csv',
     product_detail_header: 'product_detail_header.csv',
     role_structure_chart: 'role_structure_chart.csv',

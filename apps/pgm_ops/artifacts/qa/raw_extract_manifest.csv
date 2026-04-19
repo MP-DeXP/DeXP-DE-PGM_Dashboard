@@ -1,10 +1,12 @@
-artifact_name,required,exists,row_count,notes
-orders,true,true,20,loaded
-order_items,true,true,20,loaded
-products,true,true,34,loaded
-product_daily,true,true,20,loaded
-pgm_scored,true,true,20,loaded
-members,true,true,20,loaded
-order_with_utm,true,true,20,loaded
-pgm_transition_edge,true,true,20,loaded
-pgm_loop_detail,true,true,20,loaded
+artifact_name,required,exists,row_count,notes,as_of_date,expected_lookback_days,min_date,max_date,covered_days,coverage_ratio,coverage_status,synthetic,synthetic_reason,role_history_mode,requested_mx_channel_id,requested_mx_platform,sample,warning_count,warning_code,warning_message
+orders,true,true,20,loaded,2026-04-17,120,2026-04-16,2026-04-17,2,0.016666666666666666,partial,false,,same_date_only,,,,1,partial_lookback_coverage,orders 날짜 커버리지가 요청 lookback 대비 부분적입니다.
+order_items,true,true,20,loaded,2026-04-17,,,,,,not_applicable,false,,same_date_only,,,,0,,
+products,true,true,35,loaded,2026-04-17,,,,,,not_applicable,false,,same_date_only,,,,0,,
+product_daily,true,true,20,loaded,2026-04-17,120,2026-04-17,2026-04-17,1,0.008333333333333333,partial,false,,same_date_only,,,,1,partial_lookback_coverage,product_daily 날짜 커버리지가 요청 lookback 대비 부분적입니다.
+pgm_scored,true,true,20,loaded,2026-04-17,120,2026-04-17,2026-04-17,1,0.008333333333333333,partial,false,,same_date_only,,,,1,partial_lookback_coverage,pgm_scored 날짜 커버리지가 요청 lookback 대비 부분적입니다.
+product_window_metrics,true,true,20,loaded,2026-04-17,,,,,,not_applicable,false,,same_date_only,,,,0,,
+brand_window_metrics,true,true,1,loaded,2026-04-17,120,2026-04-17,2026-04-17,1,0.008333333333333333,partial,false,,same_date_only,,,,1,partial_lookback_coverage,brand_window_metrics 날짜 커버리지가 요청 lookback 대비 부분적입니다.
+members,true,true,20,loaded,2026-04-17,,,,,,not_applicable,false,,same_date_only,,,,0,,
+order_with_utm,true,true,20,loaded,2026-04-17,120,2026-04-16,2026-04-17,2,0.016666666666666666,partial,false,,same_date_only,,,,1,partial_lookback_coverage,order_with_utm 날짜 커버리지가 요청 lookback 대비 부분적입니다.
+pgm_transition_edge,true,true,20,loaded,2026-04-17,120,2026-04-17,2026-04-17,1,0.008333333333333333,partial,false,,same_date_only,,,,1,partial_lookback_coverage,pgm_transition_edge 날짜 커버리지가 요청 lookback 대비 부분적입니다.
+pgm_loop_detail,true,true,20,loaded,2026-04-17,120,2026-04-17,2026-04-17,1,0.008333333333333333,partial,false,,same_date_only,,,,1,partial_lookback_coverage,pgm_loop_detail 날짜 커버리지가 요청 lookback 대비 부분적입니다.

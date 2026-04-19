@@ -15,57 +15,73 @@
 
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
+    <link rel="stylesheet" href="../../style.css">
     <link rel="stylesheet" href="./pgm_ops.css">
 </head>
 
 <body id="page-pgm-ops">
-    <div class="ops-shell">
-        <aside class="ops-sidebar">
-            <div class="ops-sidebar-header">
-                <img src="../../assets/CI.png" alt="mercuryX CI" class="ops-sidebar-ci">
-                <span class="ops-sidebar-title">PGM Ops</span>
+    <div class="app-container">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <img src="../../assets/CI.png" alt="mercuryX CI" class="sidebar-logo-ci">
+                <img src="../../assets/logo.png" alt="mercuryX" class="sidebar-logo-mark">
+                <button class="sidebar-collapse-btn" title="사이드바 접기" type="button">
+                    <i class="ph ph-arrow-line-left"></i>
+                </button>
             </div>
 
-            <nav class="ops-nav">
-                <button class="ops-nav-link" type="button" data-href="../brand/">
-                    <i class="ph ph-buildings"></i>
+            <div class="sidebar-divider"></div>
+
+            <ul class="nav-links">
+                <li onclick="window.location.href='../brand/'">
+                    <span class="nav-icon"><i class="ph ph-buildings"></i></span>
                     <span>구매 활성도</span>
-                </button>
-                <button class="ops-nav-link" type="button" data-href="../products/">
-                    <i class="ph ph-tag"></i>
+                </li>
+                <li onclick="window.location.href='../products/'">
+                    <span class="nav-icon"><i class="ph ph-tag"></i></span>
                     <span>제품 관계 인사이트</span>
-                </button>
-                <button class="ops-nav-link is-active" type="button" data-href="../pgm_ops/">
-                    <i class="ph ph-chart-line-up"></i>
+                </li>
+                <li class="active" onclick="window.location.href='../pgm_ops/'">
+                    <span class="nav-icon"><i class="ph ph-chart-line-up"></i></span>
                     <span>운영 상태판</span>
-                </button>
-                <button class="ops-nav-link" type="button" data-href="../decision-dashboard/">
-                    <i class="ph ph-compass-tool"></i>
-                    <span>의사결정 대시보드</span>
-                </button>
-            </nav>
+                </li>
+            </ul>
 
-            <div class="ops-sidebar-footer">
-                <p>Frontend-only, file-driven</p>
-                <a href="./README.md">handoff overview</a>
-                <a href="./docs/handoff_checklist.md">handoff checklist</a>
-                <a href="./docs/artifact_contract.md">artifact contract</a>
-            </div>
-        </aside>
-
-        <main class="ops-main">
-            <header class="ops-topbar">
-                <div>
-                    <p class="ops-eyebrow">PGM 1.0 운영 툴 v0</p>
-                    <h1>브랜드 운영 상태판</h1>
+            <div class="sidebar-bottom">
+                <div class="sidebar-bottom-item" id="settings-trigger">
+                    <span class="nav-icon"><i class="ph ph-gear"></i></span>
+                    <span>설정</span>
                 </div>
-                <div class="ops-topbar-meta">
-                    <span id="ops-data-source-badge" class="ops-badge">loading</span>
-                    <span id="ops-last-updated" class="ops-meta-text">view_model artifacts</span>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <header class="top-bar">
+                <div class="gnb-left">
+                    <div class="gnb-icon"><i class="ph ph-chart-line-up"></i></div>
+                    <h1 id="page-title">운영 상태판</h1>
+                </div>
+                <div class="gnb-right">
+                    <div id="top-bar-actions">
+                        <div class="ops-chrome-meta">
+                            <span id="ops-data-source-badge" class="ops-badge">loading</span>
+                            <span id="ops-last-updated" class="ops-meta-text">view_model artifacts</span>
+                        </div>
+                    </div>
+                    <div class="gnb-company-badge">
+                        <img src="../../assets/logo.png" alt="mercuryX" class="gnb-company-logo">
+                        <span class="gnb-company-name">MERCURY X</span>
+                        <span class="gnb-company-chevron"><i class="ph ph-caret-down"></i></span>
+                    </div>
+                    <div class="gnb-avatar">
+                        <i class="ph ph-user"></i>
+                    </div>
                 </div>
             </header>
 
-            <div id="ops-app"></div>
+            <div id="content-area">
+                <div id="ops-app"></div>
+            </div>
         </main>
     </div>
 
