@@ -117,7 +117,7 @@ export function getRosettaQuerySpecs({ asOfDate, lookbackStart }) {
                     '    CAST(product_name AS VARCHAR) AS product_name,',
                     '    CAST(price AS VARCHAR) AS price,',
                     '    CAST(retail_price AS VARCHAR) AS retail_price,',
-                    '    CAST(category_id_list AS VARCHAR) AS category_id_list,',
+                    '    CAST(json_format(CAST(category_id_list AS JSON)) AS VARCHAR) AS category_id_list,',
                     '    CAST(detail_url AS VARCHAR) AS detail_url,',
                     '    CAST(list_image AS VARCHAR) AS list_image,',
                     '    CAST(is_display AS VARCHAR) AS is_display,',
@@ -149,9 +149,9 @@ export function getRosettaQuerySpecs({ asOfDate, lookbackStart }) {
                     '    CAST(order_id AS VARCHAR) AS order_id,',
                     '    CAST(order_at AS VARCHAR) AS order_at,',
                     '    CAST(purchase_amount AS VARCHAR) AS purchase_amount,',
-                    '    CAST(utm_source AS VARCHAR) AS utm_source,',
-                    '    CAST(utm_medium AS VARCHAR) AS utm_medium,',
-                    '    CAST(utm_campaign AS VARCHAR) AS utm_campaign,',
+                    '    CAST(utm.utm_source AS VARCHAR) AS utm_source,',
+                    '    CAST(utm.utm_medium AS VARCHAR) AS utm_medium,',
+                    '    CAST(utm.utm_campaign AS VARCHAR) AS utm_campaign,',
                     '    CAST(session_count AS VARCHAR) AS session_count,',
                     '    CAST(valid_session_count AS VARCHAR) AS valid_session_count,',
                     '    CAST(created_date AS VARCHAR) AS created_date,',
@@ -357,4 +357,3 @@ export function getRosettaQuerySpecs({ asOfDate, lookbackStart }) {
         }
     ];
 }
-

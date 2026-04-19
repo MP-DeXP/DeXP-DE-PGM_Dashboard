@@ -2,3 +2,4 @@ iteration,issue_found,change_applied,brand_score_level
 1,신규 골격과 데이터 계약 부재,raw/staging/mart/view_model 계층과 새 우선순위 큐 구조를 구현,limited
 2,한글 경로에서 nested refresh transport가 불안정하고 검증 요약이 빈 raw 상태를 직접 드러내지 못함,ASCII 별칭 refresh 경로를 추가하고 실데이터 미적재 상태를 검증 요약과 화면에서 분리 표기,limited
 3,서버 번들과 UI가 빈 상태를 더 운영적으로 설명할 필요가 있었음,bundle/load status와 빈 상태 문구를 정리하고 tone audit 결과를 데이터 상태 화면에 연결,limited
+4,상품 이미지가 참조 주입 상태라 실적재 여부를 화면과 QA에서 구분하기 어려웠음,"Rosetta products 실적재 경로와 이미지 provenance 검증을 추가하고, 화면 밀도를 운영툴 기준으로 재설계",limited

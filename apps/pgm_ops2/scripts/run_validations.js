@@ -24,6 +24,10 @@ async function readViewModelArtifacts() {
     return artifacts;
 }
 
+async function readRawManifest() {
+    return readCsvFile(new URL(QA_FILE_NAMES.raw_manifest, ARTIFACT_DIR_URLS.qa));
+}
+
 async function buildToneAudit() {
     const uiTextFiles = [
         new URL('../index.html', import.meta.url),
@@ -48,9 +52,12 @@ async function buildToneAudit() {
 }
 
 export async function main() {
-    const martArtifacts = await readMartArtifacts();
-    const viewModelArtifacts = await readViewModelArtifacts();
-    const validationSummary = buildValidationSummary(martArtifacts, viewModelArtifacts);
+    const [martArtifacts, viewModelArtifacts, rawManifestRows] = await Promise.all([
+        readMartArtifacts(),
+        readViewModelArtifacts(),
+        readRawManifest()
+    ]);
+    const validationSummary = buildValidationSummary(martArtifacts, viewModelArtifacts, rawManifestRows);
     const toneAudit = await buildToneAudit();
 
     await Promise.all([

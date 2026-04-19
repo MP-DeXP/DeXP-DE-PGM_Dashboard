@@ -105,6 +105,54 @@ function priorityClass(level) {
     return 'priority-stable';
 }
 
+function buildImageAlt(productName) {
+    return productName || '상품 이미지';
+}
+
+function renderProductThumb(row, { size = 'medium' } = {}) {
+    const productName = row.product_name || row.product_id || '';
+    const imageUrl = String(row.product_image_url || '').trim();
+    const sizeClass = size === 'small' ? 'is-small' : size === 'large' ? 'is-large' : '';
+    const altText = escapeHtml(buildImageAlt(productName));
+
+    if (!imageUrl) {
+        return `
+            <span
+                class="product-thumb is-placeholder ${sizeClass}"
+                data-product-thumb
+                role="img"
+                aria-label="${altText}"
+            >
+                <span class="product-thumb-placeholder" aria-hidden="true"></span>
+            </span>
+        `;
+    }
+
+    return `
+        <span class="product-thumb ${sizeClass}" data-product-thumb>
+            <img
+                src="${escapeHtml(imageUrl)}"
+                alt="${altText}"
+                loading="lazy"
+                data-product-image
+            >
+            <span class="product-thumb-placeholder" aria-hidden="true"></span>
+        </span>
+    `;
+}
+
+function renderProductIdentity(row, { size = 'medium', showProductId = false } = {}) {
+    return `
+        <div class="product-identity">
+            ${renderProductThumb(row, { size })}
+            <div class="product-identity-copy">
+                <strong>${escapeHtml(row.product_name || row.product_id)}</strong>
+                ${showProductId ? `<p>${escapeHtml(row.product_id || '')}</p>` : ''}
+            </div>
+        </div>
+    `;
+}
+
 function getViewModel(name) {
     return state.bundle?.view_model?.[name] ?? [];
 }
@@ -155,39 +203,50 @@ function renderPriorityView() {
 
     return `
         <section class="hero">
-            <div class="section-kicker">첫 화면</div>
-            <h3 class="section-title">상품 우선순위 큐</h3>
-            <p class="muted">단일 점수 대신 Revenue, Role, Brand Score 상태를 분리해 표시합니다.</p>
+            <div class="hero-heading">
+                <div>
+                    <div class="section-kicker">첫 화면</div>
+                    <h3 class="section-title">상품 우선순위 큐</h3>
+                </div>
+                <p class="muted">Revenue, Role, Brand Score 상태를 분리해 운영 우선순위를 바로 확인합니다.</p>
+            </div>
         </section>
         ${renderSummaryCards()}
         <section class="queue-list">
             ${queueRows.map((row) => `
                 <article class="queue-row" data-product-row="${escapeHtml(row.product_id)}">
-                    <div class="queue-row-header">
-                        <div class="queue-row-title">
-                            <div class="section-kicker">순위 ${escapeHtml(row.rank)}</div>
-                            <h3>${escapeHtml(row.product_name || row.product_id)}</h3>
-                            <p>${escapeHtml(row.product_id)}</p>
+                    <div class="queue-row-main">
+                        <div class="queue-row-header">
+                            <div class="queue-row-title">
+                                <div class="queue-row-rank">
+                                    <span class="section-kicker">순위 ${escapeHtml(row.rank)}</span>
+                                    <span class="queue-row-id">${escapeHtml(row.product_id || '')}</span>
+                                </div>
+                                ${renderProductIdentity(row, { size: 'small' })}
+                            </div>
+                            <div class="queue-row-badges">
+                                <div class="pill ${priorityClass(row.priority_level)}">${escapeHtml(row.priority_level)}</div>
+                            </div>
                         </div>
-                        <div class="pill ${priorityClass(row.priority_level)}">${escapeHtml(row.priority_level)}</div>
-                    </div>
-                    <div class="reason-stack">
-                        <div class="reason-item">
-                            <strong>Revenue 이유</strong>
-                            <div>${escapeHtml(row.revenue_reason)}</div>
-                        </div>
-                        <div class="reason-item">
-                            <strong>Role 이유</strong>
-                            <div>${escapeHtml(row.role_reason)}</div>
-                        </div>
-                        <div class="reason-item">
-                            <strong>Brand Score 상태</strong>
-                            <div>${escapeHtml(row.brand_score_reason)}</div>
+                        <div class="reason-stack">
+                            <div class="reason-item">
+                                <strong>Revenue</strong>
+                                <div>${escapeHtml(row.revenue_reason)}</div>
+                            </div>
+                            <div class="reason-item">
+                                <strong>Role</strong>
+                                <div>${escapeHtml(row.role_reason)}</div>
+                            </div>
+                            <div class="reason-item">
+                                <strong>Brand Score</strong>
+                                <div>${escapeHtml(row.brand_score_reason)}</div>
+                            </div>
                         </div>
                     </div>
                     <div class="queue-row-meta">
                         <small>Role taxonomy: ${escapeHtml(row.role_taxonomy)}</small>
-                        <small>Revenue 최신일: ${escapeHtml(row.revenue_freshness_max_date || '-')} / Role 최신일: ${escapeHtml(row.role_freshness_max_date || '-')}</small>
+                        <small>Revenue 최신일: ${escapeHtml(row.revenue_freshness_max_date || '-')}</small>
+                        <small>Role 최신일: ${escapeHtml(row.role_freshness_max_date || '-')}</small>
                     </div>
                 </article>
             `).join('')}
@@ -219,7 +278,7 @@ function renderSegmentsView() {
                 <tbody>
                     ${rows.map((row) => `
                         <tr>
-                            <td>${escapeHtml(row.product_name || row.product_id)}</td>
+                            <td>${renderProductIdentity(row, { size: 'small' })}</td>
                             <td>${escapeHtml(row.revenue_segment)}</td>
                             <td>${escapeHtml(row.role_taxonomy)}</td>
                             <td class="${priorityClass(row.priority_level)}">${escapeHtml(row.priority_level)}</td>
@@ -247,7 +306,7 @@ function renderDetailView() {
 
     return `
         <section class="detail-layout">
-            <aside class="detail-card">
+            <aside class="detail-card detail-sidebar">
                 <div class="section-kicker">대상 선택</div>
                 <h3>상품 목록</h3>
                 <div class="product-picker">
@@ -256,16 +315,29 @@ function renderDetailView() {
                             class="${row.product_id === selectedQueueRow.product_id ? 'is-selected' : ''}"
                             data-product-pick="${escapeHtml(row.product_id)}"
                         >
-                            <strong>${escapeHtml(row.product_name || row.product_id)}</strong><br>
-                            <span class="${priorityClass(row.priority_level)}">${escapeHtml(row.priority_level)}</span>
+                            <span class="picker-product">
+                                ${renderProductThumb(row, { size: 'small' })}
+                                <span class="picker-product-copy">
+                                    <strong>${escapeHtml(row.product_name || row.product_id)}</strong>
+                                    <span class="picker-meta-row">
+                                        <span class="picker-product-id">${escapeHtml(row.product_id || '')}</span>
+                                        <span class="${priorityClass(row.priority_level)}">${escapeHtml(row.priority_level)}</span>
+                                    </span>
+                                </span>
+                            </span>
                         </button>
                     `).join('')}
                 </div>
             </aside>
-            <section class="detail-card">
+            <section class="detail-card detail-main">
                 <div class="section-kicker">상세 보기</div>
-                <h3>${escapeHtml(selectedQueueRow.product_name || selectedQueueRow.product_id)}</h3>
-                <p class="muted">${escapeHtml(selectedQueueRow.product_id)}</p>
+                <div class="detail-header-product">
+                    ${renderProductThumb(selectedQueueRow, { size: 'medium' })}
+                    <div class="detail-header-copy">
+                        <h3>${escapeHtml(selectedQueueRow.product_name || selectedQueueRow.product_id)}</h3>
+                        <p class="muted">${escapeHtml(selectedQueueRow.product_id)}</p>
+                    </div>
+                </div>
                 <table class="detail-table">
                     <thead>
                         <tr>
@@ -326,7 +398,14 @@ function renderHealthView() {
     const healthRows = getViewModel('vm_data_health');
     const brandRows = getViewModel('vm_brand_score_panel');
     const toneAuditRows = state.bundle?.qa?.tone_audit ?? [];
+    const rawManifestRows = state.bundle?.qa?.raw_manifest ?? [];
+    const validationRows = state.bundle?.qa?.validation_summary ?? [];
     const iterationRows = getViewModel('vm_iteration_log');
+    const productImageManifest = rawManifestRows.find((row) => row.dataset_key === 'products') ?? {};
+    const productImageValidation = validationRows.find((row) => row.check_name === 'product_image_provenance') ?? {};
+    const productImageState = productImageManifest.data_provenance === 'rosetta_direct'
+        ? 'Rosetta 적재 완료'
+        : productImageValidation.message || '참조 표시 중';
 
     return `
         <section class="panel">
@@ -365,6 +444,11 @@ function renderHealthView() {
                 <div>${escapeHtml(brandRows[0]?.brand_score_status || 'unavailable')}</div>
             </article>
             <article class="grid-card">
+                <div class="section-kicker">상품 이미지</div>
+                <h3>source 상태</h3>
+                <p class="muted">${escapeHtml(productImageState)}</p>
+            </article>
+            <article class="grid-card">
                 <div class="section-kicker">Tone Audit</div>
                 <h3>화면 문구 점검</h3>
                 <p class="muted">${toneAuditRows.every((row) => row.status === 'pass') ? '금지 문구 없음' : '금지 문구 점검 필요'}</p>
@@ -400,6 +484,7 @@ function render() {
     };
 
     root.innerHTML = (rendererMap[state.view] ?? renderPriorityView)();
+    bindImageFallbacks(root);
 
     root.querySelectorAll('[data-product-pick]').forEach((button) => {
         button.addEventListener('click', () => {
@@ -509,6 +594,42 @@ async function loadBundleWithFallback() {
 async function loadBundle() {
     state.bundle = await loadBundleWithFallback();
     render();
+}
+
+function bindImageFallbacks(root) {
+    root.querySelectorAll('[data-product-thumb]').forEach((thumb) => {
+        const image = thumb.querySelector('[data-product-image]');
+        if (!image) {
+            return;
+        }
+
+        const altText = image.getAttribute('alt') || '상품 이미지';
+        const showLoadedState = () => {
+            thumb.classList.remove('is-placeholder');
+            thumb.classList.add('is-loaded');
+            thumb.removeAttribute('role');
+            thumb.removeAttribute('aria-label');
+        };
+        const showFallbackState = () => {
+            thumb.classList.remove('is-loaded');
+            thumb.classList.add('is-placeholder');
+            thumb.setAttribute('role', 'img');
+            thumb.setAttribute('aria-label', altText);
+            image.removeAttribute('src');
+        };
+
+        if (image.complete) {
+            if (image.naturalWidth > 0) {
+                showLoadedState();
+            } else {
+                showFallbackState();
+            }
+            return;
+        }
+
+        image.addEventListener('load', showLoadedState, { once: true });
+        image.addEventListener('error', showFallbackState, { once: true });
+    });
 }
 
 function bindNav() {

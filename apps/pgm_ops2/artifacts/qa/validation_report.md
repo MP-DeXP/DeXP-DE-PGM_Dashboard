@@ -1,6 +1,7 @@
 # pgm_ops2 검증 보고
 
-- real_source_presence: pass - 실데이터 기반 summary export가 적재되어 있습니다.
+- real_source_presence: pass - 실데이터 raw source가 적재되어 있습니다.
 - priority_queue_exists: pass - 우선순위 큐 산출물이 생성되었습니다.
 - role_same_date_snapshot: pass - Role taxonomy는 as_of_date 기준 단일 snapshot으로 생성합니다.
 - brand_score_queue_exclusion: pass - Brand Score는 큐 보조 상태로만 유지됩니다.
+- product_image_provenance: pass - 상품 이미지는 Rosetta 적재 결과를 직접 사용합니다.

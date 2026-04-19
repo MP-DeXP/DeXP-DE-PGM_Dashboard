@@ -1,6 +1,16 @@
+import { spawn } from 'node:child_process';
+import os from 'node:os';
+
 import { parse as parseYaml } from 'yaml';
 
 const DEFAULT_PROTOCOL_VERSIONS = ['2025-03-26', '2024-11-05'];
+const DEFAULT_BRIDGE_TIMEOUT_MS = 120000;
+
+export const ROSETTA_ERROR_CODES = {
+    auth_missing: 'auth_missing',
+    mcp_bridge_failed: 'mcp_bridge_failed',
+    query_failed: 'query_failed'
+};
 
 function isPlainObject(value) {
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -29,6 +39,20 @@ function parseMaybeStructuredText(value) {
     } catch {
         return null;
     }
+}
+
+function looksLikeAuthFailure(message) {
+    const lowered = String(message ?? '').toLowerCase();
+    return [
+        'auth',
+        'oauth',
+        'login',
+        'consent',
+        'unauthorized',
+        'forbidden',
+        'credential',
+        'token'
+    ].some((token) => lowered.includes(token));
 }
 
 function collectTextParts(content = []) {
@@ -89,6 +113,26 @@ function normalizeRpcPayload(bodyText, contentType) {
     return safeJsonParse(bodyText);
 }
 
+function parseStructuredCandidate(candidate) {
+    if (!candidate) {
+        return null;
+    }
+
+    if (typeof candidate === 'string') {
+        return parseMaybeStructuredText(candidate);
+    }
+
+    if (!isPlainObject(candidate)) {
+        return null;
+    }
+
+    if (typeof candidate.result === 'string') {
+        return parseMaybeStructuredText(candidate.result) ?? candidate;
+    }
+
+    return candidate;
+}
+
 function extractToolResult(payload) {
     if (!payload) {
         return null;
@@ -97,17 +141,22 @@ function extractToolResult(payload) {
     const candidateRoots = [payload.result, payload].filter(Boolean);
 
     for (const root of candidateRoots) {
-        if (isPlainObject(root.structuredContent)) {
-            return root.structuredContent;
+        const structuredCandidates = [root.structuredContent, root.structured_content].filter(Boolean);
+        for (const structuredCandidate of structuredCandidates) {
+            const parsedStructured = parseStructuredCandidate(structuredCandidate);
+            if (parsedStructured != null) {
+                return parsedStructured.result ?? parsedStructured;
+            }
         }
 
         if (Array.isArray(root.content)) {
             for (const item of root.content) {
-                if (isPlainObject(item?.structuredContent)) {
-                    return item.structuredContent;
-                }
-                if (isPlainObject(item?.json)) {
-                    return item.json;
+                const itemStructuredCandidates = [item?.structuredContent, item?.structured_content, item?.json].filter(Boolean);
+                for (const itemStructuredCandidate of itemStructuredCandidates) {
+                    const parsedStructured = parseStructuredCandidate(itemStructuredCandidate);
+                    if (parsedStructured != null) {
+                        return parsedStructured.result ?? parsedStructured;
+                    }
                 }
             }
 
@@ -129,17 +178,22 @@ function extractToolResult(payload) {
 }
 
 function normalizeExecuteQueryResult(result) {
-    if (!isPlainObject(result)) {
+    const parsedResult = typeof result === 'string'
+        ? parseMaybeStructuredText(result)
+        : (typeof result?.result === 'string' ? parseMaybeStructuredText(result.result) : result);
+    const normalizedResult = parsedResult ?? result;
+
+    if (!isPlainObject(normalizedResult)) {
         throw new Error('Rosetta execute_query 응답을 해석하지 못했습니다.');
     }
 
-    if (String(result.status ?? '').toLowerCase() !== 'completed') {
-        throw new Error(result.reason ?? result.message ?? 'Rosetta execute_query가 실패했습니다.');
+    if (String(normalizedResult.status ?? '').toLowerCase() !== 'completed') {
+        throw new Error(normalizedResult.reason ?? normalizedResult.message ?? 'Rosetta execute_query가 실패했습니다.');
     }
 
     return {
-        columns: Array.isArray(result.columns) ? result.columns.map(String) : [],
-        rows: Array.isArray(result.rows) ? result.rows.map((row) => {
+        columns: Array.isArray(normalizedResult.columns) ? normalizedResult.columns.map(String) : [],
+        rows: Array.isArray(normalizedResult.rows) ? normalizedResult.rows.map((row) => {
             if (!isPlainObject(row)) {
                 return {};
             }
@@ -147,10 +201,229 @@ function normalizeExecuteQueryResult(result) {
                 Object.entries(row).map(([key, value]) => [key, value == null ? '' : String(value)])
             );
         }) : [],
-        rowCount: Number.parseInt(result.row_count, 10) || 0,
-        filteredSql: typeof result.filtered_sql === 'string' ? result.filtered_sql : '',
-        status: String(result.status ?? '')
+        rowCount: Number.parseInt(normalizedResult.row_count, 10) || 0,
+        filteredSql: typeof normalizedResult.filtered_sql === 'string' ? normalizedResult.filtered_sql : '',
+        status: String(normalizedResult.status ?? '')
     };
+}
+
+function buildCodexBridgePrompt({ connectionId, sql }) {
+    return [
+        'Act as a Rosetta MCP bridge.',
+        'Call the rosetta MCP tool execute_query exactly once with the JSON arguments below.',
+        'Do not call any other tool.',
+        'After the tool call finishes, reply with only the word done.',
+        '```json',
+        JSON.stringify({
+            connection_id: connectionId,
+            sql
+        }),
+        '```'
+    ].join('\n');
+}
+
+function parseCodexJsonEvents(stdoutText) {
+    return stdoutText
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line) => safeJsonParse(line))
+        .filter(Boolean);
+}
+
+function tailText(value, limit = 1200) {
+    const text = String(value ?? '').trim();
+    if (!text) {
+        return '';
+    }
+    return text.slice(-limit);
+}
+
+function resolveBridgeFailureCode(message) {
+    return looksLikeAuthFailure(message) ? ROSETTA_ERROR_CODES.auth_missing : ROSETTA_ERROR_CODES.mcp_bridge_failed;
+}
+
+class RosettaBridgeError extends Error {
+    constructor(code, message) {
+        super(message);
+        this.name = 'RosettaBridgeError';
+        this.code = code;
+    }
+}
+
+function normalizeBridgeError(error, fallbackMessage = 'Codex bridge 호출에 실패했습니다.') {
+    if (error instanceof RosettaBridgeError) {
+        return error;
+    }
+
+    const message = String(error?.message ?? fallbackMessage);
+    return new RosettaBridgeError(resolveBridgeFailureCode(message), message);
+}
+
+function extractCodexToolCallResult(stdoutText) {
+    const events = parseCodexJsonEvents(stdoutText);
+
+    for (let index = events.length - 1; index >= 0; index -= 1) {
+        const event = events[index];
+        const item = event?.item;
+
+        if (event?.type !== 'item.completed' || item?.type !== 'mcp_tool_call') {
+            continue;
+        }
+
+        if (item.server !== 'rosetta' || item.tool !== 'execute_query') {
+            continue;
+        }
+
+        if (item.error) {
+            const detail = typeof item.error === 'string'
+                ? item.error
+                : (item.error.message ?? JSON.stringify(item.error));
+            throw new RosettaBridgeError(
+                looksLikeAuthFailure(detail) ? ROSETTA_ERROR_CODES.auth_missing : ROSETTA_ERROR_CODES.query_failed,
+                detail || 'Codex bridge tool call failed.'
+            );
+        }
+
+        return extractToolResult(item.result ?? item);
+    }
+
+    return null;
+}
+
+function parseBridgeTimeoutMs() {
+    const rawValue = Number.parseInt(process.env.PGM_OPS2_ROSETTA_BRIDGE_TIMEOUT_MS, 10);
+    return Number.isFinite(rawValue) && rawValue > 0 ? rawValue : DEFAULT_BRIDGE_TIMEOUT_MS;
+}
+
+function resolveBridgeCommand() {
+    return process.env.PGM_OPS2_ROSETTA_BRIDGE_COMMAND ?? 'codex';
+}
+
+function resolveBridgeWorkdir() {
+    const override = process.env.PGM_OPS2_ROSETTA_BRIDGE_CWD;
+    return override && override.trim() ? override.trim() : os.tmpdir();
+}
+
+function runCodexBridge(prompt, { command, workdir, timeoutMs }) {
+    return new Promise((resolve, reject) => {
+        const child = spawn(command, [
+            'exec',
+            '--skip-git-repo-check',
+            '--ephemeral',
+            '--sandbox',
+            'read-only',
+            '--color',
+            'never',
+            '--json',
+            '-C',
+            workdir,
+            '-'
+        ], {
+            stdio: ['pipe', 'pipe', 'pipe']
+        });
+
+        let stdout = '';
+        let stderr = '';
+        let timedOut = false;
+
+        const timer = setTimeout(() => {
+            timedOut = true;
+            child.kill('SIGTERM');
+            setTimeout(() => {
+                child.kill('SIGKILL');
+            }, 1000).unref();
+        }, timeoutMs);
+
+        child.stdout.on('data', (chunk) => {
+            stdout += chunk.toString();
+        });
+
+        child.stderr.on('data', (chunk) => {
+            stderr += chunk.toString();
+        });
+
+        child.on('error', (error) => {
+            clearTimeout(timer);
+            reject(new RosettaBridgeError(
+                ROSETTA_ERROR_CODES.mcp_bridge_failed,
+                `Codex bridge 프로세스를 시작하지 못했습니다: ${error.message ?? error}`
+            ));
+        });
+
+        child.on('close', (code) => {
+            clearTimeout(timer);
+
+            if (timedOut) {
+                reject(new RosettaBridgeError(
+                    ROSETTA_ERROR_CODES.mcp_bridge_failed,
+                    `Codex bridge 호출이 ${timeoutMs}ms 안에 끝나지 않았습니다.`
+                ));
+                return;
+            }
+
+            if (code !== 0) {
+                const detail = tailText(stderr) || tailText(stdout) || `exit code ${code}`;
+                reject(new RosettaBridgeError(resolveBridgeFailureCode(detail), `Codex bridge 종료 실패: ${detail}`));
+                return;
+            }
+
+            resolve({ stdout, stderr });
+        });
+
+        child.stdin.end(prompt);
+    });
+}
+
+export class RosettaCodexBridgeClient {
+    constructor({
+        command = resolveBridgeCommand(),
+        workdir = resolveBridgeWorkdir(),
+        timeoutMs = parseBridgeTimeoutMs()
+    } = {}) {
+        this.command = command;
+        this.workdir = workdir;
+        this.timeoutMs = timeoutMs;
+    }
+
+    async executeQuery({ connectionId, sql }) {
+        try {
+            const { stdout } = await runCodexBridge(
+                buildCodexBridgePrompt({ connectionId, sql }),
+                {
+                    command: this.command,
+                    workdir: this.workdir,
+                    timeoutMs: this.timeoutMs
+                }
+            );
+
+            const result = extractCodexToolCallResult(stdout);
+            if (!result) {
+                throw new RosettaBridgeError(
+                    ROSETTA_ERROR_CODES.mcp_bridge_failed,
+                    `Codex bridge 결과에서 execute_query 응답을 찾지 못했습니다: ${tailText(stdout)}`
+                );
+            }
+
+            try {
+                return normalizeExecuteQueryResult(result);
+            } catch (error) {
+                throw new RosettaBridgeError(
+                    ROSETTA_ERROR_CODES.query_failed,
+                    String(error.message ?? error)
+                );
+            }
+        } catch (error) {
+            const normalizedError = normalizeBridgeError(error);
+            if (
+                normalizedError.code === ROSETTA_ERROR_CODES.mcp_bridge_failed
+                || normalizedError.code === ROSETTA_ERROR_CODES.auth_missing
+            ) {
+                throw normalizedError;
+            }
+            throw new RosettaBridgeError(ROSETTA_ERROR_CODES.query_failed, normalizedError.message);
+        }
+    }
 }
 
 export class RosettaMcpClient {
@@ -278,3 +551,6 @@ export class RosettaMcpClient {
     }
 }
 
+export function getRosettaErrorCode(error) {
+    return typeof error?.code === 'string' ? error.code : ROSETTA_ERROR_CODES.query_failed;
+}

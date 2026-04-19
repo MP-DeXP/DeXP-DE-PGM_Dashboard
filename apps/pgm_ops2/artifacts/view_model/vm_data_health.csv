@@ -1,7 +1,13 @@
 as_of_date,source_key,row_count,min_date,max_date,freshness_gap_days,data_state
-2026-04-18,products(filtered_export),20,,2026-04-18,0,정상
-2026-04-18,product_revenue_daily(summary_export),20,2026-02-18,2026-04-18,0,정상
-2026-04-18,pgm_scored(snapshot_export),20,2026-04-18,2026-04-18,0,정상
-2026-04-18,pgm_demand_signals(snapshot_export),20,2026-04-18,2026-04-18,0,정상
-2026-04-18,order_lines,0,,2026-03-22,27,데이터 부족
-2026-04-18,pgm_basket_pairs,0,,2026-04-18,0,데이터 부족
+2026-04-18,orders_header,835,,,,정상
+2026-04-18,order_lines,111,,,,정상
+2026-04-18,products,99,,,,정상
+2026-04-18,order_utm,835,,,,정상
+2026-04-18,product_revenue_daily,696,2026-03-20,2026-04-18,0,정상
+2026-04-18,pgm_scored,612,2026-04-05,2026-04-18,0,정상
+2026-04-18,pgm_demand_signals,568,2026-04-06,2026-04-18,0,정상
+2026-04-18,pgm_transition_edges,454,2026-04-18,2026-04-18,0,정상
+2026-04-18,pgm_return_loops,988,2026-04-18,2026-04-18,0,정상
+2026-04-18,pgm_basket_pairs,1012,2026-04-18,2026-04-18,0,정상
+2026-04-18,brand_purchase_daily,30,2026-03-20,2026-04-18,0,정상
+2026-04-18,brand_score_events,111,,,,정상

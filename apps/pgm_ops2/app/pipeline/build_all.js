@@ -77,6 +77,26 @@ function buildProductNameIndex(rawArtifacts) {
     return nameByProduct;
 }
 
+function buildProductImageIndex(rawArtifacts) {
+    const imageByProduct = new Map();
+
+    (rawArtifacts.products ?? []).forEach((row) => {
+        const productId = toText(row.product_id);
+        const productImageUrl = toText(row.list_image).trim();
+        const currentImageUrl = imageByProduct.get(productId);
+
+        if (!productId) {
+            return;
+        }
+
+        if (!imageByProduct.has(productId) || (!currentImageUrl && productImageUrl)) {
+            imageByProduct.set(productId, productImageUrl);
+        }
+    });
+
+    return imageByProduct;
+}
+
 function normalizeProductRevenueDaily(rows) {
     return rows
         .map((row) => ({
@@ -275,7 +295,7 @@ export function buildStagingArtifacts(rawArtifacts) {
     };
 }
 
-function buildRevenueWindows(rows, asOfDate, productNameByProduct = new Map()) {
+function buildRevenueWindows(rows, asOfDate, productNameByProduct = new Map(), productImageByProduct = new Map()) {
     const rowsByProduct = groupBy(rows.filter((row) => row.date <= asOfDate), (row) => row.product_id);
 
     return [...rowsByProduct.entries()]
@@ -309,6 +329,7 @@ function buildRevenueWindows(rows, asOfDate, productNameByProduct = new Map()) {
                 as_of_date: asOfDate,
                 product_id: productId,
                 product_name: toText(latestRow?.product_name || productNameByProduct.get(productId)),
+                product_image_url: toText(productImageByProduct.get(productId)),
                 revenue_today: toNumber(latestRow?.revenue),
                 order_count_today: toNumber(latestRow?.order_count),
                 cart_count_today: toNumber(latestRow?.cart_count),
@@ -318,7 +339,7 @@ function buildRevenueWindows(rows, asOfDate, productNameByProduct = new Map()) {
         .sort((left, right) => toNumber(right.revenue_30d_current) - toNumber(left.revenue_30d_current));
 }
 
-function buildRoleTaxonomy(roleRows, transitionRows, returnLoopRows, basketRows, asOfDate) {
+function buildRoleTaxonomy(roleRows, transitionRows, returnLoopRows, basketRows, asOfDate, productImageByProduct = new Map()) {
     const latestRoleRows = roleRows.filter((row) => row.date === asOfDate);
     const transitionByProduct = groupBy(transitionRows.filter((row) => toText(row.date) === asOfDate), (row) => {
         return toText(row.aa_product_id ?? row.source_product_id ?? row.product_id);
@@ -359,10 +380,11 @@ function buildRoleTaxonomy(roleRows, transitionRows, returnLoopRows, basketRows,
             as_of_date: asOfDate,
             product_id: row.product_id,
             product_name: row.product_name,
+            product_image_url: toText(productImageByProduct.get(row.product_id)),
             role_taxonomy: primaryScore > 0 ? primaryRole : '관측 없음',
             role_score: primaryScore,
             role_evidence_status: roleEvidenceStatus,
-            role_reason,
+            role_reason: roleReason,
             entry_score: roleScores['첫구매기여'],
             expansion_score: roleScores['재구매확장기여'],
             repeat_score: roleScores['반복구매기여'],
@@ -487,6 +509,7 @@ function buildPriorityBasis(revenueRows, roleRows, brandScoreRows, freshnessRows
             as_of_date: asOfDate,
             product_id: row.product_id,
             product_name: row.product_name,
+            product_image_url: toText(row.product_image_url || role.product_image_url),
             priority_level: priorityLevel,
             priority_sort_score: (
                 (priorityLevel === '즉시 확인' ? 3 : priorityLevel === '주의 관찰' ? 2 : 1) * 1000000
@@ -521,6 +544,7 @@ function buildSegmentStructureSnapshot(priorityRows) {
             as_of_date: row.as_of_date,
             product_id: row.product_id,
             product_name: row.product_name,
+            product_image_url: row.product_image_url,
             revenue_segment: deltaRate == null ? '비교 불가' : deltaRate < -0.05 ? '감소' : deltaRate > 0.05 ? '증가' : '유지',
             role_taxonomy: row.role_taxonomy,
             priority_level: row.priority_level,
@@ -555,17 +579,21 @@ function buildDataHealthSnapshot(freshnessRows, asOfDate) {
 
 export function buildMartArtifacts(stagingArtifacts, rawArtifacts, options = {}) {
     const asOfDate = options.asOfDate || getLatestDate(stagingArtifacts.stg_product_revenue_daily ?? []);
+    const productNameByProduct = buildProductNameIndex(rawArtifacts);
+    const productImageByProduct = buildProductImageIndex(rawArtifacts);
     const martProductRevenueWindows = buildRevenueWindows(
         stagingArtifacts.stg_product_revenue_daily ?? [],
         asOfDate,
-        buildProductNameIndex(rawArtifacts)
+        productNameByProduct,
+        productImageByProduct
     );
     const martProductRoleTaxonomyDaily = buildRoleTaxonomy(
         stagingArtifacts.stg_role_source_daily ?? [],
         rawArtifacts.pgm_transition_edges ?? [],
         rawArtifacts.pgm_return_loops ?? [],
         rawArtifacts.pgm_basket_pairs ?? [],
-        asOfDate
+        asOfDate,
+        productImageByProduct
     );
     const martBrandScoreReconstruction = buildBrandScoreReconstruction(
         stagingArtifacts.stg_brand_score_reconstruction_inputs ?? [],
@@ -625,6 +653,7 @@ function buildProductDetail(priorityRows, revenueRows, roleRows, brandRows) {
             {
                 product_id: row.product_id,
                 product_name: row.product_name,
+                product_image_url: row.product_image_url,
                 section: '헤더',
                 label: '우선순위',
                 value: row.priority_level,
@@ -633,6 +662,7 @@ function buildProductDetail(priorityRows, revenueRows, roleRows, brandRows) {
             {
                 product_id: row.product_id,
                 product_name: row.product_name,
+                product_image_url: row.product_image_url,
                 section: 'Revenue',
                 label: '최근 30일 대비',
                 value: revenue.revenue_30d_delta_rate === '' ? '비교 불가' : `${(toNumber(revenue.revenue_30d_delta_rate) * 100).toFixed(1)}%`,
@@ -641,6 +671,7 @@ function buildProductDetail(priorityRows, revenueRows, roleRows, brandRows) {
             {
                 product_id: row.product_id,
                 product_name: row.product_name,
+                product_image_url: row.product_image_url,
                 section: 'Role',
                 label: '현재 taxonomy',
                 value: row.role_taxonomy,
@@ -649,6 +680,7 @@ function buildProductDetail(priorityRows, revenueRows, roleRows, brandRows) {
             {
                 product_id: row.product_id,
                 product_name: row.product_name,
+                product_image_url: row.product_image_url,
                 section: 'Brand Score',
                 label: '상태',
                 value: row.brand_score_status,
@@ -657,6 +689,7 @@ function buildProductDetail(priorityRows, revenueRows, roleRows, brandRows) {
             {
                 product_id: row.product_id,
                 product_name: row.product_name,
+                product_image_url: row.product_image_url,
                 section: '근거',
                 label: '반복 구매',
                 value: role.repeat_score == null ? '' : Number(role.repeat_score).toFixed(2),
@@ -665,6 +698,7 @@ function buildProductDetail(priorityRows, revenueRows, roleRows, brandRows) {
             {
                 product_id: row.product_id,
                 product_name: row.product_name,
+                product_image_url: row.product_image_url,
                 section: '근거',
                 label: '동시 구매',
                 value: role.basket_score == null ? '' : Number(role.basket_score).toFixed(2),
@@ -699,6 +733,12 @@ function buildDefinitionRules() {
             rule_name: 'freshness 공개',
             rule_definition: 'source 최신일 차이를 숨기지 않고 그대로 표시한다.',
             status_label: '정상'
+        },
+        {
+            rule_group: '상품 이미지',
+            rule_name: 'Rosetta products 기준',
+            rule_definition: '상품 이미지는 raw_rosetta.products.csv의 list_image를 기준으로 사용한다.',
+            status_label: '정상'
         }
     ];
 }
@@ -721,6 +761,12 @@ function buildIterationLog() {
             iteration: 3,
             issue_found: '서버 번들과 UI가 빈 상태를 더 운영적으로 설명할 필요가 있었음',
             change_applied: 'bundle/load status와 빈 상태 문구를 정리하고 tone audit 결과를 데이터 상태 화면에 연결',
+            brand_score_level: 'limited'
+        },
+        {
+            iteration: 4,
+            issue_found: '상품 이미지가 참조 주입 상태라 실적재 여부를 화면과 QA에서 구분하기 어려웠음',
+            change_applied: 'Rosetta products 실적재 경로와 이미지 provenance 검증을 추가하고, 화면 밀도를 운영툴 기준으로 재설계',
             brand_score_level: 'limited'
         }
     ];
@@ -753,6 +799,9 @@ export function buildRawManifest(rawArtifacts, refreshStatusRows = []) {
             .flatMap((row) => ['date', 'order_at'].map((field) => toText(row[field])))
             .filter((value) => isIsoDate(value) || isIsoDate(value.slice?.(0, 10)));
         const refreshStatus = refreshStatusByDataset.get(datasetKey) ?? {};
+        const dataProvenance = datasetKey === 'products'
+            ? (rows.length && ['completed', 'preserved'].includes(toText(refreshStatus.status)) ? 'rosetta_direct' : 'missing')
+            : '';
 
         return {
             dataset_key: datasetKey,
@@ -766,17 +815,25 @@ export function buildRawManifest(rawArtifacts, refreshStatusRows = []) {
             row_count: rows.length,
             min_date: toText(refreshStatus.min_date, dateCandidates.sort()[0] ?? ''),
             max_date: toText(refreshStatus.max_date, dateCandidates.sort().at(-1) ?? ''),
+            data_provenance: dataProvenance,
             note: toText(refreshStatus.note)
         };
     });
 }
 
-export function buildValidationSummary(martArtifacts, viewModelArtifacts) {
+export function buildValidationSummary(martArtifacts, viewModelArtifacts, rawManifestRows = []) {
     const queueRows = viewModelArtifacts.vm_priority_queue ?? [];
     const brandQueueLeak = queueRows.some((row) => toText(row.brand_score_reason).includes('순위 반영'));
     const roleRows = martArtifacts.mart_product_role_taxonomy_daily ?? [];
     const healthRows = martArtifacts.mart_data_health_snapshot ?? [];
     const hasAnyRealRows = healthRows.some((row) => toNumber(row.row_count) > 0);
+    const productManifest = rawManifestRows.find((row) => toText(row.dataset_key) === 'products') ?? {};
+    const hasQueueImages = queueRows.some((row) => toText(row.product_image_url).trim());
+    const imageProvenance = toText(productManifest.data_provenance) === 'rosetta_direct'
+        ? 'rosetta_direct'
+        : hasQueueImages
+            ? 'preview_reference_only'
+            : 'missing';
 
     return [
         {
@@ -798,6 +855,15 @@ export function buildValidationSummary(martArtifacts, viewModelArtifacts) {
             check_name: 'brand_score_queue_exclusion',
             status: brandQueueLeak ? 'fail' : 'pass',
             message: brandQueueLeak ? 'Brand Score가 큐 랭킹 문구에 섞였습니다.' : 'Brand Score는 큐 보조 상태로만 유지됩니다.'
+        },
+        {
+            check_name: 'product_image_provenance',
+            status: imageProvenance === 'rosetta_direct' ? 'pass' : 'fail',
+            message: imageProvenance === 'rosetta_direct'
+                ? '상품 이미지는 Rosetta 적재 결과를 직접 사용합니다.'
+                : imageProvenance === 'preview_reference_only'
+                    ? '상품 이미지는 아직 참조 표시 상태입니다.'
+                    : '상품 이미지는 아직 적재되지 않았습니다.'
         }
     ];
 }
