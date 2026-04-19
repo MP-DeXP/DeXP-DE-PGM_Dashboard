@@ -22,7 +22,7 @@ export function buildDailyOverviewCards(brandRows) {
         buildCard({
             period: 'daily',
             cardKey: 'brand_revenue',
-            label: '오늘 브랜드 매출',
+            label: '어제(최근 확정일) 브랜드 매출',
             value: latest.brand_revenue,
             delta: latest.brand_revenue_day_over_day_change_rate,
             reason: latest.status_reason,
@@ -45,7 +45,7 @@ export function buildDailyOverviewCards(brandRows) {
             label: 'PGM 관측 커버리지',
             value: latest.pgm_observed_coverage,
             delta: null,
-            reason: 'same-date role snapshot이 없는 상품은 blank로 유지하고 coverage gap으로 드러냅니다.',
+            reason: '동일 일자 역할 스냅샷이 없는 상품은 관측 상태 없음으로 유지하고 관측 공백을 그대로 드러냅니다.',
             asOfDate: latest.date,
             supportWindowDays: 1
         }),
@@ -55,7 +55,7 @@ export function buildDailyOverviewCards(brandRows) {
             label: '상위 상품 매출 비중',
             value: latest.top_product_revenue_share,
             delta: null,
-            reason: 'Revenue 집중도는 Daily 운영 리스크를 읽는 최소 지표입니다.',
+            reason: '매출 집중도는 일별 운영 리스크를 읽는 최소 지표입니다.',
             asOfDate: latest.date,
             supportWindowDays: 1
         })

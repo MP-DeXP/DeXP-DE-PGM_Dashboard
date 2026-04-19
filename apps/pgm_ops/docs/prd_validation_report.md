@@ -50,3 +50,8 @@
 
 현재 `pgm_ops`는 상태판 핵심 구조, CSV 서비스화, 실제 상품명 기반 snapshot, transition / return-loop / UTM 보조 근거까지 포함하는 수준으로 PRD와 상당 부분 정렬되었습니다.  
 남은 차이는 주로 `Rosetta 재동기화 자동화`, `member drill-down`, `BHI canonical source 확정` 세 축에 집중됩니다.
+
+추가 메모:
+
+- 현재 운영 목적은 역할 구조 소개가 아니라 매출 증감 원인 분해판에 더 가깝습니다.
+- 역할은 매출 해석 축으로 사용하며, 상품 단위 실제 역할 이동 이력을 주장하지 않습니다.

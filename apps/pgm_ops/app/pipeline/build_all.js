@@ -1,4 +1,4 @@
-import { MART_FILES, RAW_INPUT_FILES, ROLE_LABEL_FALLBACK, STAGING_FILES, VIEW_MODEL_FILES } from '../config/constants.js';
+import { DEFAULT_ROLE_HISTORY_MODE, MART_FILES, RAW_INPUT_FILES, ROLE_LABEL_FALLBACK, STAGING_FILES, VIEW_MODEL_FILES } from '../config/constants.js';
 import { buildProductDailyMetrics } from '../transforms/revenue/revenue_daily.js';
 import { buildRevenueStructureDaily } from '../transforms/revenue/revenue_structure.js';
 import { buildBrandOperatingStatusDaily } from '../transforms/brand/operating_status.js';
@@ -13,6 +13,15 @@ import { buildDailyOverviewCards } from '../view_models/overview/daily_cards.js'
 import { buildWeeklyOverviewCards } from '../view_models/overview/weekly_cards.js';
 import { buildMonthlyOverviewCards } from '../view_models/overview/monthly_cards.js';
 import { buildOverviewRoleContribution } from '../view_models/overview/role_contribution.js';
+import {
+    buildOverviewRoleAnalytics,
+    ROLE_EVIDENCE_STATUS_AVAILABLE,
+    ROLE_EVIDENCE_STATUS_LIMITED,
+    ROLE_EVIDENCE_STATUS_UNAVAILABLE
+} from '../view_models/overview/role_decomposition.js';
+import { buildOverviewRevenueStory } from '../view_models/overview/revenue_story.js';
+import { buildOverviewRoleDelta } from '../view_models/overview/role_delta.js';
+import { buildOverviewRoleDrilldown } from '../view_models/overview/role_drilldown.js';
 import { buildProductTable } from '../view_models/products/product_table.js';
 import { buildProductDetailHeader } from '../view_models/products/product_detail.js';
 import { buildTransitionSummaryView } from '../view_models/products/transition_summary.js';
@@ -32,6 +41,7 @@ import { runGrainCheck } from '../validators/grain_check.js';
 import { runNullCheck } from '../validators/null_check.js';
 import { runSchemaCheck } from '../validators/schema_check.js';
 import { getLatestDate } from '../transforms/base/date_windows.js';
+import { buildRawExtractManifest as buildRawExtractManifestRows, prepareRawArtifacts as resolveRawArtifacts, summarizeExtractCoverage } from './raw_extract_support.js';
 
 function stageRawDataset(datasetKey, rows) {
     const standardized = standardizeColumns(rows, datasetKey);
@@ -120,11 +130,12 @@ export function buildStagingArtifacts(rawArtifacts) {
     };
 }
 
-export function buildMartArtifacts(stagingArtifacts) {
+export function buildMartArtifacts(stagingArtifacts, options = {}) {
+    const roleHistoryMode = options.roleHistoryMode ?? DEFAULT_ROLE_HISTORY_MODE;
     const productDailyMetricsBase = buildProductDailyMetrics(stagingArtifacts);
     const productDailyMetrics = enrichProductRevenueWindows(productDailyMetricsBase, stagingArtifacts.stg_product_window_metrics ?? []);
     const productRoleProfile = buildProductRoleProfile(stagingArtifacts.stg_pgm_scored);
-    const productRoleStateDaily = buildProductRoleStateDaily(stagingArtifacts.stg_pgm_scored, productDailyMetricsBase);
+    const productRoleStateDaily = buildProductRoleStateDaily(stagingArtifacts.stg_pgm_scored, productDailyMetricsBase, { roleHistoryMode });
     const revenueStructureDaily = buildRevenueStructureDaily(productDailyMetricsBase);
     const brandOperatingStatusDailyBase = buildBrandOperatingStatusDaily(productDailyMetricsBase, productRoleStateDaily, revenueStructureDaily);
     const brandOperatingStatusDaily = enrichBrandRevenueWindows(brandOperatingStatusDailyBase, stagingArtifacts.stg_brand_window_metrics ?? []);
@@ -170,6 +181,19 @@ export function buildViewModelArtifacts(martArtifacts, stagingArtifacts = {}) {
         martArtifacts.role_revenue_daily ?? [],
         martArtifacts.role_product_membership_window ?? []
     );
+    const overviewRevenueStory = buildOverviewRevenueStory(
+        martArtifacts.product_daily_metrics ?? [],
+        martArtifacts.product_role_state_daily ?? [],
+        windowSnapshot
+    );
+    const overviewRoleDelta = buildOverviewRoleDelta(
+        martArtifacts.product_daily_metrics ?? [],
+        martArtifacts.product_role_state_daily ?? []
+    );
+    const overviewRoleDrilldown = buildOverviewRoleDrilldown(
+        martArtifacts.product_daily_metrics ?? [],
+        martArtifacts.product_role_state_daily ?? []
+    );
     const brandRoleStructure = buildBrandRoleStructure(
         martArtifacts.product_daily_metrics,
         martArtifacts.product_role_state_daily,
@@ -182,6 +206,9 @@ export function buildViewModelArtifacts(martArtifacts, stagingArtifacts = {}) {
         overview_weekly_cards: buildWeeklyOverviewCards(martArtifacts.brand_operating_status_daily, windowSnapshot),
         overview_monthly_cards: buildMonthlyOverviewCards(martArtifacts.brand_operating_status_daily, windowSnapshot),
         overview_role_contribution: overviewRoleContribution,
+        overview_revenue_story: overviewRevenueStory,
+        overview_role_delta: overviewRoleDelta,
+        overview_role_drilldown: overviewRoleDrilldown,
         product_table: productTable,
         product_detail_header: buildProductDetailHeader(productTable),
         role_structure_chart: buildRoleStructureChart(martArtifacts.product_daily_metrics, martArtifacts.product_role_state_daily),
@@ -200,40 +227,124 @@ export function buildViewModelArtifacts(martArtifacts, stagingArtifacts = {}) {
     };
 }
 
-export function buildRawExtractManifest(rawArtifacts) {
-    return Object.entries(RAW_INPUT_FILES).map(([artifactName]) => ({
-        artifact_name: artifactName,
-        required: 'true',
-        exists: rawArtifacts[artifactName]?.length ? 'true' : 'false',
-        row_count: rawArtifacts[artifactName]?.length ?? 0,
-        notes: rawArtifacts[artifactName]?.length ? 'loaded' : 'missing_or_empty'
-    }));
+export function prepareRawArtifacts(rawArtifacts, options = {}) {
+    return resolveRawArtifacts(rawArtifacts, options);
 }
 
-export function buildCoverageReport(martArtifacts) {
+export function buildRawExtractManifest(rawArtifacts, options = {}) {
+    return buildRawExtractManifestRows(rawArtifacts, options);
+}
+
+function buildCoverageMetric(metricName, metricValue, message, metricGroup = 'coverage_shortage', metricStatus = 'info') {
+    return {
+        metric_name: metricName,
+        metric_value: metricValue,
+        message,
+        metric_group: metricGroup,
+        metric_status: metricStatus
+    };
+}
+
+function toEvidenceMetricStatus(evidenceStatus) {
+    if (evidenceStatus === ROLE_EVIDENCE_STATUS_AVAILABLE) {
+        return 'pass';
+    }
+
+    if (evidenceStatus === ROLE_EVIDENCE_STATUS_LIMITED) {
+        return 'warn';
+    }
+
+    if (evidenceStatus === ROLE_EVIDENCE_STATUS_UNAVAILABLE) {
+        return 'fail';
+    }
+
+    return 'info';
+}
+
+export function buildCoverageReport(martArtifacts, options = {}) {
     const latestDate = getLatestDate(martArtifacts.product_daily_metrics);
     const latestProductRows = martArtifacts.product_daily_metrics.filter((row) => row.date === latestDate);
     const latestRoleRows = martArtifacts.product_role_state_daily.filter((row) => row.date === latestDate);
     const fallbackUsage = latestProductRows.filter((row) => row.product_name_source === 'order_item_fallback').length;
     const blankRoleStates = latestRoleRows.filter((row) => !row.role_state_primary).length;
     const observedCount = latestRoleRows.filter((row) => row.pgm_observed_flag === 'true').length;
+    const roleAnalytics = buildOverviewRoleAnalytics(
+        martArtifacts.product_daily_metrics ?? [],
+        martArtifacts.product_role_state_daily ?? []
+    );
+    const overviewWindowSnapshot = buildBrandWindowSnapshot(
+        martArtifacts.brand_operating_status_daily ?? [],
+        options.rawArtifacts?.brand_window_metrics ?? []
+    );
+    const overviewRevenueStory = buildOverviewRevenueStory(
+        martArtifacts.product_daily_metrics ?? [],
+        martArtifacts.product_role_state_daily ?? [],
+        overviewWindowSnapshot
+    );
+    const roleEvidenceMetrics = roleAnalytics
+        .filter((row) => row.period === 'weekly' || row.period === 'monthly')
+        .flatMap((periodRow) => {
+            const storyRow = overviewRevenueStory.find((row) => row.period === periodRow.period) ?? periodRow;
+
+            return [
+            buildCoverageMetric(
+                `${periodRow.period}_role_evidence_status`,
+                periodRow.evidence_status,
+                `${periodRow.period_label} 역할 근거 상태: ${periodRow.evidence_status_label}`,
+                'coverage_shortage',
+                toEvidenceMetricStatus(periodRow.evidence_status)
+            ),
+            buildCoverageMetric(
+                `${periodRow.period}_role_compare_enabled`,
+                periodRow.can_compare_roles,
+                periodRow.can_compare_roles === 'true'
+                    ? `${periodRow.period_label} 역할 비교 rows를 계속 제공합니다.`
+                    : `${periodRow.period_label} 역할 근거가 부족해 역할 비교 rows를 숨깁니다.`,
+                'coverage_shortage',
+                periodRow.can_compare_roles === 'true' ? 'pass' : 'fail'
+            ),
+            buildCoverageMetric(
+                `${periodRow.period}_role_truth_mismatch_flag`,
+                storyRow.truth_mismatch_flag,
+                storyRow.truth_mismatch_copy,
+                'truth_mismatch',
+                storyRow.truth_mismatch_flag === 'true'
+                    ? toEvidenceMetricStatus(periodRow.evidence_status === ROLE_EVIDENCE_STATUS_AVAILABLE ? ROLE_EVIDENCE_STATUS_LIMITED : periodRow.evidence_status)
+                    : 'pass'
+            )
+        ];
+        });
+    const extractCoverage = options.rawArtifacts
+        ? summarizeExtractCoverage(options.rawArtifacts, {
+            extractContext: options.extractContext,
+            manifest: options.manifest
+        })
+        : [];
 
     return [
-        {
-            metric_name: 'product_master_fallback_usage_rate',
-            metric_value: latestProductRows.length ? fallbackUsage / latestProductRows.length : 0,
-            message: 'product_name fallback usage on the latest snapshot'
-        },
-        {
-            metric_name: 'pgm_observed_coverage',
-            metric_value: latestRoleRows.length ? observedCount / latestRoleRows.length : 0,
-            message: 'same-date PGM observation coverage on the latest snapshot'
-        },
-        {
-            metric_name: 'role_state_blank_rate',
-            metric_value: latestRoleRows.length ? blankRoleStates / latestRoleRows.length : 0,
-            message: 'blank role state rate on the latest snapshot; no latest-role fallback applied'
-        }
+        buildCoverageMetric(
+            'product_master_fallback_usage_rate',
+            latestProductRows.length ? fallbackUsage / latestProductRows.length : 0,
+            '최근 확정일 상품명 fallback 사용률',
+            'coverage_shortage',
+            fallbackUsage > 0 ? 'warn' : 'pass'
+        ),
+        buildCoverageMetric(
+            'pgm_observed_coverage',
+            latestRoleRows.length ? observedCount / latestRoleRows.length : 0,
+            '최근 확정일 동일 일자 PGM 관측 커버리지',
+            'coverage_shortage',
+            observedCount === latestRoleRows.length ? 'pass' : 'warn'
+        ),
+        buildCoverageMetric(
+            'role_state_blank_rate',
+            latestRoleRows.length ? blankRoleStates / latestRoleRows.length : 0,
+            '최근 확정일 관측 상태 공백 비율; 최신 역할 보정 미적용',
+            'coverage_shortage',
+            blankRoleStates > 0 ? 'warn' : 'pass'
+        ),
+        ...roleEvidenceMetrics,
+        ...extractCoverage
     ];
 }
 
@@ -273,6 +384,11 @@ export function buildValidationReport(validationSummary, coverageReport) {
         return map;
     }, new Map());
 
+    const coverageShortageRows = coverageReport.filter((row) => row.metric_group === 'coverage_shortage');
+    const truthMismatchRows = coverageReport.filter((row) => row.metric_group === 'truth_mismatch');
+    const contextRows = coverageReport.filter((row) => !row.metric_group || row.metric_group === 'context');
+    const coverageWarnCount = coverageShortageRows.filter((row) => row.metric_status === 'warn' || row.metric_status === 'fail').length;
+    const truthMismatchWarnCount = truthMismatchRows.filter((row) => row.metric_status === 'warn' || row.metric_status === 'fail').length;
     const lines = [
         '# pgm_ops 검증 리포트',
         '',
@@ -280,12 +396,37 @@ export function buildValidationReport(validationSummary, coverageReport) {
         `- pass: ${(groupedByStatus.get('pass') ?? []).length}`,
         `- warn: ${(groupedByStatus.get('warn') ?? []).length}`,
         `- fail: ${(groupedByStatus.get('fail') ?? []).length}`,
+        `- coverage_insufficient warn/fail: ${coverageWarnCount}`,
+        `- truth_mismatch warn/fail: ${truthMismatchWarnCount}`,
         '',
-        '## 커버리지',
-        ...coverageReport.map((row) => `- ${row.metric_name}: ${row.metric_value} (${row.message})`),
-        '',
-        '## 세부 결과'
+        '## Coverage Insufficient',
+        `- 경고/실패 지표 수: ${coverageWarnCount}`,
+        '- 역할 비교 가능 여부와 raw lookback 부족을 먼저 확인합니다.',
+        ...coverageShortageRows.map((row) => `- [${row.metric_status ?? 'info'}] ${row.metric_name}: ${row.metric_value} (${row.message})`),
+        ''
     ];
+
+    if (truthMismatchRows.length) {
+        lines.push('## Truth Mismatch');
+        lines.push(`- 경고/실패 지표 수: ${truthMismatchWarnCount}`);
+        lines.push('- 기간 총매출 truth와 역할 근거 scope가 같은 기간 의미인지 분리해서 읽습니다.');
+        truthMismatchRows.forEach((row) => {
+            lines.push(`- [${row.metric_status ?? 'info'}] ${row.metric_name}: ${row.metric_value} (${row.message})`);
+        });
+        lines.push('');
+    }
+
+    if (contextRows.length) {
+        lines.push('## 컨텍스트');
+        contextRows.forEach((row) => {
+            lines.push(`- [${row.metric_status ?? 'info'}] ${row.metric_name}: ${row.metric_value} (${row.message})`);
+        });
+        lines.push('');
+    }
+
+    lines.push(
+        '## 세부 결과'
+    );
 
     validationSummary.forEach((row) => {
         lines.push(`- [${row.status}] ${row.artifact_name} / ${row.check_name}: ${row.message}`);
@@ -294,11 +435,18 @@ export function buildValidationReport(validationSummary, coverageReport) {
     return `${lines.join('\n')}\n`;
 }
 
-export function buildAllArtifacts(rawArtifacts) {
-    const stagingArtifacts = buildStagingArtifacts(rawArtifacts);
-    const martArtifacts = buildMartArtifacts(stagingArtifacts);
+export function buildAllArtifacts(rawArtifacts, options = {}) {
+    const { rawArtifacts: preparedRawArtifacts, extractContext } = prepareRawArtifacts(rawArtifacts, options);
+    const roleHistoryMode = options.roleHistoryMode ?? extractContext.roleHistoryMode ?? DEFAULT_ROLE_HISTORY_MODE;
+    const stagingArtifacts = buildStagingArtifacts(preparedRawArtifacts);
+    const martArtifacts = buildMartArtifacts(stagingArtifacts, { roleHistoryMode });
     const viewModelArtifacts = buildViewModelArtifacts(martArtifacts, stagingArtifacts);
-    const coverageReport = buildCoverageReport(martArtifacts);
+    const rawExtractManifest = buildRawExtractManifest(preparedRawArtifacts, { extractContext });
+    const coverageReport = buildCoverageReport(martArtifacts, {
+        rawArtifacts: preparedRawArtifacts,
+        extractContext,
+        manifest: rawExtractManifest
+    });
     const validationSummary = buildValidationSummary({
         staging: stagingArtifacts,
         mart: martArtifacts,
@@ -310,7 +458,7 @@ export function buildAllArtifacts(rawArtifacts) {
         martArtifacts,
         viewModelArtifacts,
         qaArtifacts: {
-            raw_extract_manifest: buildRawExtractManifest(rawArtifacts),
+            raw_extract_manifest: rawExtractManifest,
             validation_summary: validationSummary,
             coverage_report: coverageReport,
             validation_report: buildValidationReport(validationSummary, coverageReport)
@@ -328,7 +476,7 @@ export const ARTIFACT_FILE_MAP = {
 export function summarizeMockedAreas() {
     return [
         'BHI 컨텍스트는 여전히 stub이며 핵심 운영 지표로 노출하지 않습니다.',
-        `same-date role snapshot이 없는 상품은 mart에서 blank를 유지하고 view_model/UI에서만 ${ROLE_LABEL_FALLBACK} 라벨을 붙입니다.`,
+        `동일 일자 역할 스냅샷이 없는 상품은 mart에서 blank를 유지하고 view_model/UI에서만 ${ROLE_LABEL_FALLBACK} 라벨을 붙입니다.`,
         'member/UTM은 보조 근거까지만 노출하며 메인 판단 프레임으로 끌어올리지 않습니다.'
     ];
 }

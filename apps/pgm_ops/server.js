@@ -227,7 +227,7 @@ async function serveQaArtifact(res, artifactName) {
     send(res, 404, { 'Content-Type': 'text/plain; charset=utf-8' }, 'QA artifact not found');
 }
 
-async function serveStaticFile(res, requestPath) {
+async function serveStaticFile(res, requestPath, search = '') {
     const decodedPath = decodeURIComponent(requestPath);
     const absoluteCandidate = path.resolve(REPO_ROOT, `.${decodedPath}`);
     const repoRootPrefix = `${REPO_ROOT}${path.sep}`;
@@ -241,6 +241,10 @@ async function serveStaticFile(res, requestPath) {
     if (await pathExists(filePath)) {
         const stat = await fs.stat(filePath);
         if (stat.isDirectory()) {
+            if (!decodedPath.endsWith('/')) {
+                send(res, 301, { Location: `${decodedPath}/${search}` }, null);
+                return;
+            }
             filePath = path.join(filePath, 'index.html');
         }
     } else if (decodedPath.endsWith('/')) {
@@ -263,7 +267,7 @@ async function handleRequest(req, res) {
     }
 
     const requestUrl = new URL(req.url, `http://${req.headers.host ?? `${HOST}:${PORT}`}`);
-    const { pathname } = requestUrl;
+    const { pathname, search } = requestUrl;
 
     if (pathname === '/api/pgm-ops/meta/load-status.json') {
         const loadStatus = await buildLoadStatus();
@@ -286,7 +290,7 @@ async function handleRequest(req, res) {
         return;
     }
 
-    await serveStaticFile(res, pathname === '/' ? '/index.html' : pathname);
+    await serveStaticFile(res, pathname === '/' ? '/index.html' : pathname, search);
 }
 
 const server = http.createServer((req, res) => {

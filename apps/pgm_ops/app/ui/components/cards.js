@@ -41,17 +41,17 @@ function formatValue(row) {
 
 export function renderCards(rows) {
     if (!rows.length) {
-        return '<div class="ops-empty"><strong>표시할 카드가 없습니다.</strong><p>화면 데이터를 아직 불러오지 못했습니다.</p></div>';
+        return '<div class="ops-empty empty-state"><strong>표시할 카드가 없습니다.</strong><p>화면 데이터를 아직 불러오지 못했습니다.</p></div>';
     }
 
     return `
         <div class="ops-card-grid">
             ${rows.map((row) => `
-                <article class="ops-card">
-                    <span class="ops-card-label">${row.label}</span>
+                <article class="ops-card card">
+                    <span class="ops-card-label badge">${row.label}</span>
                     <strong class="ops-card-value">${formatValue(row)}</strong>
                     <span class="ops-card-delta ${getDeltaTone(row.delta)}">${formatPercent(row.delta)}</span>
-                    <p>${row.reason}</p>
+                    <p class="chart-hint">${row.reason}</p>
                 </article>
             `).join('')}
         </div>
@@ -62,7 +62,7 @@ export function renderKpiStack(rows) {
     return `
         <div class="ops-kpi-stack">
             ${rows.map((row) => `
-                <div class="ops-kpi">
+                <div class="ops-kpi card">
                     <label>${row.label}</label>
                     <strong>${typeof row.value === 'number' ? row.value.toLocaleString('ko-KR') : row.value}</strong>
                     <span class="ops-inline-delta ${getDeltaTone(row.delta)}">${formatPercent(row.delta)}</span>

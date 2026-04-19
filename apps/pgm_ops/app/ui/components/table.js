@@ -14,6 +14,8 @@ const ROLE_LABEL_MAP = {
     return: '반복 구매',
     convergence: '구매 집중'
 };
+const OBSERVATION_BLANK_LABEL = '관측 상태 없음';
+const PROFILE_FALLBACK_LABEL = '프로필 정보 없음';
 
 export function cleanDisplayText(value) {
     const text = String(value ?? '').trim();
@@ -22,17 +24,18 @@ export function cleanDisplayText(value) {
     }
 
     return text
-        .replace(/same-date snapshot/gi, '당일 기준')
-        .replace(/same-date role snapshot/gi, '당일 기준')
-        .replace(/same-date role state/gi, '당일 상태')
-        .replace(/same-date blank/gi, '데이터 없음')
+        .replace(/same[-_ ]date snapshot/gi, '기준일 스냅샷')
+        .replace(/same[-_ ]date role snapshot/gi, '기준일 스냅샷')
+        .replace(/same-date role state/gi, '기준일 관측 상태')
+        .replace(/same-date blank/gi, `기준일 ${OBSERVATION_BLANK_LABEL}`)
         .replace(/role-state/gi, '상태')
         .replace(/runtime mode/gi, '상태')
         .replace(/artifact-backed/gi, '실데이터 연결')
         .replace(/sample fallback/gi, '예시 데이터')
-        .replace(/latest role fallback/gi, '보정')
-        .replace(/\bblank\b/gi, '데이터 없음')
-        .replace(/PGM 미관측/gi, '상태 미확인')
+        .replace(/latest role fallback/gi, '최신 역할 보정')
+        .replace(/\bblank\b/gi, OBSERVATION_BLANK_LABEL)
+        .replace(/PGM 미관측/gi, OBSERVATION_BLANK_LABEL)
+        .replace(/상태 미확인/gi, OBSERVATION_BLANK_LABEL)
         .replace(/\bentry\b/gi, '첫구매 유도')
         .replace(/\bexpansion\b/gi, '단골 유도')
         .replace(/\breturn\b/gi, '반복 구매')
@@ -48,7 +51,11 @@ export function friendlyRoleLabel(value) {
     const normalized = String(value ?? '').trim().toLowerCase();
 
     if (!normalized || normalized === 'blank') {
-        return '상태 미확인';
+        return OBSERVATION_BLANK_LABEL;
+    }
+
+    if (normalized === PROFILE_FALLBACK_LABEL.toLowerCase()) {
+        return PROFILE_FALLBACK_LABEL;
     }
 
     return ROLE_LABEL_MAP[normalized] ?? cleanDisplayText(value);
@@ -57,11 +64,11 @@ export function friendlyRoleLabel(value) {
 export function friendlyStateLabel(value) {
     const normalized = String(value ?? '').trim().toLowerCase();
     if (!normalized) {
-        return '상태 미확인';
+        return OBSERVATION_BLANK_LABEL;
     }
 
-    if (normalized === 'pgm 미관측' || normalized === 'blank') {
-        return '상태 미확인';
+    if (normalized === 'pgm 미관측' || normalized === 'blank' || normalized === OBSERVATION_BLANK_LABEL) {
+        return OBSERVATION_BLANK_LABEL;
     }
 
     if (ROLE_LABEL_MAP[normalized]) {
@@ -102,6 +109,27 @@ function formatText(value) {
     return text || '데이터 없음';
 }
 
+function buildChooserSummary(row) {
+    const observed = row?.pgm_observed_flag === 'true' ? '관측 있음' : '관측 없음';
+    return `${observed} · ${formatCurrency(row?.revenue)}`;
+}
+
+function buildCompactDetailSummary(value) {
+    const text = formatText(value);
+
+    if (text === '데이터 없음') {
+        return text;
+    }
+
+    const firstChunk = text
+        .split(/\s+[·|/]\s+|(?<=[.!?])\s+/u)
+        .map((chunk) => chunk.trim())
+        .find(Boolean);
+
+    const compact = firstChunk || text;
+    return compact.length > 72 ? `${compact.slice(0, 72).trim()}...` : compact;
+}
+
 function buildInitials(text) {
     return String(text ?? '')
         .replace(/\s+/g, '')
@@ -138,7 +166,7 @@ export function renderThumbnail({ imageUrl, alt, size = 'md', className = '', la
 export function renderProductGallery(rows, selectedProductId) {
     if (!rows.length) {
         return `
-            <div class="ops-empty">
+            <div class="ops-empty empty-state">
                 <strong>표시할 상품이 없습니다.</strong>
                 <p>실데이터 연결이 완료되면 선택 리스트가 이 영역에 나타납니다.</p>
             </div>
@@ -146,26 +174,38 @@ export function renderProductGallery(rows, selectedProductId) {
     }
 
     return `
-        <div class="ops-product-list">
+        <div class="table-container">
+            <table class="data-table ops-product-gallery-table">
+                <thead>
+                    <tr>
+                        <th>상품</th>
+                        <th>프로필</th>
+                        <th>관측 상태</th>
+                        <th>최근 매출</th>
+                    </tr>
+                </thead>
+                <tbody>
             ${rows.map((row) => {
                 const imageUrl = getImageUrl(row);
                 return `
-                    <article class="ops-product-list-item ${row.product_id === selectedProductId ? 'is-selected' : ''}" data-product-id="${escapeHtml(row.product_id)}">
-                        ${renderThumbnail({ imageUrl, alt: row.product_name, size: 'xs', className: 'ops-product-thumb' })}
-                        <div class="ops-product-list-body">
-                            <div class="ops-product-list-head">
-                                <strong>${escapeHtml(row.product_name)}</strong>
-                                <span>${escapeHtml(friendlyStateLabel(row.role_state_primary))}</span>
+                    <tr class="clickable ${row.product_id === selectedProductId ? 'row-focused' : ''}" data-product-id="${escapeHtml(row.product_id)}">
+                        <td>
+                            <div class="ops-role-product-main">
+                                ${renderThumbnail({ imageUrl, alt: row.product_name, size: 'xs', className: 'ops-product-thumb' })}
+                                <div class="ops-compact-row">
+                                    <strong>${escapeHtml(row.product_name)}</strong>
+                                    <small class="ops-product-list-summary">${escapeHtml(buildChooserSummary(row))}</small>
+                                </div>
                             </div>
-                            <div class="ops-product-list-meta">
-                                <span>${escapeHtml(friendlyRoleLabel(row.profile_role_primary))}</span>
-                                <span>${escapeHtml(formatCurrency(row.revenue_30d || row.revenue))}</span>
-                            </div>
-                            <p class="ops-product-list-summary">${escapeHtml(formatText(`${formatCurrency(row.revenue)} · 오늘 기준`))}</p>
-                        </div>
-                    </article>
+                        </td>
+                        <td><span class="badge">${escapeHtml(friendlyRoleLabel(row.profile_role_primary))}</span></td>
+                        <td><span class="badge">${escapeHtml(friendlyStateLabel(row.role_state_primary))}</span></td>
+                        <td>${escapeHtml(formatCurrency(row.revenue_30d || row.revenue))}</td>
+                    </tr>
                 `;
             }).join('')}
+                </tbody>
+            </table>
         </div>
     `;
 }
@@ -173,8 +213,8 @@ export function renderProductGallery(rows, selectedProductId) {
 export function renderProductDetail(detailRow, productRow) {
     if (!detailRow || !productRow) {
         return `
-            <aside class="ops-detail-panel">
-                <div class="ops-empty">
+            <aside class="ops-detail-panel pgm-side card">
+                <div class="ops-empty empty-state">
                     <strong>상품을 선택하세요.</strong>
                     <p>좌측 리스트에서 상품을 고르면 해석 패널이 이 영역에 연결됩니다.</p>
                 </div>
@@ -184,39 +224,73 @@ export function renderProductDetail(detailRow, productRow) {
 
     const imageUrl = getImageUrl(productRow);
     const detailUrl = getDetailUrl(productRow);
-    const observedLabel = productRow.pgm_observed_flag === 'true' ? '실데이터 관측' : '상태 미확인';
+    const observedLabel = productRow.pgm_observed_flag === 'true' ? '기준일 관측 있음' : '기준일 관측 상태 없음';
+    const compactSummary = buildCompactDetailSummary(detailRow.summary);
+    const priorityHint = formatText(detailRow.priority_hint);
 
     return `
-        <aside class="ops-detail-panel">
-            <div class="ops-detail-hero">
-                ${renderThumbnail({ imageUrl, alt: productRow.product_name, className: 'ops-detail-thumb' })}
-                <div class="ops-detail-hero-copy">
-                    <span class="ops-detail-eyebrow">선택 상품</span>
-                    <strong>${escapeHtml(productRow.product_name)}</strong>
-                    <p>${escapeHtml(cleanDisplayText(detailRow.summary))}</p>
-                    <div class="ops-product-chips">
-                        <span class="ops-pill">${escapeHtml(friendlyRoleLabel(productRow.profile_role_primary))}</span>
-                        <span class="ops-pill">${escapeHtml(friendlyStateLabel(productRow.role_state_primary))}</span>
-                        <span class="ops-pill">${escapeHtml(observedLabel)}</span>
+        <aside class="ops-detail-panel pgm-side card">
+            <div class="pgm-side-summary">
+                <section class="pgm-side-section-card">
+                    <div class="ops-product-head-meta">
+                        <span class="pgm-badge badge">${escapeHtml(observedLabel)}</span>
+                        ${detailUrl ? `<a class="btn-primary ops-product-link" href="${escapeHtml(detailUrl)}" target="_blank" rel="noreferrer">상품 상세 열기</a>` : ''}
                     </div>
-                </div>
-                <div class="ops-detail-hero-metrics">
-                    <div class="ops-detail-hero-metric">
-                        <label>오늘 매출</label>
-                        <strong>${escapeHtml(formatCurrency(productRow.revenue))}</strong>
+                    <div class="ops-role-product-main">
+                        ${renderThumbnail({ imageUrl, alt: productRow.product_name, className: 'ops-detail-thumb' })}
+                        <div class="ops-compact-row">
+                            <strong>${escapeHtml(productRow.product_name)}</strong>
+                            <p class="chart-hint">${escapeHtml(compactSummary)}</p>
+                        </div>
                     </div>
-                    <div class="ops-detail-hero-metric">
-                        <label>7일 누적</label>
-                        <strong>${escapeHtml(formatCurrency(productRow.revenue_7d))}</strong>
+                </section>
+
+                <section class="pgm-side-section-card">
+                    <h4>핵심 지표</h4>
+                    <div class="pgm-metrics">
+                        <div>
+                            <label>기준일 매출</label>
+                            <strong>${escapeHtml(formatCurrency(productRow.revenue))}</strong>
+                            <span>최근 확정일</span>
+                        </div>
+                        <div>
+                            <label>직전 7일 누적</label>
+                            <strong>${escapeHtml(formatCurrency(productRow.revenue_7d))}</strong>
+                            <span>비교 구간</span>
+                        </div>
+                        <div>
+                            <label>기준일 브랜드 내 비중</label>
+                            <strong>${escapeHtml(formatPercent(productRow.revenue_share_in_brand_day))}</strong>
+                            <span>기준일 비중</span>
+                        </div>
+                        <div>
+                            <label>직전 30일 누적</label>
+                            <strong>${escapeHtml(formatCurrency(productRow.revenue_30d))}</strong>
+                            <span>누적 참고</span>
+                        </div>
                     </div>
-                    <div class="ops-detail-hero-metric">
-                        <label>브랜드 내 비중</label>
-                        <strong>${escapeHtml(formatPercent(productRow.revenue_share_in_brand_day))}</strong>
+                </section>
+
+                <section class="pgm-side-section-card">
+                    <h4>작업 기준</h4>
+                    <div class="pgm-demand-share-grid">
+                        <div class="pgm-demand-share-card">
+                            <label>상품 기준 프로필</label>
+                            <strong>${escapeHtml(friendlyRoleLabel(productRow.profile_role_primary))}</strong>
+                            <span>최신 프로필 스냅샷</span>
+                        </div>
+                        <div class="pgm-demand-share-card">
+                            <label>기준일 관측 상태</label>
+                            <strong>${escapeHtml(friendlyStateLabel(productRow.role_state_primary))}</strong>
+                            <span>${escapeHtml(observedLabel)}</span>
+                        </div>
                     </div>
-                    ${detailUrl ? `<a class="ops-product-link" href="${escapeHtml(detailUrl)}" target="_blank" rel="noreferrer">상품 상세 열기</a>` : ''}
-                </div>
+                </section>
+
+                ${priorityHint !== '데이터 없음' ? `
+                    <p class="chart-hint">우선 확인: ${escapeHtml(priorityHint)}</p>
+                ` : ''}
             </div>
-            <div class="ops-note">${escapeHtml(cleanDisplayText(detailRow.priority_hint))}</div>
         </aside>
     `;
 }

@@ -1,5 +1,6 @@
-import { ROLE_LABEL_FALLBACK } from '../../config/constants.js';
+import { PROFILE_LABEL_FALLBACK, ROLE_LABEL_FALLBACK } from '../../config/constants.js';
 import { getLatestDate } from '../../transforms/base/date_windows.js';
+import { buildRoleHistoryMeta, normalizeRoleHistoryMode } from '../overview/role_history_mode.js';
 
 export function buildProductTable(productDailyMetrics, productRoleProfile, productRoleStateDaily, revenueStructureDaily, productTransitionSummary = [], productReturnLoopSummary = []) {
     const latestDate = getLatestDate(productDailyMetrics);
@@ -25,6 +26,13 @@ export function buildProductTable(productDailyMetrics, productRoleProfile, produ
             const revenue = revenueLookup.get(`${row.date}|${row.product_id}`);
             const transition = latestTransitionLookup.get(row.product_id);
             const returnLoop = latestReturnLoopLookup.get(row.product_id);
+            const roleHistoryMeta = buildRoleHistoryMeta({
+                roleHistoryMode: normalizeRoleHistoryMode(state?.role_history_mode ?? state?.role_state_source ?? ''),
+                currentCoveredDays: state ? 1 : 0,
+                previousCoveredDays: 0,
+                expectedWindowDays: 1,
+                periodLabel: '최근 확정일'
+            });
 
             return {
                 product_id: row.product_id,
@@ -33,14 +41,19 @@ export function buildProductTable(productDailyMetrics, productRoleProfile, produ
                 image_url: row.image_url ?? '',
                 detail_url: row.detail_url ?? '',
                 product_status: row.product_status ?? '',
-                profile_role_primary: profile?.profile_role_primary ?? ROLE_LABEL_FALLBACK,
+                profile_role_primary: profile?.profile_role_primary ?? PROFILE_LABEL_FALLBACK,
                 profile_role_secondary: profile?.profile_role_secondary ?? '',
                 profile_confidence: profile?.profile_confidence ?? '',
-                // 빈 역할 상태는 UI에서 자연어로만 풀어 보여 줍니다.
+                // 당일 스냅샷이 없으면 상태는 blank를 유지하되 view_model에서는 관측 상태 없음으로 읽힙니다.
                 role_state_primary: state?.role_state_primary || ROLE_LABEL_FALLBACK,
                 role_state_confidence: state?.role_state_confidence ?? '',
                 pgm_observed_flag: state?.pgm_observed_flag ?? 'false',
                 role_state_source: state?.role_state_source ?? 'unobserved',
+                role_history_mode: roleHistoryMeta.role_history_mode,
+                role_history_mode_label: roleHistoryMeta.role_history_mode_label,
+                role_history_warning_level: roleHistoryMeta.role_history_warning_level,
+                role_history_warning_title: roleHistoryMeta.role_history_warning_title,
+                role_history_warning_copy: roleHistoryMeta.role_history_warning_copy,
                 revenue: row.revenue,
                 order_count: row.order_count,
                 quantity: row.quantity,

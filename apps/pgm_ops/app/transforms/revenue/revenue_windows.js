@@ -76,6 +76,27 @@ export function enrichProductRevenueWindows(productRows, productWindowMetrics = 
     });
 }
 
+function buildDailySnapshot(brandRows, latestMetrics, latestDate) {
+    if (latestMetrics) {
+        return {
+            current: Number(latestMetrics.revenue_today ?? 0),
+            previous: Number(latestMetrics.revenue_prev_day ?? 0),
+            deltaRate: buildRate(latestMetrics.revenue_today, latestMetrics.revenue_prev_day)
+        };
+    }
+
+    const latestRow = brandRows.find((row) => row.date === latestDate);
+    const previousRow = [...brandRows]
+        .filter((row) => row.date < latestDate)
+        .sort((left, right) => right.date.localeCompare(left.date))[0];
+
+    return {
+        current: Number(latestRow?.brand_revenue ?? 0),
+        previous: Number(previousRow?.brand_revenue ?? 0),
+        deltaRate: buildRate(latestRow?.brand_revenue, previousRow?.brand_revenue)
+    };
+}
+
 export function buildBrandWindowSnapshot(brandRows, brandWindowMetrics = []) {
     const latestDate = getLatestDate(brandRows);
     const sortedRows = [...brandRows].sort((left, right) => left.date.localeCompare(right.date));
@@ -84,6 +105,7 @@ export function buildBrandWindowSnapshot(brandRows, brandWindowMetrics = []) {
     if (latestMetrics) {
         return {
             latestDate,
+            daily: buildDailySnapshot(brandRows, latestMetrics, latestDate),
             weekly: {
                 current: Number(latestMetrics.revenue_7d ?? 0),
                 previous: Number(latestMetrics.revenue_7d_prev ?? 0),
@@ -104,6 +126,7 @@ export function buildBrandWindowSnapshot(brandRows, brandWindowMetrics = []) {
 
     return {
         latestDate,
+        daily: buildDailySnapshot(sortedRows, null, latestDate),
         weekly: computeWindowComparison(sortedRows, 'brand_revenue', latestDate, 7),
         monthly: computeWindowComparison(sortedRows, 'brand_revenue', latestDate, 30),
         quarterly: computeWindowComparison(sortedRows, 'brand_revenue', latestDate, 90)

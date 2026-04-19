@@ -5,27 +5,27 @@ function buildStatusSummary({ revenueDelta, topShare, coverage }) {
     if (topShare > 0.5) {
         return {
             label: '상위 상품 쏠림이 큰 상태입니다.',
-            reason: 'Revenue 집중도가 높아 단기 성과와 별도로 구조 리스크를 점검해야 합니다.'
+            reason: '매출 집중도가 높아 단기 성과와 별도로 구조 리스크를 점검해야 합니다.'
         };
     }
 
     if ((revenueDelta ?? 0) < -0.08 && coverage < 0.75) {
         return {
             label: '매출 둔화와 역할 관측 공백이 동시에 보입니다.',
-            reason: 'Revenue 신호가 약해지는 날에는 role-state 공백이 판단 지연으로 이어질 수 있습니다.'
+            reason: '매출 신호가 약해지는 날에는 역할 관측 공백이 판단 지연으로 이어질 수 있습니다.'
         };
     }
 
     if ((revenueDelta ?? 0) > 0.05) {
         return {
             label: '매출이 개선되고 있습니다.',
-            reason: 'Revenue 신호를 우선 보되, 구조 쏠림은 낮은 편이라 운영 확장 여지가 있습니다.'
+            reason: '매출 신호를 우선 보되, 구조 쏠림은 낮은 편이라 운영 확장 여지가 있습니다.'
         };
     }
 
     return {
         label: '매출은 유지 중이고 구조 확인이 필요한 상태입니다.',
-        reason: 'Revenue 변화가 크지 않으므로 role-state와 집중도에서 우선 점검 대상을 좁히는 편이 안전합니다.'
+        reason: '매출 변화가 크지 않으므로 역할 관측 상태와 집중도에서 우선 점검 대상을 좁히는 편이 안전합니다.'
     };
 }
 

@@ -12,7 +12,7 @@ export function buildMonthlyOverviewCards(brandRows, windowSnapshot) {
             label: '직전 30일 매출',
             value: windowSnapshot.monthly.current,
             delta: windowSnapshot.monthly.deltaRate,
-            reason: '기준일 당일 미포함 30일 rolling 매출입니다.',
+            reason: '기준일 당일을 제외한 직전 30일 누적 매출입니다.',
             as_of_date: latest.date,
             support_window_days: 30
         },
@@ -22,7 +22,7 @@ export function buildMonthlyOverviewCards(brandRows, windowSnapshot) {
             label: '직전 90일 참조 매출',
             value: windowSnapshot.quarterly.current,
             delta: windowSnapshot.quarterly.deltaRate,
-            reason: 'Monthly는 30일을 본체로 보고 90일을 구조 비교 reference로 사용합니다.',
+            reason: '월간 해석은 30일을 본체로 보고, 90일은 구조 비교용 보조 참조 구간으로 사용합니다.',
             as_of_date: latest.date,
             support_window_days: 90
         },
@@ -42,7 +42,7 @@ export function buildMonthlyOverviewCards(brandRows, windowSnapshot) {
             label: '역할 관측 안정도',
             value: latest.pgm_observed_coverage,
             delta: null,
-            reason: 'Role state blank rule은 구조적 해석 공백을 그대로 보여 주기 위한 안전장치입니다.',
+            reason: '관측 상태 없음 유지 원칙은 구조 해석 공백을 그대로 보여 주기 위한 안전장치입니다.',
             as_of_date: latest.date,
             support_window_days: 30
         }

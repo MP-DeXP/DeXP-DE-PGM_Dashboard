@@ -3,7 +3,8 @@ import { fileURLToPath } from 'node:url';
 import { ARTIFACT_DIR_URLS } from '../app/config/paths.js';
 import { MART_FILES, QA_FILES, RAW_INPUT_FILES, STAGING_FILES, VIEW_MODEL_FILES } from '../app/config/constants.js';
 import { parseCsv, stringifyCsv } from '../app/loaders/csv_parser.js';
-import { buildCoverageReport, buildValidationReport, buildValidationSummary } from '../app/pipeline/build_all.js';
+import { buildCoverageReport, buildRawExtractManifest, buildValidationReport, buildValidationSummary, prepareRawArtifacts } from '../app/pipeline/build_all.js';
+import { parsePipelineCliArgs } from './pipeline_cli.js';
 
 async function loadLayer(directoryUrl, fileMap) {
     const directory = fileURLToPath(directoryUrl);
@@ -21,16 +22,24 @@ async function loadLayer(directoryUrl, fileMap) {
     return Object.fromEntries(entries);
 }
 
-export async function main() {
+export async function main(argv = process.argv.slice(2)) {
+    const cliOptions = parsePipelineCliArgs(argv);
+    const rawArtifacts = await loadLayer(ARTIFACT_DIR_URLS.raw_extract, RAW_INPUT_FILES);
+    const { rawArtifacts: preparedRawArtifacts, extractContext } = prepareRawArtifacts(rawArtifacts, cliOptions);
     const stagingArtifacts = await loadLayer(ARTIFACT_DIR_URLS.staging, STAGING_FILES);
     const martArtifacts = await loadLayer(ARTIFACT_DIR_URLS.mart, MART_FILES);
     const viewModelArtifacts = await loadLayer(ARTIFACT_DIR_URLS.view_model, VIEW_MODEL_FILES);
+    const rawManifest = buildRawExtractManifest(preparedRawArtifacts, { extractContext });
     const validationSummary = buildValidationSummary({
         staging: stagingArtifacts,
         mart: martArtifacts,
         view_model: viewModelArtifacts
     });
-    const coverageReport = buildCoverageReport(martArtifacts);
+    const coverageReport = buildCoverageReport(martArtifacts, {
+        rawArtifacts: preparedRawArtifacts,
+        extractContext,
+        manifest: rawManifest
+    });
     const validationReport = buildValidationReport(validationSummary, coverageReport);
     const qaDir = fileURLToPath(ARTIFACT_DIR_URLS.qa);
     const rawDir = fileURLToPath(ARTIFACT_DIR_URLS.raw_extract);

@@ -3,7 +3,8 @@ import { fileURLToPath } from 'node:url';
 import { ARTIFACT_DIR_URLS } from '../app/config/paths.js';
 import { RAW_INPUT_FILES, VIEW_MODEL_FILES, STAGING_FILES, MART_FILES } from '../app/config/constants.js';
 import { parseCsv, stringifyCsv } from '../app/loaders/csv_parser.js';
-import { buildStagingArtifacts, buildMartArtifacts, buildViewModelArtifacts } from '../app/pipeline/build_all.js';
+import { buildStagingArtifacts, buildMartArtifacts, buildViewModelArtifacts, prepareRawArtifacts } from '../app/pipeline/build_all.js';
+import { parsePipelineCliArgs } from './pipeline_cli.js';
 
 async function loadRawArtifacts() {
     const rawDir = fileURLToPath(ARTIFACT_DIR_URLS.raw_extract);
@@ -28,10 +29,14 @@ async function writeLayer(directoryUrl, fileMap, artifacts) {
     }));
 }
 
-export async function main() {
+export async function main(argv = process.argv.slice(2)) {
+    const cliOptions = parsePipelineCliArgs(argv);
     const rawArtifacts = await loadRawArtifacts();
-    const stagingArtifacts = buildStagingArtifacts(rawArtifacts);
-    const martArtifacts = buildMartArtifacts(stagingArtifacts);
+    const { rawArtifacts: preparedRawArtifacts, extractContext } = prepareRawArtifacts(rawArtifacts, cliOptions);
+    const stagingArtifacts = buildStagingArtifacts(preparedRawArtifacts);
+    const martArtifacts = buildMartArtifacts(stagingArtifacts, {
+        roleHistoryMode: extractContext.roleHistoryMode
+    });
     const viewModelArtifacts = buildViewModelArtifacts(martArtifacts, stagingArtifacts);
 
     await writeLayer(ARTIFACT_DIR_URLS.staging, STAGING_FILES, stagingArtifacts);

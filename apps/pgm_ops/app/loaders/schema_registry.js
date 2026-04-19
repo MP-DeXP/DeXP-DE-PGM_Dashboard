@@ -130,6 +130,18 @@ export const SCHEMA_REGISTRY = {
             primaryKey: ['period', 'role_state_primary'],
             nullable: ['role_state_primary']
         }),
+        overview_revenue_story: defineSchema(VIEW_MODEL_FILES.overview_revenue_story, ['period'], ['period', 'as_of_date', 'support_window_days', 'current_revenue', 'previous_revenue', 'revenue_delta', 'revenue_delta_rate', 'lead_role_state_primary', 'lead_role_label', 'lead_role_revenue_share', 'swing_role_state_primary', 'swing_role_label', 'swing_role_delta_revenue', 'current_covered_days', 'previous_covered_days', 'expected_window_days', 'partial_history_flag', 'evidence_status', 'evidence_status_label', 'can_compare_roles', 'truth_mismatch_flag', 'truth_mismatch_copy', 'story_headline', 'story_note'], {
+            primaryKey: ['period'],
+            nullable: ['revenue_delta_rate', 'lead_role_state_primary', 'lead_role_label', 'swing_role_state_primary', 'swing_role_label']
+        }),
+        overview_role_delta: defineSchema(VIEW_MODEL_FILES.overview_role_delta, ['period', 'role_state_primary'], ['period', 'role_state_primary', 'role_label', 'current_revenue', 'previous_revenue', 'revenue_delta', 'revenue_delta_rate', 'current_revenue_share', 'previous_revenue_share', 'revenue_share_delta', 'role_rank', 'as_of_date', 'support_window_days', 'current_covered_days', 'previous_covered_days', 'expected_window_days', 'partial_history_flag', 'evidence_status', 'evidence_status_label', 'can_compare_roles', 'truth_mismatch_flag', 'truth_mismatch_copy'], {
+            primaryKey: ['period', 'role_state_primary'],
+            nullable: ['role_state_primary', 'revenue_delta_rate']
+        }),
+        overview_role_drilldown: defineSchema(VIEW_MODEL_FILES.overview_role_drilldown, ['period', 'role_state_primary', 'product_id'], ['period', 'role_state_primary', 'role_label', 'product_id', 'product_name', 'image_url', 'detail_url', 'current_revenue', 'previous_revenue', 'revenue_delta', 'revenue_delta_rate', 'current_share_in_role', 'current_share_in_period', 'previous_share_in_role', 'product_rank', 'as_of_date', 'support_window_days', 'current_covered_days', 'previous_covered_days', 'expected_window_days', 'partial_history_flag', 'evidence_status', 'evidence_status_label', 'can_compare_roles', 'truth_mismatch_flag', 'truth_mismatch_copy'], {
+            primaryKey: ['period', 'role_state_primary', 'product_id'],
+            nullable: ['role_state_primary', 'revenue_delta_rate']
+        }),
         product_table: defineSchema(VIEW_MODEL_FILES.product_table, ['product_id'], ['product_id', 'product_name', 'profile_role_primary', 'role_state_primary', 'pgm_observed_flag', 'revenue', 'revenue_share_in_brand_day', 'revenue_rank_in_brand_day', 'revenue_7d', 'revenue_30d', 'revenue_90d', 'top_transition_target_name', 'top_transition_rate', 'qualified_return_rate', 'return_loop_rate', 'simple_repeat_rate', 'image_url', 'detail_url'], {
             primaryKey: ['product_id']
         }),
@@ -165,8 +177,8 @@ export const SCHEMA_REGISTRY = {
     },
     qa: {
         validation_summary: defineSchema(QA_FILES.validation_summary, ['artifact_name', 'check_name'], ['artifact_name', 'check_name', 'status', 'message']),
-        coverage_report: defineSchema(QA_FILES.coverage_report, ['metric_name'], ['metric_name', 'metric_value', 'message']),
-        raw_extract_manifest: defineSchema(QA_FILES.raw_extract_manifest, ['artifact_name'], ['artifact_name', 'required', 'exists', 'row_count', 'notes']),
+        coverage_report: defineSchema(QA_FILES.coverage_report, ['metric_name'], ['metric_name', 'metric_value', 'message', 'metric_group', 'metric_status']),
+        raw_extract_manifest: defineSchema(QA_FILES.raw_extract_manifest, ['artifact_name'], ['artifact_name', 'required', 'exists', 'row_count', 'notes', 'as_of_date', 'expected_lookback_days', 'min_date', 'max_date', 'covered_days', 'coverage_ratio', 'coverage_status', 'coverage_gap_days', 'as_of_present_flag', 'as_of_gap_days', 'current_window_covered_days_7d', 'previous_window_covered_days_7d', 'current_window_covered_days_30d', 'previous_window_covered_days_30d', 'missing_date_count', 'synthetic', 'role_history_mode', 'truth_mismatch_risk_flag', 'truth_mismatch_risk_status', 'truth_mismatch_risk_copy', 'warning_count']),
         prd_validation_summary: defineSchema(QA_FILES.prd_validation_summary, ['validation_key'], ['validation_key', 'status', 'prd_source', 'implemented_artifact', 'notes'])
     }
 };
