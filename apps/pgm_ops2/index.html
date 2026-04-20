@@ -27,8 +27,14 @@
                 <div>
                     <div class="app-header-kicker">상품 운영 우선순위</div>
                     <h2 id="page-title">우선순위</h2>
+                    <p id="period-note" class="app-header-note">최근 7일 기준으로 화면을 봅니다.</p>
                 </div>
                 <div class="app-header-meta">
+                    <div class="window-toggle" role="tablist" aria-label="기간 기준 선택">
+                        <button class="window-toggle-item is-active" data-window-key="7d" type="button">7일 기준</button>
+                        <button class="window-toggle-item" data-window-key="1d" type="button">하루 기준</button>
+                        <button class="window-toggle-item" data-window-key="30d" type="button">30일 기준</button>
+                    </div>
                     <div class="meta-chip">
                         <span>기준일</span>
                         <strong id="as-of-date">-</strong>

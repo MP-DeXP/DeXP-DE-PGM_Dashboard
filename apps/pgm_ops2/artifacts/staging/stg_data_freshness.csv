@@ -1,7 +1,7 @@
 source_key,row_count,min_date,max_date
 orders_header,3691,2026-01-19,2026-04-18
 order_lines,5623,2026-01-19,2026-03-22
-products,99,2020-03-15,2026-04-09
+products,99,2020-03-15,2026-04-19
 order_utm,3691,2026-01-19,2026-04-18
 product_revenue_daily,4150,2025-10-21,2026-04-18
 pgm_scored,612,2026-04-05,2026-04-18

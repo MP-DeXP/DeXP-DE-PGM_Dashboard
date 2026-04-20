@@ -22,6 +22,33 @@ function toText(value, fallback = '') {
     return value == null ? fallback : String(value);
 }
 
+function toWindowKey(windowDays) {
+    return `${windowDays}d`;
+}
+
+function toWindowDays(windowKey) {
+    const parsed = Number.parseInt(String(windowKey ?? '').replace(/d$/i, ''), 10);
+    return Number.isFinite(parsed) ? parsed : 7;
+}
+
+function getOperatingWindowDays() {
+    return WINDOWS.filter((windowDays) => [1, 7, 30].includes(windowDays));
+}
+
+function getPeriodLabel(windowKey) {
+    const windowDays = toWindowDays(windowKey);
+    if (windowDays === 1) return '하루 기준';
+    if (windowDays === 7) return '최근 7일';
+    if (windowDays === 30) return '최근 30일';
+    return `최근 ${windowDays}일`;
+}
+
+function getCompareLabel(windowKey) {
+    const windowDays = toWindowDays(windowKey);
+    if (windowDays === 1) return '직전 하루';
+    return `직전 ${windowDays}일`;
+}
+
 function clamp01(value) {
     if (!Number.isFinite(value)) {
         return 0;
@@ -353,6 +380,7 @@ function getCoverageFlags(minDate, maxDate, asOfDate) {
 
     return {
         requiredStartDates,
+        historyReady1d: Boolean(normalizedMinDate && normalizedMaxDate && normalizedMinDate <= requiredStartDates[1] && normalizedMaxDate >= asOfDate),
         historyReady7d: Boolean(normalizedMinDate && normalizedMaxDate && normalizedMinDate <= requiredStartDates[7] && normalizedMaxDate >= asOfDate),
         historyReady30d: Boolean(normalizedMinDate && normalizedMaxDate && normalizedMinDate <= requiredStartDates[30] && normalizedMaxDate >= asOfDate),
         historyReady90d: Boolean(normalizedMinDate && normalizedMaxDate && normalizedMinDate <= requiredStartDates[90] && normalizedMaxDate >= asOfDate)
@@ -360,7 +388,7 @@ function getCoverageFlags(minDate, maxDate, asOfDate) {
 }
 
 function summarizeCoverageState(row, asOfDate) {
-    const { requiredStartDates, historyReady7d, historyReady30d, historyReady90d } = getCoverageFlags(row.min_date, row.max_date, asOfDate);
+    const { requiredStartDates, historyReady1d, historyReady7d, historyReady30d, historyReady90d } = getCoverageFlags(row.min_date, row.max_date, asOfDate);
 
     let coverageState = '관측 불가';
     let coverageNote = '비교 기준을 계산할 수 없습니다.';
@@ -372,11 +400,14 @@ function summarizeCoverageState(row, asOfDate) {
         coverageState = '90일 비교 가능';
         coverageNote = '7/30/90일 직전기간 비교가 모두 가능합니다.';
     } else if (historyReady30d) {
-        coverageState = '30일까지만 가능';
-        coverageNote = '30일 비교까지 가능하고 90일 비교는 불가합니다.';
+        coverageState = '30일 비교 가능';
+        coverageNote = '하루·7일·30일 비교가 가능하고 90일 비교는 어렵습니다.';
     } else if (historyReady7d) {
-        coverageState = '7일까지만 가능';
-        coverageNote = '7일 비교까지만 가능하고 30/90일 비교는 불가합니다.';
+        coverageState = '7일 비교 가능';
+        coverageNote = '하루·7일 비교는 가능하지만 30일 비교는 어렵습니다.';
+    } else if (historyReady1d) {
+        coverageState = '하루 비교 가능';
+        coverageNote = '하루 비교는 가능하지만 7일 이상 비교는 어렵습니다.';
     } else {
         coverageState = '비교 이력 부족';
         coverageNote = '비교 이력이 부족해 직전 기간 비교가 어렵습니다.';
@@ -386,6 +417,7 @@ function summarizeCoverageState(row, asOfDate) {
         coverageState,
         coverageNote,
         requiredStartDates,
+        historyReady1d,
         historyReady7d,
         historyReady30d,
         historyReady90d
@@ -935,6 +967,57 @@ function buildRevenueWindows(rows, asOfDate, productNameByProduct = new Map(), p
         .sort((left, right) => toNumber(right.revenue_30d_current) - toNumber(left.revenue_30d_current));
 }
 
+function expandRevenueRowsByWindow(rows) {
+    return rows.flatMap((row) => {
+        return getOperatingWindowDays().map((windowDays) => {
+            const windowKey = toWindowKey(windowDays);
+            return {
+                as_of_date: row.as_of_date,
+                window_key: windowKey,
+                window_days: windowDays,
+                period_label: getPeriodLabel(windowKey),
+                compare_period_label: getCompareLabel(windowKey),
+                product_id: row.product_id,
+                product_name: row.product_name,
+                product_image_url: row.product_image_url,
+                revenue_today: row.revenue_today,
+                order_count_today: row.order_count_today,
+                cart_count_today: row.cart_count_today,
+                revenue_current: row[`revenue_${windowDays}d_current`],
+                revenue_previous: row[`revenue_${windowDays}d_previous`],
+                revenue_delta: row[`revenue_${windowDays}d_delta`],
+                revenue_delta_rate: row[`revenue_${windowDays}d_delta_rate`],
+                revenue_compare_state: row[`revenue_${windowDays}d_compare_state`],
+                revenue_compare_note: row[`revenue_${windowDays}d_compare_note`],
+                revenue_1d_current: row.revenue_1d_current,
+                revenue_1d_previous: row.revenue_1d_previous,
+                revenue_1d_delta: row.revenue_1d_delta,
+                revenue_1d_delta_rate: row.revenue_1d_delta_rate,
+                revenue_1d_compare_state: row.revenue_1d_compare_state,
+                revenue_1d_compare_note: row.revenue_1d_compare_note,
+                revenue_7d_current: row.revenue_7d_current,
+                revenue_7d_previous: row.revenue_7d_previous,
+                revenue_7d_delta: row.revenue_7d_delta,
+                revenue_7d_delta_rate: row.revenue_7d_delta_rate,
+                revenue_7d_compare_state: row.revenue_7d_compare_state,
+                revenue_7d_compare_note: row.revenue_7d_compare_note,
+                revenue_30d_current: row.revenue_30d_current,
+                revenue_30d_previous: row.revenue_30d_previous,
+                revenue_30d_delta: row.revenue_30d_delta,
+                revenue_30d_delta_rate: row.revenue_30d_delta_rate,
+                revenue_30d_compare_state: row.revenue_30d_compare_state,
+                revenue_30d_compare_note: row.revenue_30d_compare_note,
+                revenue_90d_current: row.revenue_90d_current,
+                revenue_90d_previous: row.revenue_90d_previous,
+                revenue_90d_delta: row.revenue_90d_delta,
+                revenue_90d_delta_rate: row.revenue_90d_delta_rate,
+                revenue_90d_compare_state: row.revenue_90d_compare_state,
+                revenue_90d_compare_note: row.revenue_90d_compare_note
+            };
+        });
+    });
+}
+
 function getRoleSupportCount(rows, candidates) {
     return rows.reduce((sum, row) => {
         return sum + toNumber(candidates.map((field) => row[field]).find((value) => value != null && value !== ''));
@@ -1053,8 +1136,155 @@ function buildRoleTaxonomy(
     });
 }
 
-function buildBrandReconstructionMeta(rows, asOfDate, freshnessRows, reconstructedEventRows) {
-    const latestRows = rows.filter((row) => row.date === asOfDate);
+function aggregateRoleRowsByWindow(
+    roleRows,
+    transitionSnapshotRows,
+    transitionEdgeRows,
+    returnLoopRows,
+    basketRows,
+    freshnessRows,
+    asOfDate,
+    productImageByProduct = new Map()
+) {
+    const roleDates = sortDates(roleRows.map((row) => row.date));
+    const roleMinDate = roleDates[0] ?? '';
+    const roleMaxDate = roleDates.at(-1) ?? '';
+    const scoredFreshness = freshnessRows.find((row) => row.source_key === 'pgm_scored');
+    const demandFreshness = freshnessRows.find((row) => row.source_key === 'pgm_demand_signals');
+    const basketFreshness = freshnessRows.find((row) => row.source_key === 'pgm_basket_pairs');
+    const transitionFreshness = freshnessRows.find((row) => row.source_key === 'pgm_entry_to_expansion_transition')
+        ?? freshnessRows.find((row) => row.source_key === 'pgm_transition_edges');
+    const productIds = Array.from(new Set(roleRows.map((row) => toText(row.product_id)).filter(Boolean))).sort();
+
+    return getOperatingWindowDays().flatMap((windowDays) => {
+        const windowKey = toWindowKey(windowDays);
+        const windowStart = shiftDate(asOfDate, -(windowDays - 1));
+        const scopedRoleRows = roleRows.filter((row) => row.date >= windowStart && row.date <= asOfDate);
+        const transitionSnapshotByProduct = groupBy(
+            transitionSnapshotRows.filter((row) => {
+                const rowDate = normalizeDateValue(row.date);
+                return rowDate >= windowStart && rowDate <= asOfDate;
+            }),
+            (row) => toText(row.product_id ?? row.source_product_id ?? row.entry_product_id ?? row.aa_product_id)
+        );
+        const transitionEdgeByProduct = groupBy(
+            transitionEdgeRows.filter((row) => {
+                const rowDate = normalizeDateValue(row.date);
+                return rowDate >= windowStart && rowDate <= asOfDate;
+            }),
+            (row) => toText(row.aa_product_id ?? row.source_product_id ?? row.product_id)
+        );
+        const returnByProduct = groupBy(
+            returnLoopRows.filter((row) => {
+                const rowDate = normalizeDateValue(row.date);
+                return rowDate >= windowStart && rowDate <= asOfDate;
+            }),
+            (row) => toText(row.source_product_id ?? row.product_id)
+        );
+        const basketSummaryByProduct = indexBy(
+            summarizeBasketPairs(basketRows.filter((row) => {
+                const rowDate = normalizeDateValue(row.date);
+                return rowDate >= windowStart && rowDate <= asOfDate;
+            })),
+            (row) => row.product_id
+        );
+        const roleRowsByProduct = groupBy(scopedRoleRows, (row) => row.product_id);
+        const historyReady = Boolean(roleMinDate && roleMaxDate && roleMinDate <= windowStart && roleMaxDate >= asOfDate);
+
+        return productIds.map((productId) => {
+            const groupedRows = roleRowsByProduct.get(productId) ?? [];
+            const transitionSnapshotGroup = transitionSnapshotByProduct.get(productId) ?? [];
+            const transitionEdgeGroup = transitionEdgeByProduct.get(productId) ?? [];
+            const returnGroup = returnByProduct.get(productId) ?? [];
+            const basket = basketSummaryByProduct.get(productId) ?? {};
+            const productName = toText(groupedRows[0]?.product_name);
+            const roleScores = {
+                '첫구매기여': average(groupedRows.map((row) => toNumber(row.entry_gravity_score))),
+                '재구매확장기여': average(groupedRows.map((row) => toNumber(row.expansion_gravity_score))),
+                '반복구매기여': average(groupedRows.map((row) => {
+                    return Math.max(toNumber(row.return_gravity_score), toNumber(row.simple_repeat_rate_90d), toNumber(row.return_customer_rate_90d));
+                })),
+                '동시구매기여': toNumber(basket.basket_signal_score)
+            };
+            const supportCounts = {
+                entry: sum(groupedRows.map((row) => toNumber(row.first_customer_cnt))),
+                expansion: getRoleSupportCount(transitionSnapshotGroup, ['transition_customer_cnt', 'entry_to_expansion_customer_cnt', 'customer_cnt', 'expansion_customer_cnt'])
+                    + getRoleSupportCount(transitionEdgeGroup, ['transition_customer_cnt']),
+                repeat: returnGroup.length,
+                basket: toNumber(basket.basket_pair_rows)
+            };
+            const sourceFamilyCount = [
+                groupedRows.some((row) => row.scored_observed_flag === 'true'),
+                groupedRows.some((row) => row.demand_observed_flag === 'true'),
+                Boolean(basket.product_id),
+                Boolean(transitionSnapshotGroup.length || transitionEdgeGroup.length)
+            ].filter(Boolean).length;
+            const roleSourceGapDays = maxNumber([
+                getDateGapDays(asOfDate, scoredFreshness?.max_date),
+                getDateGapDays(asOfDate, demandFreshness?.max_date),
+                getDateGapDays(asOfDate, basketFreshness?.max_date),
+                getDateGapDays(asOfDate, transitionFreshness?.max_date)
+            ].map((value) => value === '' ? Number.NaN : value));
+            const sortedRoles = Object.entries(roleScores).sort((left, right) => right[1] - left[1]);
+            const [primaryRole, primaryScore] = sortedRoles[0] ?? ['관측 없음', 0];
+            const hasAnySupportEvidence = Object.values(supportCounts).some((value) => value > 0);
+
+            let roleEvidenceStatus = 'available';
+            if (!sourceFamilyCount) {
+                roleEvidenceStatus = 'unavailable';
+            } else if (sourceFamilyCount < 2 || roleSourceGapDays > 7 || !historyReady) {
+                roleEvidenceStatus = 'limited';
+            }
+
+            const finalRole = primaryScore < 0.05 && !hasAnySupportEvidence ? '관측 없음' : primaryRole;
+            const roleReason = !groupedRows.length
+                ? `${getPeriodLabel(windowKey)} 역할 관측이 없습니다.`
+                : !historyReady
+                    ? `${getPeriodLabel(windowKey)} 역할 관측은 참고용입니다.`
+                    : finalRole === '관측 없음'
+                        ? `${getPeriodLabel(windowKey)} 역할 관측 없음`
+                        : `${getPeriodLabel(windowKey)} 주요 신호 ${primaryScore.toFixed(2)}`;
+
+            return {
+                as_of_date: asOfDate,
+                window_key: windowKey,
+                window_days: windowDays,
+                period_label: getPeriodLabel(windowKey),
+                product_id: productId,
+                product_name: productName,
+                product_image_url: toText(productImageByProduct.get(productId)),
+                role_taxonomy: finalRole,
+                role_score: primaryScore,
+                role_evidence_status: roleEvidenceStatus,
+                role_window_state: historyReady ? 'available' : 'history_insufficient',
+                role_reason: roleReason,
+                entry_score: roleScores['첫구매기여'],
+                expansion_score: roleScores['재구매확장기여'],
+                repeat_score: roleScores['반복구매기여'],
+                basket_score: roleScores['동시구매기여'],
+                primary_axis_label: finalRole === '관측 없음' ? '' : primaryRole,
+                primary_axis_value: finalRole === '관측 없음' ? '' : primaryScore,
+                entry_support_count: supportCounts.entry,
+                expansion_support_count: supportCounts.expansion,
+                repeat_support_count: supportCounts.repeat,
+                basket_support_count: supportCounts.basket,
+                transition_customer_cnt: supportCounts.expansion,
+                transition_support_rate: maxNumber([
+                    getRoleSupportRate(transitionSnapshotGroup, ['transition_rate', 'entry_to_expansion_rate', 'expansion_rate']),
+                    getRoleSupportRate(transitionEdgeGroup, ['transition_rate'])
+                ]),
+                return_loop_cnt: returnGroup.length,
+                basket_pair_cnt: toNumber(basket.basket_pair_rows),
+                history_ready: historyReady ? 'true' : 'false'
+            };
+        });
+    });
+}
+
+function buildBrandReconstructionMeta(rows, asOfDate, freshnessRows, reconstructedEventRows, options = {}) {
+    const latestRows = options.prefiltered ? rows : rows.filter((row) => row.date === asOfDate);
+    const windowDays = options.windowDays ?? 1;
+    const historyReady = options.historyReady ?? true;
     const basketFreshness = freshnessRows.find((row) => row.source_key === 'pgm_basket_pairs');
     const eventFreshness = freshnessRows.find((row) => row.source_key === 'brand_score_events')
         ?? freshnessRows.find((row) => row.source_key === 'order_lines');
@@ -1109,13 +1339,17 @@ function buildBrandReconstructionMeta(rows, asOfDate, freshnessRows, reconstruct
         if (basketParityScore < 0.55) {
             limitedReasons.push('basket parity가 낮습니다.');
         }
+        if (!historyReady) {
+            limitedReasons.push(`${windowDays}일 관측 이력이 충분하지 않습니다.`);
+        }
     }
 
     const parityScore = average([
         axisCoverageRatio,
         eventCoverageRatio,
         basketCoverageRatio,
-        basketParityScore
+        basketParityScore,
+        historyReady ? 1 : 0.3
     ]);
     const parityLevel = getParityLevel(parityScore);
     const nearCoreCandidate = allCoreAxesPresent
@@ -1158,6 +1392,7 @@ function buildBrandReconstructionMeta(rows, asOfDate, freshnessRows, reconstruct
         basketCoverageRatio,
         axisCoverageRatio,
         basketParityScore,
+        historyReady,
         parityScore,
         parityLevel,
         allCoreAxesPresent,
@@ -1168,9 +1403,10 @@ function buildBrandReconstructionMeta(rows, asOfDate, freshnessRows, reconstruct
     };
 }
 
-function buildBrandScoreBrandLevel(rows, asOfDate, freshnessRows, reconstructedEventRows) {
-    const meta = buildBrandReconstructionMeta(rows, asOfDate, freshnessRows, reconstructedEventRows);
+function buildBrandScoreBrandLevel(rows, asOfDate, freshnessRows, reconstructedEventRows, options = {}) {
+    const meta = buildBrandReconstructionMeta(rows, asOfDate, freshnessRows, reconstructedEventRows, options);
     const { latestRows, productCount } = meta;
+    const windowKey = options.windowKey ?? '1d';
 
     let entryStructureIndex = 0;
     let expansionStructureIndex = 0;
@@ -1262,6 +1498,9 @@ function buildBrandScoreBrandLevel(rows, asOfDate, freshnessRows, reconstructedE
 
     return [{
         as_of_date: asOfDate,
+        window_key: windowKey,
+        window_days: toWindowDays(windowKey),
+        period_label: getPeriodLabel(windowKey),
         product_count: productCount,
         entry_structure_index: entryStructureIndex,
         expansion_structure_index: expansionStructureIndex,
@@ -1307,12 +1546,14 @@ function buildBrandScoreBrandLevel(rows, asOfDate, freshnessRows, reconstructedE
         basket_freshness_gap_days: meta.basketFreshnessGapDays,
         event_freshness_gap_days: meta.eventFreshnessGapDays,
         contract_note: note,
-        formula_reference: 'step03_brand_health purchase structure formula'
+        formula_reference: 'step03_brand_health purchase structure formula',
+        history_ready: meta.historyReady ? 'true' : 'false'
     }];
 }
 
-function buildBrandScoreProductContributors(rows, asOfDate, brandLevelRow, productImageByProduct = new Map()) {
-    const latestRows = rows.filter((row) => row.date === asOfDate);
+function buildBrandScoreProductContributors(rows, asOfDate, brandLevelRow, productImageByProduct = new Map(), options = {}) {
+    const latestRows = options.prefiltered ? rows : rows.filter((row) => row.date === asOfDate);
+    const windowKey = options.windowKey ?? '1d';
     const maxStructuralOrders = Math.max(1, ...latestRows.map((row) => toNumber(row.structural_active_order_cnt)));
     const contributorBaseRows = latestRows.map((row) => {
         const hasScoredInput = toBooleanFlag(row.scored_observed_flag);
@@ -1374,6 +1615,9 @@ function buildBrandScoreProductContributors(rows, asOfDate, brandLevelRow, produ
 
         return {
             as_of_date: asOfDate,
+            window_key: windowKey,
+            window_days: toWindowDays(windowKey),
+            period_label: getPeriodLabel(windowKey),
             product_id: row.product_id,
             product_name: row.product_name,
             product_image_url: toText(productImageByProduct.get(row.product_id)),
@@ -1432,9 +1676,77 @@ function buildBrandScoreProductContributors(rows, asOfDate, brandLevelRow, produ
         }));
 }
 
+function getPrimaryTypeByFrequency(values, fallback = 'None') {
+    const counts = new Map();
+    values.map((value) => toText(value)).filter(Boolean).forEach((value) => {
+        counts.set(value, (counts.get(value) ?? 0) + 1);
+    });
+    return [...counts.entries()].sort((left, right) => right[1] - left[1])[0]?.[0] ?? fallback;
+}
+
+function aggregateBrandRowsByWindow(rows, asOfDate) {
+    const dateBounds = sortDates(rows.map((row) => row.date));
+    const minDate = dateBounds[0] ?? '';
+    const maxDate = dateBounds.at(-1) ?? '';
+
+    return getOperatingWindowDays().map((windowDays) => {
+        const windowKey = toWindowKey(windowDays);
+        const windowStart = shiftDate(asOfDate, -(windowDays - 1));
+        const scopedRows = rows.filter((row) => row.date >= windowStart && row.date <= asOfDate);
+        const rowsByProduct = groupBy(scopedRows, (row) => row.product_id);
+        const aggregatedRows = [...rowsByProduct.entries()].map(([productId, groupedRows]) => ({
+            date: asOfDate,
+            product_id: productId,
+            product_name: toText(groupedRows[0]?.product_name),
+            entry_axis: average(groupedRows.map((row) => toNumber(row.entry_axis))),
+            expansion_axis: average(groupedRows.map((row) => toNumber(row.expansion_axis))),
+            convergence_axis: average(groupedRows.map((row) => toNumber(row.convergence_axis))),
+            return_axis: average(groupedRows.map((row) => toNumber(row.return_axis))),
+            basket_axis: average(groupedRows.map((row) => toNumber(row.basket_axis))),
+            first_customer_cnt: sum(groupedRows.map((row) => toNumber(row.first_customer_cnt))),
+            entry_primary_type: getPrimaryTypeByFrequency(groupedRows.map((row) => row.entry_primary_type), 'None'),
+            expansion_primary_type: getPrimaryTypeByFrequency(groupedRows.map((row) => row.expansion_primary_type), 'None'),
+            distinct_source_product_cnt_90d: average(groupedRows.map((row) => toNumber(row.distinct_source_product_cnt_90d))),
+            return_customer_rate_90d: average(groupedRows.map((row) => toNumber(row.return_customer_rate_90d))),
+            return_loop_rate_90d: average(groupedRows.map((row) => toNumber(row.return_loop_rate_90d))),
+            simple_repeat_rate_90d: average(groupedRows.map((row) => toNumber(row.simple_repeat_rate_90d))),
+            scored_observed_flag: groupedRows.some((row) => row.scored_observed_flag === 'true') ? 'true' : 'false',
+            demand_observed_flag: groupedRows.some((row) => row.demand_observed_flag === 'true') ? 'true' : 'false',
+            event_observed_flag: groupedRows.some((row) => row.event_observed_flag === 'true') ? 'true' : 'false',
+            structural_active_order_cnt: sum(groupedRows.map((row) => toNumber(row.structural_active_order_cnt))),
+            structural_active_member_cnt: sum(groupedRows.map((row) => toNumber(row.structural_active_member_cnt))),
+            latest_order_date: sortDates(groupedRows.map((row) => row.latest_order_date)).at(-1) ?? '',
+            basket_pair_rows: sum(groupedRows.map((row) => toNumber(row.basket_pair_rows))),
+            basket_top_pair_product_id: getPrimaryTypeByFrequency(groupedRows.map((row) => row.basket_top_pair_product_id), ''),
+            basket_type: getPrimaryTypeByFrequency(groupedRows.map((row) => row.basket_type), 'None'),
+            attach_rate: average(groupedRows.map((row) => toNumber(row.attach_rate))),
+            median_cart_size: average(groupedRows.map((row) => toNumber(row.median_cart_size))),
+            basket_companion_cnt: average(groupedRows.map((row) => toNumber(row.basket_companion_cnt))),
+            basket_top1_share: average(groupedRows.map((row) => toNumber(row.basket_top1_share))),
+            basket_top3_share: average(groupedRows.map((row) => toNumber(row.basket_top3_share))),
+            basket_signal_score: average(groupedRows.map((row) => toNumber(row.basket_signal_score))),
+            basket_parity_score: average(groupedRows.map((row) => toNumber(row.basket_parity_score))),
+            basket_parity_level: getParityLevel(average(groupedRows.map((row) => toNumber(row.basket_parity_score)))),
+            basket_reconstruction_level: getPrimaryTypeByFrequency(groupedRows.map((row) => row.basket_reconstruction_level), ''),
+            basket_limitation_reason: [...new Set(groupedRows.map((row) => toText(row.basket_limitation_reason)).filter(Boolean))].join(' | ')
+        }));
+
+        return {
+            window_key: windowKey,
+            window_days: windowDays,
+            period_label: getPeriodLabel(windowKey),
+            history_ready: Boolean(minDate && maxDate && minDate <= windowStart && maxDate >= asOfDate),
+            rows: aggregatedRows
+        };
+    });
+}
+
 function buildLegacyBrandScoreReconstruction(contributorRows, brandLevelRow) {
     return contributorRows.map((row) => ({
         as_of_date: row.as_of_date,
+        window_key: row.window_key,
+        window_days: row.window_days,
+        period_label: row.period_label,
         product_id: row.product_id,
         product_name: row.product_name,
         brand_score: row.numeric_display_policy === 'show' ? row.reconstructed_product_signal : '',
@@ -1643,72 +1955,95 @@ function buildBrandRevenueContext(rows, asOfDate) {
             .filter(([date]) => date)
     );
 
-    let currentRevenue30d = 0;
-    let previousRevenue30d = 0;
-    for (let offset = 0; offset < 30; offset += 1) {
-        currentRevenue30d += toNumber(revenueByDate.get(shiftDate(asOfDate, -offset)));
-        previousRevenue30d += toNumber(revenueByDate.get(shiftDate(asOfDate, -(30 + offset))));
-    }
+    return getOperatingWindowDays().map((windowDays) => {
+        let currentRevenue = 0;
+        let previousRevenue = 0;
+        for (let offset = 0; offset < windowDays; offset += 1) {
+            currentRevenue += toNumber(revenueByDate.get(shiftDate(asOfDate, -offset)));
+            previousRevenue += toNumber(revenueByDate.get(shiftDate(asOfDate, -(windowDays + offset))));
+        }
 
-    return {
-        brand_revenue_30d_current: currentRevenue30d,
-        brand_revenue_30d_previous: previousRevenue30d,
-        brand_revenue_30d_delta_rate: previousRevenue30d > 0 ? (currentRevenue30d - previousRevenue30d) / previousRevenue30d : 0
-    };
+        return {
+            as_of_date: asOfDate,
+            window_key: toWindowKey(windowDays),
+            window_days: windowDays,
+            period_label: getPeriodLabel(toWindowKey(windowDays)),
+            brand_revenue_current: currentRevenue,
+            brand_revenue_previous: previousRevenue,
+            brand_revenue_delta_rate: previousRevenue > 0 ? (currentRevenue - previousRevenue) / previousRevenue : 0,
+            brand_revenue_1d_current: windowDays === 1 ? currentRevenue : '',
+            brand_revenue_1d_previous: windowDays === 1 ? previousRevenue : '',
+            brand_revenue_1d_delta_rate: windowDays === 1 ? (previousRevenue > 0 ? (currentRevenue - previousRevenue) / previousRevenue : 0) : '',
+            brand_revenue_7d_current: windowDays === 7 ? currentRevenue : '',
+            brand_revenue_7d_previous: windowDays === 7 ? previousRevenue : '',
+            brand_revenue_7d_delta_rate: windowDays === 7 ? (previousRevenue > 0 ? (currentRevenue - previousRevenue) / previousRevenue : 0) : '',
+            brand_revenue_30d_current: windowDays === 30 ? currentRevenue : '',
+            brand_revenue_30d_previous: windowDays === 30 ? previousRevenue : '',
+            brand_revenue_30d_delta_rate: windowDays === 30 ? (previousRevenue > 0 ? (currentRevenue - previousRevenue) / previousRevenue : 0) : ''
+        };
+    });
 }
 
 function buildPriorityBasis(revenueRows, roleRows, brandScoreRows, freshnessRows, asOfDate, brandRevenueContext) {
-    const roleByProduct = indexBy(roleRows, (row) => row.product_id);
-    const brandByProduct = indexBy(brandScoreRows, (row) => row.product_id);
+    const roleByProduct = indexBy(roleRows, (row) => keyOf(row.window_key, row.product_id));
+    const brandByProduct = indexBy(brandScoreRows, (row) => keyOf(row.window_key, row.product_id));
+    const brandRevenueByWindow = indexBy(brandRevenueContext, (row) => row.window_key);
     const revenueFreshness = freshnessRows.find((row) => row.source_key === 'product_revenue_daily');
     const roleFreshness = freshnessRows.find((row) => row.source_key === 'pgm_scored');
     const revenueFreshGap = revenueFreshness?.max_date ? toText(revenueFreshness.max_date) : '';
     const roleFreshGap = roleFreshness?.max_date ? toText(roleFreshness.max_date) : '';
 
     return revenueRows.map((row) => {
-        const role = roleByProduct.get(row.product_id) ?? {};
-        const brand = brandByProduct.get(row.product_id) ?? {};
-        const revenueCompareState30d = toText(row.revenue_30d_compare_state, 'history_insufficient');
-        const revenueCompareNote30d = toText(row.revenue_30d_compare_note, '비교 이력이 부족해 직전 기간 비교가 어렵습니다.');
-        const deltaRate30 = revenueCompareState30d === 'available' ? Number(row.revenue_30d_delta_rate) : null;
+        const role = roleByProduct.get(keyOf(row.window_key, row.product_id)) ?? {};
+        const brand = brandByProduct.get(keyOf(row.window_key, row.product_id)) ?? {};
+        const brandRevenueRow = brandRevenueByWindow.get(row.window_key) ?? {};
+        const revenueCompareState = toText(row.revenue_compare_state, 'history_insufficient');
+        const revenueCompareNote = toText(row.revenue_compare_note, '비교 이력이 부족해 직전 기간 비교가 어렵습니다.');
+        const deltaRate = revenueCompareState === 'available' ? Number(row.revenue_delta_rate) : null;
 
         let priorityLevel = PRIORITY_LEVELS[2];
-        if (deltaRate30 != null && deltaRate30 <= -0.2) {
+        if (deltaRate != null && deltaRate <= -0.2) {
             priorityLevel = PRIORITY_LEVELS[0];
-        } else if (deltaRate30 < -0.05) {
+        } else if (deltaRate < -0.05) {
             priorityLevel = PRIORITY_LEVELS[1];
         }
 
-        const revenueReason = deltaRate30 == null
+        const revenueReason = deltaRate == null
             ? '직전기간 비교 불가'
-            : `최근 30일 매출이 직전기간 대비 ${(deltaRate30 * 100).toFixed(1)}%`;
+            : `${row.period_label} 매출이 직전기간 대비 ${(deltaRate * 100).toFixed(1)}%`;
 
         const roleReason = role.role_taxonomy
-            ? `${role.role_taxonomy} 기준 ${toText(role.role_reason)}`
+            ? `${row.period_label} ${role.role_taxonomy} 기준 ${toText(role.role_reason)}`
             : '역할 근거 없음';
 
         const brandReason = brand.brand_score_status === 'limited'
-            ? '브랜드 점수 제한 반영'
+            ? `${row.period_label} 브랜드 점수 참고용`
             : brand.brand_score_status === 'provisional'
-                ? '브랜드 점수 운영 참고'
+                ? `${row.period_label} 브랜드 점수 보조 신호`
                 : brand.brand_score_status === 'unavailable'
-                    ? '브랜드 점수 산출 보류'
+                    ? `${row.period_label} 브랜드 점수 산출 없음`
                     : brand.brand_score_status === 'near-core'
-                        ? '브랜드 점수 검증 후보'
+                        ? `${row.period_label} 브랜드 점수 검증 후보`
                         : '브랜드 점수 상태 없음';
 
         return {
             as_of_date: asOfDate,
+            window_key: row.window_key,
+            window_days: row.window_days,
+            period_label: row.period_label,
             product_id: row.product_id,
             product_name: row.product_name,
             product_image_url: toText(row.product_image_url || role.product_image_url),
             priority_level: priorityLevel,
             priority_sort_score: (
                 (priorityLevel === '즉시 확인' ? 3 : priorityLevel === '주의 관찰' ? 2 : 1) * 1000000
-            ) + Math.round((0 - toNumber(row.revenue_30d_delta)) * 100),
-            revenue_change_rate_30d: deltaRate30 == null ? '' : deltaRate30,
-            revenue_30d_compare_state: revenueCompareState30d,
-            revenue_30d_compare_note: revenueCompareNote30d,
+            ) + Math.round((0 - toNumber(row.revenue_delta)) * 100),
+            revenue_change_rate_30d: row.window_days === 30 && deltaRate != null ? deltaRate : '',
+            revenue_change_rate: deltaRate == null ? '' : deltaRate,
+            revenue_compare_state: revenueCompareState,
+            revenue_compare_note: revenueCompareNote,
+            revenue_30d_compare_state: row.window_days === 30 ? revenueCompareState : '',
+            revenue_30d_compare_note: row.window_days === 30 ? revenueCompareNote : '',
             revenue_reason: revenueReason,
             role_taxonomy: toText(role.role_taxonomy, '관측 없음'),
             role_reason: roleReason,
@@ -1717,7 +2052,12 @@ function buildPriorityBasis(revenueRows, roleRows, brandScoreRows, freshnessRows
             brand_score_reason: brandReason,
             revenue_freshness_max_date: revenueFreshGap,
             role_freshness_max_date: roleFreshGap,
-            ...brandRevenueContext
+            brand_revenue_current: toText(brandRevenueRow.brand_revenue_current),
+            brand_revenue_previous: toText(brandRevenueRow.brand_revenue_previous),
+            brand_revenue_delta_rate: toText(brandRevenueRow.brand_revenue_delta_rate),
+            brand_revenue_30d_current: toText(brandRevenueRow.brand_revenue_30d_current),
+            brand_revenue_30d_previous: toText(brandRevenueRow.brand_revenue_30d_previous),
+            brand_revenue_30d_delta_rate: toText(brandRevenueRow.brand_revenue_30d_delta_rate)
         };
     });
 }
@@ -1733,10 +2073,13 @@ function buildPriorityQueueSnapshot(priorityRows) {
 
 function buildSegmentStructureSnapshot(priorityRows) {
     return priorityRows.map((row) => {
-        const deltaRate = row.revenue_30d_compare_state === 'available' && row.revenue_change_rate_30d !== '' ? Number(row.revenue_change_rate_30d) : null;
+        const deltaRate = row.revenue_compare_state === 'available' && row.revenue_change_rate !== '' ? Number(row.revenue_change_rate) : null;
 
         return {
             as_of_date: row.as_of_date,
+            window_key: row.window_key,
+            window_days: row.window_days,
+            period_label: row.period_label,
             product_id: row.product_id,
             product_name: row.product_name,
             product_image_url: row.product_image_url,
@@ -1749,48 +2092,61 @@ function buildSegmentStructureSnapshot(priorityRows) {
 }
 
 function buildDataHealthSnapshot(freshnessRows, asOfDate) {
-    return freshnessRows.map((row) => {
+    return freshnessRows.flatMap((row) => {
         const freshnessGapDays = getDateGapDays(asOfDate, row.max_date);
-        let data_state = '정상';
+        let dataState = '정상';
         if (!row.row_count) {
-            data_state = '데이터 부족';
+            dataState = '데이터 부족';
         } else if (freshnessGapDays === '' || freshnessGapDays > 7) {
-            data_state = '비교 불가';
+            dataState = '비교 불가';
         } else if (freshnessGapDays !== '' && freshnessGapDays > 0) {
-            data_state = '주의 관찰';
+            dataState = '주의 관찰';
         }
         const coverageSummary = summarizeCoverageState(row, asOfDate);
 
-        return {
-            as_of_date: asOfDate,
-            source_key: row.source_key,
-            row_count: row.row_count,
-            min_date: row.min_date,
-            max_date: row.max_date,
-            freshness_gap_days: freshnessGapDays,
-            data_state,
-            coverage_state: coverageSummary.coverageState,
-            coverage_note: coverageSummary.coverageNote,
-            required_start_date_7d: coverageSummary.requiredStartDates[7],
-            required_start_date_30d: coverageSummary.requiredStartDates[30],
-            required_start_date_90d: coverageSummary.requiredStartDates[90]
-        };
+        return getOperatingWindowDays().map((windowDays) => {
+            const windowKey = toWindowKey(windowDays);
+            const historyReady = Boolean(coverageSummary[`historyReady${windowDays}d`]);
+            return {
+                as_of_date: asOfDate,
+                window_key: windowKey,
+                window_days: windowDays,
+                period_label: getPeriodLabel(windowKey),
+                source_key: row.source_key,
+                row_count: row.row_count,
+                min_date: row.min_date,
+                max_date: row.max_date,
+                freshness_gap_days: freshnessGapDays,
+                data_state: dataState,
+                coverage_state: historyReady ? `${getPeriodLabel(windowKey)} 비교 가능` : `${getPeriodLabel(windowKey)} 비교 불가`,
+                coverage_note: historyReady
+                    ? `${getPeriodLabel(windowKey)} 기준으로 비교 또는 관측이 가능합니다.`
+                    : `${getPeriodLabel(windowKey)} 기준 이력이 아직 충분하지 않습니다.`,
+                required_start_date_1d: coverageSummary.requiredStartDates[1],
+                required_start_date_7d: coverageSummary.requiredStartDates[7],
+                required_start_date_30d: coverageSummary.requiredStartDates[30],
+                required_start_date_90d: coverageSummary.requiredStartDates[90],
+                history_ready: historyReady ? 'true' : 'false'
+            };
+        });
     });
 }
 
 function buildStructureMapCells(segmentRows, queueRows) {
-    const queueByProduct = indexBy(queueRows, (row) => row.product_id);
+    const queueByProduct = indexBy(queueRows, (row) => keyOf(row.window_key, row.product_id));
     const revenueSegments = ['감소', '유지', '증가', '비교 불가'];
     const roleTaxonomies = ['첫구매기여', '재구매확장기여', '반복구매기여', '동시구매기여', '관측 없음'];
 
-    return roleTaxonomies.flatMap((roleTaxonomy) => {
-        return revenueSegments.map((revenueSegment) => {
+    return getOperatingWindowDays().flatMap((windowDays) => {
+        const windowKey = toWindowKey(windowDays);
+        return roleTaxonomies.flatMap((roleTaxonomy) => {
+            return revenueSegments.map((revenueSegment) => {
             const matchedRows = segmentRows
-                .filter((row) => row.role_taxonomy === roleTaxonomy && row.revenue_segment === revenueSegment)
+                .filter((row) => row.window_key === windowKey && row.role_taxonomy === roleTaxonomy && row.revenue_segment === revenueSegment)
                 .map((row) => ({
                     ...row,
-                    queue_rank: toNumber(queueByProduct.get(row.product_id)?.rank),
-                    priority_level: toText(queueByProduct.get(row.product_id)?.priority_level, row.priority_level)
+                    queue_rank: toNumber(queueByProduct.get(keyOf(windowKey, row.product_id))?.rank),
+                    priority_level: toText(queueByProduct.get(keyOf(windowKey, row.product_id))?.priority_level, row.priority_level)
                 }))
                 .sort((left, right) => {
                     return (left.queue_rank || Number.POSITIVE_INFINITY) - (right.queue_rank || Number.POSITIVE_INFINITY);
@@ -1804,6 +2160,9 @@ function buildStructureMapCells(segmentRows, queueRows) {
 
             return {
                 as_of_date: matchedRows[0]?.as_of_date ?? queueRows[0]?.as_of_date ?? '',
+                window_key: windowKey,
+                window_days: windowDays,
+                period_label: getPeriodLabel(windowKey),
                 revenue_segment: revenueSegment,
                 role_taxonomy: roleTaxonomy,
                 product_count: matchedRows.length,
@@ -1827,16 +2186,18 @@ function buildStructureMapCells(segmentRows, queueRows) {
                 top_product_3_image_url: toText(previews[2]?.product_image_url),
                 top_product_3_priority: toText(previews[2]?.priority_level)
             };
+            });
         });
     });
 }
 
-function buildDataHealthOverview(healthRows, brandLevelRow = {}) {
+function buildDataHealthOverview(healthRows, brandLevelRow = {}, windowKey = '7d') {
     const normalRows = healthRows.filter((row) => row.data_state === '정상').length;
     const limitedRows = healthRows.filter((row) => row.data_state !== '정상').length;
     const revenueHealth = healthRows.find((row) => row.source_key === 'product_revenue_daily') ?? {};
     const roleHealth = healthRows.find((row) => row.source_key === 'pgm_scored') ?? {};
     const productHealth = healthRows.find((row) => row.source_key === 'products') ?? {};
+    const periodLabel = getPeriodLabel(windowKey);
     const brandSummaryValue = toText(brandLevelRow.reconstruction_level) === 'reconstructed_with_limitations'
         ? '재구성 반영'
         : toText(brandLevelRow.reconstruction_level) === 'contract_shaped_reconstruction'
@@ -1847,20 +2208,26 @@ function buildDataHealthOverview(healthRows, brandLevelRow = {}) {
 
     return [
         {
+            window_key: windowKey,
+            period_label: periodLabel,
             area_key: 'revenue_compare',
             area_title: '매출 비교 준비 상태',
             status_label: toText(revenueHealth.data_state, '비교 불가'),
             summary_value: toText(revenueHealth.coverage_state, '비교 이력 부족'),
-            note: toText(revenueHealth.coverage_note, '직전 기간 비교 가능 범위를 확인할 수 없습니다.')
+            note: toText(revenueHealth.coverage_note, `${periodLabel} 비교 가능 범위를 확인할 수 없습니다.`)
         },
         {
+            window_key: windowKey,
+            period_label: periodLabel,
             area_key: 'role_observation',
             area_title: '역할 분류 반영 상태',
             status_label: toText(roleHealth.data_state, '비교 불가'),
             summary_value: toText(roleHealth.coverage_state, '비교 이력 부족'),
-            note: toText(roleHealth.coverage_note, '역할 관측 범위를 확인할 수 없습니다.')
+            note: toText(roleHealth.coverage_note, `${periodLabel} 역할 관측 범위를 확인할 수 없습니다.`)
         },
         {
+            window_key: windowKey,
+            period_label: periodLabel,
             area_key: 'brand_score',
             area_title: '브랜드 점수 반영 상태',
             status_label: toText(brandLevelRow.status_label || toBrandScoreStatusLabel(brandLevelRow.brand_score_status), '산출 불가'),
@@ -1868,6 +2235,8 @@ function buildDataHealthOverview(healthRows, brandLevelRow = {}) {
             note: toText(brandLevelRow.status_reason || brandLevelRow.limitation_reason, '브랜드 점수는 아직 안정적으로 반영되지 않았습니다.')
         },
         {
+            window_key: windowKey,
+            period_label: periodLabel,
             area_key: 'product_reference',
             area_title: '상품 기준 정보 상태',
             status_label: toText(productHealth.data_state, '비교 불가'),
@@ -1905,13 +2274,14 @@ export function buildMartArtifacts(stagingArtifacts, rawArtifacts, options = {})
     const productNameByProduct = buildProductNameIndex(rawArtifacts);
     const productImageByProduct = buildProductImageIndex(rawArtifacts);
     const brandRevenueContext = buildBrandRevenueContext(rawArtifacts.brand_purchase_daily ?? [], asOfDate);
-    const martProductRevenueWindows = buildRevenueWindows(
+    const martProductRevenueBase = buildRevenueWindows(
         stagingArtifacts.stg_product_revenue_daily ?? [],
         asOfDate,
         productNameByProduct,
         productImageByProduct
     );
-    const martProductRoleTaxonomyDaily = buildRoleTaxonomy(
+    const martProductRevenueWindows = expandRevenueRowsByWindow(martProductRevenueBase);
+    const martProductRoleTaxonomyDaily = aggregateRoleRowsByWindow(
         stagingArtifacts.stg_role_source_daily ?? [],
         rawArtifacts.pgm_entry_to_expansion_transition ?? [],
         rawArtifacts.pgm_transition_edges ?? [],
@@ -1921,28 +2291,47 @@ export function buildMartArtifacts(stagingArtifacts, rawArtifacts, options = {})
         asOfDate,
         productImageByProduct
     );
-    const martBrandScoreBrandLevel = buildBrandScoreBrandLevel(
+    const brandWindowSets = aggregateBrandRowsByWindow(
         stagingArtifacts.stg_brand_score_reconstruction_inputs ?? [],
-        asOfDate,
-        stagingArtifacts.stg_data_freshness ?? [],
-        stagingArtifacts.stg_reconstructed_order_product_events ?? []
+        asOfDate
     );
-    const martBrandScoreProductContributors = buildBrandScoreProductContributors(
-        stagingArtifacts.stg_brand_score_reconstruction_inputs ?? [],
-        asOfDate,
-        martBrandScoreBrandLevel[0] ?? {},
-        productImageByProduct
-    );
-    const martBrandScoreReconstruction = buildLegacyBrandScoreReconstruction(
-        martBrandScoreProductContributors,
-        martBrandScoreBrandLevel[0] ?? {}
-    );
+    const martBrandScoreBrandLevel = brandWindowSets.flatMap((windowSet) => {
+        return buildBrandScoreBrandLevel(
+            windowSet.rows,
+            asOfDate,
+            stagingArtifacts.stg_data_freshness ?? [],
+            stagingArtifacts.stg_reconstructed_order_product_events ?? [],
+            {
+                prefiltered: true,
+                windowKey: windowSet.window_key,
+                windowDays: windowSet.window_days,
+                historyReady: windowSet.history_ready
+            }
+        );
+    });
+    const brandLevelByWindow = indexBy(martBrandScoreBrandLevel, (row) => row.window_key);
+    const martBrandScoreProductContributors = brandWindowSets.flatMap((windowSet) => {
+        return buildBrandScoreProductContributors(
+            windowSet.rows,
+            asOfDate,
+            brandLevelByWindow.get(windowSet.window_key) ?? {},
+            productImageByProduct,
+            {
+                prefiltered: true,
+                windowKey: windowSet.window_key
+            }
+        );
+    });
+    const martBrandScoreReconstruction = martBrandScoreProductContributors.map((row) => {
+        const brandLevelRow = brandLevelByWindow.get(row.window_key) ?? {};
+        return buildLegacyBrandScoreReconstruction([row], brandLevelRow)[0];
+    });
     const martReconstructionRegistry = buildReconstructionRegistry(
         asOfDate,
         stagingArtifacts.stg_data_freshness ?? [],
         stagingArtifacts.stg_reconstructed_order_product_events ?? [],
         stagingArtifacts.stg_reconstructed_basket_summary ?? [],
-        martBrandScoreBrandLevel[0] ?? {},
+        brandLevelByWindow.get('7d') ?? martBrandScoreBrandLevel[0] ?? {},
         martBrandScoreProductContributors
     );
     const martBrandScoreValidationStatus = buildBrandScoreValidationStatus(
@@ -1979,31 +2368,42 @@ export function buildMartArtifacts(stagingArtifacts, rawArtifacts, options = {})
 }
 
 function buildQueueSummary(queueRows) {
-    const counts = queueRows.reduce((accumulator, row) => {
-        accumulator[row.priority_level] = (accumulator[row.priority_level] ?? 0) + 1;
-        return accumulator;
-    }, {});
-    const brandRevenueContext = queueRows[0] ?? {};
+    return getOperatingWindowDays().flatMap((windowDays) => {
+        const windowKey = toWindowKey(windowDays);
+        const scopedRows = queueRows.filter((row) => row.window_key === windowKey);
+        const counts = scopedRows.reduce((accumulator, row) => {
+            accumulator[row.priority_level] = (accumulator[row.priority_level] ?? 0) + 1;
+            return accumulator;
+        }, {});
+        const brandRevenueContext = scopedRows[0] ?? {};
 
-    return PRIORITY_LEVELS.map((level) => ({
-        priority_level: level,
-        product_count: counts[level] ?? 0,
-        brand_revenue_30d_current: toText(brandRevenueContext.brand_revenue_30d_current),
-        brand_revenue_30d_previous: toText(brandRevenueContext.brand_revenue_30d_previous),
-        brand_revenue_30d_delta_rate: toText(brandRevenueContext.brand_revenue_30d_delta_rate)
-    }));
+        return PRIORITY_LEVELS.map((level) => ({
+            window_key: windowKey,
+            window_days: windowDays,
+            period_label: getPeriodLabel(windowKey),
+            priority_level: level,
+            product_count: counts[level] ?? 0,
+            brand_revenue_current: toText(brandRevenueContext.brand_revenue_current),
+            brand_revenue_previous: toText(brandRevenueContext.brand_revenue_previous),
+            brand_revenue_delta_rate: toText(brandRevenueContext.brand_revenue_delta_rate),
+            brand_revenue_30d_current: toText(brandRevenueContext.brand_revenue_30d_current),
+            brand_revenue_30d_previous: toText(brandRevenueContext.brand_revenue_30d_previous),
+            brand_revenue_30d_delta_rate: toText(brandRevenueContext.brand_revenue_30d_delta_rate)
+        }));
+    });
 }
 
 function buildProductDetail(priorityRows, revenueRows, roleRows, brandLevelRows, contributorRows) {
-    const revenueByProduct = indexBy(revenueRows, (row) => row.product_id);
-    const roleByProduct = indexBy(roleRows, (row) => row.product_id);
-    const contributorByProduct = indexBy(contributorRows, (row) => row.product_id);
-    const brandLevelRow = brandLevelRows[0] ?? {};
+    const revenueByProduct = indexBy(revenueRows, (row) => keyOf(row.window_key, row.product_id));
+    const roleByProduct = indexBy(roleRows, (row) => keyOf(row.window_key, row.product_id));
+    const contributorByProduct = indexBy(contributorRows, (row) => keyOf(row.window_key, row.product_id));
+    const brandLevelByWindow = indexBy(brandLevelRows, (row) => row.window_key);
 
     return priorityRows.flatMap((row) => {
-        const revenue = revenueByProduct.get(row.product_id) ?? {};
-        const role = roleByProduct.get(row.product_id) ?? {};
-        const contributor = contributorByProduct.get(row.product_id) ?? {};
+        const revenue = revenueByProduct.get(keyOf(row.window_key, row.product_id)) ?? {};
+        const role = roleByProduct.get(keyOf(row.window_key, row.product_id)) ?? {};
+        const contributor = contributorByProduct.get(keyOf(row.window_key, row.product_id)) ?? {};
+        const brandLevelRow = brandLevelByWindow.get(row.window_key) ?? {};
         const basketTypeLabel = toStructureLabel(contributor.basket_type || 'None');
 
         return [
@@ -2011,6 +2411,8 @@ function buildProductDetail(priorityRows, revenueRows, roleRows, brandLevelRows,
                 product_id: row.product_id,
                 product_name: row.product_name,
                 product_image_url: row.product_image_url,
+                window_key: row.window_key,
+                period_label: row.period_label,
                 section: '헤더',
                 label: '우선순위',
                 value: row.priority_level,
@@ -2020,24 +2422,30 @@ function buildProductDetail(priorityRows, revenueRows, roleRows, brandLevelRows,
                 product_id: row.product_id,
                 product_name: row.product_name,
                 product_image_url: row.product_image_url,
+                window_key: row.window_key,
+                period_label: row.period_label,
                 section: '매출',
-                label: '최근 30일 대비',
-                value: revenue.revenue_30d_delta_rate === '' ? '비교 불가' : `${(toNumber(revenue.revenue_30d_delta_rate) * 100).toFixed(1)}%`,
-                note: toText(revenue.revenue_30d_compare_note, row.revenue_reason)
+                label: `${row.period_label} 대비`,
+                value: revenue.revenue_delta_rate === '' ? '비교 불가' : `${(toNumber(revenue.revenue_delta_rate) * 100).toFixed(1)}%`,
+                note: toText(revenue.revenue_compare_note, row.revenue_reason)
             },
             {
                 product_id: row.product_id,
                 product_name: row.product_name,
                 product_image_url: row.product_image_url,
+                window_key: row.window_key,
+                period_label: row.period_label,
                 section: '매출',
                 label: '비교 상태',
-                value: toRevenueCompareStateLabel(revenue.revenue_30d_compare_state || 'history_insufficient'),
-                note: toText(revenue.revenue_30d_compare_note, '비교 이력이 부족해 직전 기간 비교가 어렵습니다.')
+                value: toRevenueCompareStateLabel(revenue.revenue_compare_state || 'history_insufficient'),
+                note: toText(revenue.revenue_compare_note, '비교 이력이 부족해 직전 기간 비교가 어렵습니다.')
             },
             {
                 product_id: row.product_id,
                 product_name: row.product_name,
                 product_image_url: row.product_image_url,
+                window_key: row.window_key,
+                period_label: row.period_label,
                 section: '역할 분류',
                 label: '현재 역할',
                 value: row.role_taxonomy,
@@ -2047,6 +2455,8 @@ function buildProductDetail(priorityRows, revenueRows, roleRows, brandLevelRows,
                 product_id: row.product_id,
                 product_name: row.product_name,
                 product_image_url: row.product_image_url,
+                window_key: row.window_key,
+                period_label: row.period_label,
                 section: '브랜드 점수',
                 label: '브랜드 반영 상태',
                 value: toText(brandLevelRow.status_label, toBrandScoreStatusLabel(row.brand_score_status)),
@@ -2056,6 +2466,8 @@ function buildProductDetail(priorityRows, revenueRows, roleRows, brandLevelRows,
                 product_id: row.product_id,
                 product_name: row.product_name,
                 product_image_url: row.product_image_url,
+                window_key: row.window_key,
+                period_label: row.period_label,
                 section: '브랜드 점수',
                 label: '상품 기여 상태',
                 value: toText(contributor.status_label, toBrandScoreStatusLabel(contributor.contribution_status || 'unavailable')),
@@ -2065,6 +2477,8 @@ function buildProductDetail(priorityRows, revenueRows, roleRows, brandLevelRows,
                 product_id: row.product_id,
                 product_name: row.product_name,
                 product_image_url: row.product_image_url,
+                window_key: row.window_key,
+                period_label: row.period_label,
                 section: '근거',
                 label: '반복 구매',
                 value: role.repeat_score == null ? '' : Number(role.repeat_score).toFixed(2),
@@ -2074,6 +2488,8 @@ function buildProductDetail(priorityRows, revenueRows, roleRows, brandLevelRows,
                 product_id: row.product_id,
                 product_name: row.product_name,
                 product_image_url: row.product_image_url,
+                window_key: row.window_key,
+                period_label: row.period_label,
                 section: '근거',
                 label: '동시구매 분류',
                 value: basketTypeLabel,
@@ -2083,6 +2499,8 @@ function buildProductDetail(priorityRows, revenueRows, roleRows, brandLevelRows,
                 product_id: row.product_id,
                 product_name: row.product_name,
                 product_image_url: row.product_image_url,
+                window_key: row.window_key,
+                period_label: row.period_label,
                 section: '근거',
                 label: '상위 연관 상품',
                 value: toText(contributor.top_pair_product_id, '관측 없음'),
@@ -2093,92 +2511,124 @@ function buildProductDetail(priorityRows, revenueRows, roleRows, brandLevelRows,
 }
 
 function buildDefinitionRules() {
-    return [
+    return getOperatingWindowDays().flatMap((windowDays) => {
+        const windowKey = toWindowKey(windowDays);
+        const periodLabel = getPeriodLabel(windowKey);
+        return [
         {
+            window_key: windowKey,
+            period_label: periodLabel,
             rule_group: '매출 비교',
             rule_name: '직전 기간 비교',
-            rule_definition: '7/30/90일 매출은 같은 길이의 직전 기간과 비교합니다.',
+            rule_definition: `${periodLabel} 매출은 같은 길이의 직전 기간과 비교합니다.`,
             status_label: '정상'
         },
         {
+            window_key: windowKey,
+            period_label: periodLabel,
             rule_group: '매출 비교',
             rule_name: '비교 이력 기준',
-            rule_definition: '비교 시작일 이전까지 이력이 확보된 경우에만 증감 비교를 사용합니다.',
+            rule_definition: `${periodLabel} 시작일 이전까지 이력이 확보된 경우에만 증감 비교를 사용합니다.`,
             status_label: '정상'
         },
         {
+            window_key: windowKey,
+            period_label: periodLabel,
             rule_group: '역할 분류',
-            rule_name: '기준일 스냅샷 사용',
-            rule_definition: '역할 분류는 기준일에 관측된 동일 일자 데이터만 사용합니다.',
+            rule_name: '선택 기간 관측 사용',
+            rule_definition: `역할 분류는 ${periodLabel} 관측을 기준으로 다시 집계합니다.`,
             status_label: '정상'
         },
         {
+            window_key: windowKey,
+            period_label: periodLabel,
             rule_group: '역할 분류',
             rule_name: '점수 우선 판정',
             rule_definition: '역할 분류는 첫구매·확장·반복·동시구매 점수를 우선 보고, 건수는 보조 근거로만 사용합니다.',
             status_label: '정상'
         },
         {
+            window_key: windowKey,
+            period_label: periodLabel,
             rule_group: '브랜드 점수',
             rule_name: '큐 미반영',
             rule_definition: '브랜드 점수는 상세·정의·데이터 상태 화면에만 표시하고 큐 랭킹에는 사용하지 않습니다.',
             status_label: '제한적 반영'
         },
         {
+            window_key: windowKey,
+            period_label: periodLabel,
             rule_group: '브랜드 점수',
             rule_name: '브랜드 단위 운영 계약',
             rule_definition: '브랜드 점수는 브랜드 단위 값과 상품별 기여도로 나눠 관리하며, 상품별 최종 점수처럼 사용하지 않습니다.',
             status_label: '제한적 반영'
         },
         {
+            window_key: windowKey,
+            period_label: periodLabel,
             rule_group: '브랜드 점수',
             rule_name: '상태와 숫자 노출',
             rule_definition: '산출 불가·제한 반영·운영 참고·검증 후보 상태로 나누고, 제한 반영 이하에서는 최종 숫자를 숨깁니다.',
             status_label: '제한적 반영'
         },
         {
+            window_key: windowKey,
+            period_label: periodLabel,
             rule_group: '브랜드 점수',
             rule_name: '재구성 관리 기록',
             rule_definition: '재구성 수준, 정합성 수준, 제한 사유를 관리 기록과 브랜드·상품 기여 산출에 함께 남깁니다.',
             status_label: '제한적 반영'
         },
         {
+            window_key: windowKey,
+            period_label: periodLabel,
             rule_group: '브랜드 점수',
             rule_name: '최신성 제한',
-            rule_definition: '이벤트나 동시구매 데이터 최신성이 부족하면 운영 참고 대신 제한 반영으로 낮추고, 검증 후보는 기본 비활성으로 둡니다.',
+            rule_definition: `${periodLabel} 화면에서도 이벤트나 동시구매 데이터 최신성이 부족하면 제한 반영으로 낮춥니다.`,
             status_label: '제한적 반영'
         },
         {
+            window_key: windowKey,
+            period_label: periodLabel,
             rule_group: '브랜드 점수',
             rule_name: '숫자 노출 규칙',
             rule_definition: '제한 반영과 산출 불가 상태에서는 최종 브랜드 점수 숫자를 숨기고 상태와 제한 사유만 보여줍니다.',
             status_label: '제한적 반영'
         },
         {
+            window_key: windowKey,
+            period_label: periodLabel,
             rule_group: '역할 분류',
             rule_name: '동시구매 근거',
             rule_definition: '동시구매 기여는 재구성된 동시구매 요약을 근거로 하며, 상세 보기에서는 분류와 동반구매율, 상위 연관 상품을 함께 보여줍니다.',
             status_label: '제한적 반영'
         },
         {
+            window_key: windowKey,
+            period_label: periodLabel,
             rule_group: '데이터 상태',
             rule_name: 'freshness 공개',
             rule_definition: '원천 데이터 최신일 차이를 숨기지 않고 그대로 표시합니다.',
             status_label: '정상'
         },
         {
+            window_key: windowKey,
+            period_label: periodLabel,
             rule_group: '데이터 상태',
             rule_name: '비교 이력 부족 공개',
-            rule_definition: '직전 기간 비교에 필요한 이력이 부족하면 비교 불가 상태를 그대로 표시합니다.',
+            rule_definition: `${periodLabel} 비교에 필요한 이력이 부족하면 비교 불가 상태를 그대로 표시합니다.`,
             status_label: '정상'
         },
         {
+            window_key: windowKey,
+            period_label: periodLabel,
             rule_group: '상품 이미지',
             rule_name: 'Rosetta products 기준',
             rule_definition: '상품 이미지는 raw_rosetta.products.csv의 list_image를 기준으로 사용합니다.',
             status_label: '정상'
         }
-    ];
+        ];
+    });
 }
 
 function buildIterationLog() {
@@ -2252,6 +2702,14 @@ export function buildViewModelArtifacts(martArtifacts) {
     const dataHealthRows = martArtifacts.mart_data_health_snapshot ?? [];
     const segmentRows = martArtifacts.mart_segment_structure_snapshot ?? [];
     const queueRows = martArtifacts.mart_priority_queue_snapshot ?? [];
+    const healthOverviewRows = getOperatingWindowDays().flatMap((windowDays) => {
+        const windowKey = toWindowKey(windowDays);
+        return buildDataHealthOverview(
+            dataHealthRows.filter((row) => row.window_key === windowKey),
+            brandLevelRows.find((row) => row.window_key === windowKey) ?? {},
+            windowKey
+        );
+    });
 
     return {
         vm_priority_queue: queueRows,
@@ -2267,7 +2725,7 @@ export function buildViewModelArtifacts(martArtifacts) {
         ),
         vm_definition_rules: buildDefinitionRules(),
         vm_data_health: dataHealthRows,
-        vm_data_health_overview: buildDataHealthOverview(dataHealthRows, brandLevelRows[0] ?? {}),
+        vm_data_health_overview: healthOverviewRows,
         vm_data_health_detail: buildDataHealthDetail(dataHealthRows),
         vm_brand_score_panel: brandLevelRows,
         vm_brand_score_product_contributors: contributorRows,
@@ -2297,8 +2755,8 @@ export function buildRawManifest(rawArtifacts, refreshStatusRows = []) {
             status: toText(refreshStatus.status, rows.length ? 'completed' : 'missing'),
             exists: rows.length ? 'true' : 'false',
             row_count: rows.length,
-            min_date: toText(refreshStatus.min_date, dateCandidates[0] ?? ''),
-            max_date: toText(refreshStatus.max_date, dateCandidates.at(-1) ?? ''),
+            min_date: datasetKey === 'products' ? (dateCandidates[0] ?? '') : toText(refreshStatus.min_date, dateCandidates[0] ?? ''),
+            max_date: datasetKey === 'products' ? (dateCandidates.at(-1) ?? '') : toText(refreshStatus.max_date, dateCandidates.at(-1) ?? ''),
             requested_lookback_days: toText(refreshStatus.requested_lookback_days),
             effective_lookback_days: toText(refreshStatus.effective_lookback_days),
             required_min_lookback_days: toText(refreshStatus.required_min_lookback_days),
@@ -2333,7 +2791,7 @@ export function buildValidationSummary(martArtifacts, viewModelArtifacts, rawMan
         : hasQueueImages
             ? 'preview_reference_only'
             : 'missing';
-    const availableRevenueCompareRows = queueRows.filter((row) => toText(row.revenue_30d_compare_state) === 'available');
+    const availableRevenueCompareRows = queueRows.filter((row) => toText(row.revenue_compare_state) === 'available');
     const healthBySource = indexBy(healthRows, (row) => toText(row.source_key));
     const freshnessMismatchCount = rawManifestRows.filter((row) => {
         const sourceKey = toText(row.dataset_key);
@@ -2364,18 +2822,22 @@ export function buildValidationSummary(martArtifacts, viewModelArtifacts, rawMan
     const detailProductCount = uniqueCount(detailRows.map((row) => row.product_id));
     const queueProductCount = uniqueCount(queueRows.map((row) => row.product_id));
     const queueSummaryBrandContext = queueSummaryRows.some((row) => {
-        return toText(row.brand_revenue_30d_current) && toText(row.brand_revenue_30d_previous) !== '' && toText(row.brand_revenue_30d_delta_rate) !== '';
+        return toText(row.brand_revenue_current) && toText(row.brand_revenue_previous) !== '' && toText(row.brand_revenue_delta_rate) !== '';
     });
     const revenueHistoryReady = toText(revenueManifest.history_ready_30d) === 'true' && toText(revenueManifest.history_ready_90d) === 'true';
     const brandScoreValidationRow = brandScoreValidationRows[0] ?? {};
-    const brandScorePanelSingleton = brandScorePanelRows.length === 1;
+    const brandScorePanelWindowReady = ['1d', '7d', '30d'].every((windowKey) => {
+        return brandScorePanelRows.some((row) => toText(row.window_key) === windowKey);
+    });
     const brandScoreNumericPolicyValid = (() => {
-        const status = toText(brandScorePanelRow.brand_score_status);
-        if (['limited', 'unavailable'].includes(status)) {
-            return toText(brandScorePanelRow.numeric_display_policy) === 'hide'
-                && toText(brandScorePanelRow.brand_score_display_value) === '';
-        }
-        return true;
+        return brandScorePanelRows.every((row) => {
+            const status = toText(row.brand_score_status);
+            if (['limited', 'unavailable'].includes(status)) {
+                return toText(row.numeric_display_policy) === 'hide'
+                    && toText(row.brand_score_display_value) === '';
+            }
+            return true;
+        });
     })();
     const registryHasContracts = [
         'revenue_rolling',
@@ -2403,8 +2865,8 @@ export function buildValidationSummary(martArtifacts, viewModelArtifacts, rawMan
         },
         {
             check_name: 'role_same_date_snapshot',
-            status: roleRows.every((row) => row.as_of_date) ? 'pass' : 'fail',
-            message: 'Role taxonomy는 as_of_date 기준 단일 snapshot으로 생성합니다.'
+            status: roleRows.every((row) => row.as_of_date && row.window_key) ? 'pass' : 'fail',
+            message: 'Role taxonomy는 as_of_date + window_key 기준 기간형 row로 생성합니다.'
         },
         {
             check_name: 'brand_score_queue_exclusion',
@@ -2413,8 +2875,8 @@ export function buildValidationSummary(martArtifacts, viewModelArtifacts, rawMan
         },
         {
             check_name: 'brand_score_panel_singleton',
-            status: brandScorePanelSingleton ? 'pass' : 'fail',
-            message: brandScorePanelSingleton ? 'Brand Score panel은 brand-level 단일 row 계약으로 생성됩니다.' : 'Brand Score panel row 수가 brand-level 단일 계약과 맞지 않습니다.'
+            status: brandScorePanelWindowReady ? 'pass' : 'fail',
+            message: brandScorePanelWindowReady ? 'Brand Score panel은 1d/7d/30d brand-level row 계약으로 생성됩니다.' : 'Brand Score panel의 기간별 row 계약이 맞지 않습니다.'
         },
         {
             check_name: 'brand_score_numeric_policy',
@@ -2438,7 +2900,7 @@ export function buildValidationSummary(martArtifacts, viewModelArtifacts, rawMan
         {
             check_name: 'revenue_compare_population',
             status: availableRevenueCompareRows.length ? 'pass' : 'fail',
-            message: availableRevenueCompareRows.length ? 'Revenue 30일 비교 가능 상품이 존재합니다.' : 'Revenue 30일 비교 가능 상품이 없습니다.'
+            message: availableRevenueCompareRows.length ? '선택 기간 기준 Revenue 비교 가능 상품이 존재합니다.' : '선택 기간 기준 Revenue 비교 가능 상품이 없습니다.'
         },
         {
             check_name: 'freshness_timestamp_consistency',
@@ -2475,7 +2937,7 @@ export function buildValidationSummary(martArtifacts, viewModelArtifacts, rawMan
         {
             check_name: 'brand_revenue_context_present',
             status: queueSummaryBrandContext ? 'pass' : 'fail',
-            message: queueSummaryBrandContext ? '브랜드 30일 Revenue 컨텍스트가 큐 요약에 포함되어 있습니다.' : '브랜드 30일 Revenue 컨텍스트가 큐 요약에 없습니다.'
+            message: queueSummaryBrandContext ? '브랜드 기간별 Revenue 컨텍스트가 큐 요약에 포함되어 있습니다.' : '브랜드 기간별 Revenue 컨텍스트가 큐 요약에 없습니다.'
         }
     ];
 }

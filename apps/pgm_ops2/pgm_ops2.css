@@ -77,6 +77,12 @@ button {
     color: var(--muted);
 }
 
+.app-header-note {
+    margin: 8px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+}
+
 .app-nav {
     display: grid;
     gap: 6px;
@@ -117,6 +123,32 @@ button {
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.window-toggle {
+    display: inline-flex;
+    padding: 4px;
+    border-radius: 999px;
+    background: rgba(255, 253, 248, 0.92);
+    border: 1px solid rgba(31, 26, 20, 0.08);
+    box-shadow: var(--shadow);
+}
+
+.window-toggle-item {
+    border: 0;
+    background: transparent;
+    padding: 7px 12px;
+    border-radius: 999px;
+    color: var(--muted);
+    cursor: pointer;
+}
+
+.window-toggle-item.is-active {
+    background: var(--surface-alt);
+    color: var(--text);
+    box-shadow: inset 0 0 0 1px rgba(31, 26, 20, 0.08);
 }
 
 .meta-chip,
@@ -800,6 +832,10 @@ button {
         align-items: flex-start;
     }
 
+    .app-header-meta {
+        justify-content: flex-start;
+    }
+
     .queue-row,
     .detail-layout,
     .detail-section-grid {
@@ -872,6 +908,17 @@ button {
 
     .app-header-meta {
         width: 100%;
+    }
+
+    .window-toggle {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .window-toggle-item {
+        flex: 1 1 0;
+        text-align: center;
+        padding: 6px 8px;
     }
 
     .meta-chip {

@@ -1,4 +1,5 @@
-export const WINDOWS = [7, 30, 90];
+export const WINDOWS = [1, 7, 30, 90];
+export const DEFAULT_WINDOW_KEY = '7d';
 export const PRIORITY_LEVELS = ['즉시 확인', '주의 관찰', '정상 유지'];
 export const BRAND_SCORE_STATUSES = ['unavailable', 'limited', 'provisional', 'near-core'];
 export const DEFAULT_LOOKBACK_DAYS = 120;
@@ -51,7 +52,7 @@ export const STAGING_FILE_NAMES = {
 
 export const MART_FILE_NAMES = {
     mart_product_revenue_windows: 'mart_product_revenue_windows.csv',
-    mart_product_role_taxonomy_daily: 'mart_product_role_taxonomy_daily.csv',
+    mart_product_role_taxonomy_daily: 'mart_product_role_taxonomy_by_window.csv',
     mart_product_priority_basis: 'mart_product_priority_basis.csv',
     mart_priority_queue_snapshot: 'mart_priority_queue_snapshot.csv',
     mart_segment_structure_snapshot: 'mart_segment_structure_snapshot.csv',

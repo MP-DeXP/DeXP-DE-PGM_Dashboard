@@ -1,7 +1,8 @@
 const state = {
     view: 'priority',
     bundle: null,
-    selectedProductId: ''
+    selectedProductId: '',
+    windowKey: '7d'
 };
 
 const VIEW_MODEL_FILES = {
@@ -22,7 +23,7 @@ const VIEW_MODEL_FILES = {
 
 const MART_FILES = {
     mart_product_revenue_windows: ['mart_product_revenue_windows.csv'],
-    mart_product_role_taxonomy_daily: ['mart_product_role_taxonomy_daily.csv'],
+    mart_product_role_taxonomy_daily: ['mart_product_role_taxonomy_by_window.csv', 'mart_product_role_taxonomy_daily.csv'],
     mart_product_priority_basis: ['mart_product_priority_basis.csv'],
     mart_priority_queue_snapshot: ['mart_priority_queue_snapshot.csv'],
     mart_segment_structure_snapshot: ['mart_role_revenue_matrix_snapshot.csv', 'mart_segment_structure_snapshot.csv'],
@@ -41,6 +42,19 @@ const QA_FILES = {
 
 const REVENUE_SEGMENT_ORDER = ['감소', '유지', '증가'];
 const ROLE_ORDER = ['첫구매기여', '재구매확장기여', '반복구매기여', '동시구매기여', '관측 없음'];
+const WINDOW_ORDER = ['1d', '7d', '30d'];
+
+function getWindowLabel(windowKey) {
+    if (windowKey === '1d') return '하루 기준';
+    if (windowKey === '30d') return '30일 기준';
+    return '7일 기준';
+}
+
+function getWindowLead(windowKey) {
+    if (windowKey === '1d') return '하루 기준으로 매출·역할 분류를 보고, 브랜드 점수는 단기 보조 신호로만 봅니다.';
+    if (windowKey === '30d') return '30일 기준으로 매출 흐름을 보되, 역할 분류와 브랜드 점수는 참고 범위를 함께 확인합니다.';
+    return '최근 7일 기준으로 매출과 역할 분류를 보고, 브랜드 점수는 보조 신호로만 봅니다.';
+}
 
 function escapeHtml(value) {
     return String(value ?? '')
@@ -193,6 +207,7 @@ function brandStatusClass(value) {
 
 function coverageStateClass(value) {
     if (value === '정상') return 'status-ready';
+    if (String(value).includes('비교 가능')) return 'status-ready';
     if (value === '30일까지만 가능') return 'status-warning';
     if (value === 'history 부족' || value === '비교 불가') return 'status-muted';
     return 'status-neutral';
@@ -538,6 +553,34 @@ function getQaRows(name) {
     return state.bundle?.qa?.[name] ?? [];
 }
 
+function getRowsForWindow(rows) {
+    if (!Array.isArray(rows) || !rows.length) {
+        return [];
+    }
+    if (!('window_key' in rows[0])) {
+        return rows;
+    }
+    const scopedRows = rows.filter((row) => row.window_key === state.windowKey);
+    return scopedRows.length ? scopedRows : rows.filter((row) => row.window_key === '7d');
+}
+
+function readWindowKeyFromUrl() {
+    const value = new URLSearchParams(window.location.search).get('window');
+    return WINDOW_ORDER.includes(value) ? value : '7d';
+}
+
+function readViewFromUrl() {
+    const value = new URLSearchParams(window.location.search).get('view');
+    return ['priority', 'segments', 'detail', 'definitions', 'health'].includes(value) ? value : 'priority';
+}
+
+function syncStateToUrl() {
+    const url = new URL(window.location.href);
+    url.searchParams.set('window', state.windowKey);
+    url.searchParams.set('view', state.view);
+    window.history.replaceState({}, '', url);
+}
+
 function setTitle(view) {
     const titleMap = {
         priority: '우선순위',
@@ -550,11 +593,11 @@ function setTitle(view) {
 }
 
 function buildProductMaps() {
-    const queueRows = getViewModel('vm_priority_queue');
-    const brandLevelRows = getViewModel('vm_brand_score_panel');
-    const contributorRows = getViewModel('vm_brand_score_product_contributors');
-    const roleRows = getMartRows('mart_product_role_taxonomy_daily');
-    const revenueRows = getMartRows('mart_product_revenue_windows');
+    const queueRows = getRowsForWindow(getViewModel('vm_priority_queue'));
+    const brandLevelRows = getRowsForWindow(getViewModel('vm_brand_score_panel'));
+    const contributorRows = getRowsForWindow(getViewModel('vm_brand_score_product_contributors'));
+    const roleRows = getRowsForWindow(getMartRows('mart_product_role_taxonomy_daily'));
+    const revenueRows = getRowsForWindow(getMartRows('mart_product_revenue_windows'));
 
     return {
         queueMap: new Map(queueRows.map((row) => [row.product_id, row])),
@@ -620,7 +663,7 @@ function buildSegmentCells(rows) {
             priority_level: queueRow.priority_level || row.priority_level,
             brand_score_status: brandRow.brand_score_status || row.brand_score_status || '',
             role_score: roleRow.role_score || '',
-            revenue_change_rate_30d: revenueRow.revenue_30d_delta_rate || queueRow.revenue_change_rate_30d || ''
+            revenue_change_rate: revenueRow.revenue_delta_rate || queueRow.revenue_change_rate || ''
         });
     });
 
@@ -628,17 +671,17 @@ function buildSegmentCells(rows) {
 }
 
 function renderSummaryCards() {
-    const rows = getViewModel('vm_queue_summary');
+    const rows = getRowsForWindow(getViewModel('vm_queue_summary'));
 
     if (!rows.length) {
         return '<div class="empty-state">표시할 우선순위 집계가 없습니다.</div>';
     }
 
-    const brandRevenueCurrent = Number(rows[0]?.brand_revenue_30d_current ?? 0);
-    const brandRevenuePrevious = Number(rows[0]?.brand_revenue_30d_previous ?? 0);
-    const brandRevenueDeltaRate = rows[0]?.brand_revenue_30d_delta_rate === '' || rows[0]?.brand_revenue_30d_delta_rate == null
+    const brandRevenueCurrent = Number(rows[0]?.brand_revenue_current ?? 0);
+    const brandRevenuePrevious = Number(rows[0]?.brand_revenue_previous ?? 0);
+    const brandRevenueDeltaRate = rows[0]?.brand_revenue_delta_rate === '' || rows[0]?.brand_revenue_delta_rate == null
         ? null
-        : Number(rows[0]?.brand_revenue_30d_delta_rate);
+        : Number(rows[0]?.brand_revenue_delta_rate);
 
     return `
         <div class="summary-grid">
@@ -652,7 +695,7 @@ function renderSummaryCards() {
             <article class="summary-card">
                 <div class="section-kicker">브랜드 매출</div>
                 <strong>${escapeHtml(brandRevenueCurrent.toLocaleString('ko-KR'))}</strong>
-                <div>최근 30일 합계</div>
+                <div>${escapeHtml(getWindowLabel(state.windowKey))} 합계</div>
                 <small>직전 기간 ${escapeHtml(brandRevenuePrevious.toLocaleString('ko-KR'))}</small>
                 <small>${escapeHtml(brandRevenueDeltaRate == null ? '비교 보류' : `${formatPercent(brandRevenueDeltaRate)}`)}</small>
             </article>
@@ -661,7 +704,7 @@ function renderSummaryCards() {
 }
 
 function renderPriorityView() {
-    const queueRows = getViewModel('vm_priority_queue');
+    const queueRows = getRowsForWindow(getViewModel('vm_priority_queue'));
     const rawMissing = state.bundle?.raw_data_status !== 'real_source_loaded';
 
     if (!queueRows.length) {
@@ -680,7 +723,7 @@ function renderPriorityView() {
                     <div class="section-kicker">첫 화면</div>
                     <h3 class="section-title">상품 우선순위 큐</h3>
                 </div>
-                <p class="muted">매출 흐름과 역할 분류를 기준으로 우선순위를 보고, 브랜드 상태는 참고 정보로 함께 확인합니다.</p>
+                <p class="muted">${escapeHtml(getWindowLead(state.windowKey))}</p>
             </div>
         </section>
         ${renderSummaryCards()}
@@ -728,8 +771,8 @@ function renderPriorityView() {
 }
 
 function renderSegmentsView() {
-    const structureRows = getViewModel('vm_structure_map_cells');
-    const rows = structureRows.length ? structureRows : getViewModel('vm_segment_map');
+    const structureRows = getRowsForWindow(getViewModel('vm_structure_map_cells'));
+    const rows = structureRows.length ? structureRows : getRowsForWindow(getViewModel('vm_segment_map'));
 
     if (!rows.length) {
         return '<div class="empty-state">구조 맵 데이터가 없습니다.</div>';
@@ -746,9 +789,9 @@ function renderSegmentsView() {
             <div class="hero-heading">
                 <div>
                     <div class="section-kicker">구조 맵</div>
-                    <h3 class="section-title">매출 변화 x 역할 분류</h3>
+                    <h3 class="section-title">${escapeHtml(`${getWindowLabel(state.windowKey)} 매출 변화 x 역할 분류`)}</h3>
                 </div>
-                <p class="muted">매출 변화와 역할 분류를 기준으로, 어느 상품군에서 즉시 확인 항목이 몰리는지 먼저 봅니다.</p>
+                <p class="muted">어느 역할군에서 매출 감소와 즉시 확인 항목이 몰리는지 ${escapeHtml(getWindowLabel(state.windowKey))} 기준으로 봅니다.</p>
             </div>
         </section>
         <section class="panel matrix-shell">
@@ -834,7 +877,7 @@ function renderSegmentsView() {
                                                     ${renderProductThumb(product, { size: 'small' })}
                                                     <div class="matrix-product-copy">
                                                         <strong>${escapeHtml(product.product_name || product.product_id)}</strong>
-                                                        <span>${escapeHtml(structureRows.length ? `${textOrFallback(product.priority_level, '상태 확인')}` : `${product.priority_level} · 기여 ${formatDecimal(product.role_score, { digits: 2, fallback: '-' })} · 매출 ${formatPercent(product.revenue_change_rate_30d, { fallback: '보류' })}`)}</span>
+                                                        <span>${escapeHtml(structureRows.length ? `${textOrFallback(product.priority_level, '상태 확인')}` : `${product.priority_level} · 기여 ${formatDecimal(product.role_score, { digits: 2, fallback: '-' })} · 매출 ${formatPercent(product.revenue_change_rate, { fallback: '보류' })}`)}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -878,8 +921,8 @@ function renderDetailOverviewCards(selectedQueueRow, roleRow, revenueRow, contri
             </article>
             <article class="overview-card">
                 <div class="section-kicker">매출 흐름</div>
-                <strong class="overview-value">${escapeHtml(formatPercent(revenueRow.revenue_30d_delta_rate ?? selectedQueueRow.revenue_change_rate_30d, { fallback: '보류' }))}</strong>
-                <p class="overview-note">${escapeHtml(sanitizeOperatingCopy(revenueRow.revenue_30d_compare_note || selectedQueueRow.revenue_reason))}</p>
+                <strong class="overview-value">${escapeHtml(formatPercent(revenueRow.revenue_delta_rate ?? selectedQueueRow.revenue_change_rate, { fallback: '보류' }))}</strong>
+                <p class="overview-note">${escapeHtml(sanitizeOperatingCopy(revenueRow.revenue_compare_note || selectedQueueRow.revenue_reason))}</p>
             </article>
             <article class="overview-card">
                 <div class="section-kicker">상품 기여도</div>
@@ -930,8 +973,8 @@ function renderDetailSectionRows(rows) {
 }
 
 function renderDetailView() {
-    const queueRows = getViewModel('vm_priority_queue');
-    const detailRows = getViewModel('vm_product_detail');
+    const queueRows = getRowsForWindow(getViewModel('vm_priority_queue'));
+    const detailRows = getRowsForWindow(getViewModel('vm_product_detail'));
 
     if (!queueRows.length) {
         return '<div class="empty-state">상세 보기 데이터가 없습니다.</div>';
@@ -939,8 +982,8 @@ function renderDetailView() {
 
     const { roleMap, contributorMap, brandLevelRow, revenueMap } = buildProductMaps();
     const selectedProductId = state.selectedProductId || queueRows[0].product_id;
-    state.selectedProductId = selectedProductId;
     const selectedQueueRow = queueRows.find((row) => row.product_id === selectedProductId) ?? queueRows[0];
+    state.selectedProductId = selectedQueueRow.product_id;
     const selectedRows = detailRows.filter((row) => row.product_id === selectedQueueRow.product_id);
     const roleRow = roleMap.get(selectedQueueRow.product_id) ?? {};
     const contributorRow = contributorMap.get(selectedQueueRow.product_id) ?? {};
@@ -980,6 +1023,7 @@ function renderDetailView() {
                         <p class="muted">${escapeHtml(selectedQueueRow.product_id)}</p>
                         <div class="inline-chip-row">
                             <span class="pill ${priorityClass(selectedQueueRow.priority_level)}">${escapeHtml(selectedQueueRow.priority_level)}</span>
+                            <span class="pill status-neutral">${escapeHtml(getWindowLabel(state.windowKey))}</span>
                             ${renderStatusChip(textOrFallback(selectedQueueRow.role_taxonomy), 'status-neutral')}
                             ${renderStatusChip(translateBrandStatus(contributorRow.contribution_status || selectedQueueRow.brand_score_status), brandStatusClass(contributorRow.contribution_status || selectedQueueRow.brand_score_status))}
                         </div>
@@ -993,7 +1037,7 @@ function renderDetailView() {
 }
 
 function renderDefinitionsView() {
-    const rows = getViewModel('vm_definition_rules');
+    const rows = getRowsForWindow(getViewModel('vm_definition_rules'));
 
     if (!rows.length) {
         return '<div class="empty-state">운영 기준 데이터가 없습니다.</div>';
@@ -1014,7 +1058,7 @@ function renderDefinitionsView() {
                     <div class="section-kicker">운영 기준</div>
                     <h3 class="section-title">화면에서 쓰는 기준과 안내</h3>
                 </div>
-                <p class="muted">현재 화면에서 어떤 기준으로 보고 있는지, 운영 문구로만 간단히 정리했습니다.</p>
+                <p class="muted">${escapeHtml(`${getWindowLabel(state.windowKey)} 기준으로 어떤 신호를 우선 보는지 정리했습니다.`)}</p>
             </div>
         </section>
         <section class="definition-groups">
@@ -1050,9 +1094,9 @@ function renderOverviewCard(title, value, note, className = '') {
 }
 
 function renderHealthView() {
-    const overviewRows = getViewModel('vm_data_health_overview');
-    const healthRows = getViewModel('vm_data_health_detail').length ? getViewModel('vm_data_health_detail') : getViewModel('vm_data_health');
-    const queueRows = getViewModel('vm_priority_queue');
+    const overviewRows = getRowsForWindow(getViewModel('vm_data_health_overview'));
+    const healthRows = getRowsForWindow(getViewModel('vm_data_health_detail').length ? getViewModel('vm_data_health_detail') : getViewModel('vm_data_health'));
+    const queueRows = getRowsForWindow(getViewModel('vm_priority_queue'));
     const rawManifestRows = getQaRows('raw_manifest');
     const productImageManifest = rawManifestRows.find((row) => row.dataset_key === 'products') ?? {};
     const imageSummary = productImageManifest.data_provenance === 'rosetta_direct'
@@ -1082,7 +1126,7 @@ function renderHealthView() {
                     <div class="section-kicker">운영 현황</div>
                     <h3 class="section-title">오늘 바로 볼 운영 개요</h3>
                 </div>
-                <p class="muted">지금 믿고 볼 수 있는 것과 제한되는 것을 먼저 보고, 세부 근거는 필요할 때만 펼쳐서 봅니다.</p>
+                <p class="muted">${escapeHtml(`${getWindowLabel(state.windowKey)} 기준으로 무엇을 믿고 볼 수 있는지 먼저 정리합니다.`)}</p>
             </div>
         </section>
         <section class="overview-grid">
@@ -1156,9 +1200,16 @@ function render() {
 
     setTitle(state.view);
     document.querySelector('#as-of-date').textContent = state.bundle.latest_as_of_date || '-';
+    document.querySelector('#period-note').textContent = getWindowLead(state.windowKey);
     document.querySelector('#data-state').textContent = state.bundle.raw_data_status === 'real_source_loaded'
-        ? (getViewModel('vm_priority_queue').length ? '운영 가능' : '산출물 없음')
+        ? (getRowsForWindow(getViewModel('vm_priority_queue')).length ? '운영 가능' : '산출물 없음')
         : '데이터 확인 필요';
+    document.querySelectorAll('[data-view]').forEach((button) => {
+        button.classList.toggle('is-active', button.dataset.view === state.view);
+    });
+    document.querySelectorAll('[data-window-key]').forEach((button) => {
+        button.classList.toggle('is-active', button.dataset.windowKey === state.windowKey);
+    });
 
     const rendererMap = {
         priority: renderPriorityView,
@@ -1293,7 +1344,10 @@ async function loadBundleWithFallback() {
 }
 
 async function loadBundle() {
+    state.windowKey = readWindowKeyFromUrl();
+    state.view = readViewFromUrl();
     state.bundle = await loadBundleWithFallback();
+    syncStateToUrl();
     render();
 }
 
@@ -1339,12 +1393,24 @@ function bindNav() {
             document.querySelectorAll('[data-view]').forEach((item) => item.classList.remove('is-active'));
             button.classList.add('is-active');
             state.view = button.dataset.view;
+            syncStateToUrl();
+            render();
+        });
+    });
+}
+
+function bindWindowToggle() {
+    document.querySelectorAll('[data-window-key]').forEach((button) => {
+        button.addEventListener('click', () => {
+            state.windowKey = button.dataset.windowKey;
+            syncStateToUrl();
             render();
         });
     });
 }
 
 bindNav();
+bindWindowToggle();
 loadBundle().catch((error) => {
     document.querySelector('#app-root').innerHTML = `<div class="empty-state">로딩 실패: ${escapeHtml(error.message)}</div>`;
 });
