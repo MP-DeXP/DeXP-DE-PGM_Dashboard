@@ -75,6 +75,7 @@ export const VIEW_MODEL_FILE_NAMES = {
     vm_data_health_overview: 'vm_data_health_overview.csv',
     vm_data_health_detail: 'vm_data_health_detail.csv',
     vm_brand_score_panel: 'vm_brand_score_panel.csv',
+    vm_brand_direction_summary: 'vm_brand_direction_summary.csv',
     vm_brand_score_product_contributors: 'vm_brand_score_product_contributors.csv',
     vm_reconstruction_registry: 'vm_reconstruction_registry.csv',
     vm_iteration_log: 'vm_iteration_log.csv'

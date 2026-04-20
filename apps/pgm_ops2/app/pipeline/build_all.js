@@ -205,10 +205,11 @@ function toRevenueCompareStateLabel(state) {
 
 function toBrandScoreStatusLabel(status) {
     const labels = {
-        unavailable: '산출 불가',
-        limited: '제한 반영',
-        provisional: '운영 참고',
-        'near-core': '검증 후보'
+        unavailable: '브랜드 방향 산출 없음',
+        limited: '브랜드 방향 신호 제한 반영',
+        provisional: '브랜드 구조 변화 신호',
+        available: '브랜드 구조 반영 완료',
+        'near-core': '브랜드 구조 변화 신호 검증 중'
     };
     return labels[toText(status)] ?? translateUserFacingText(status);
 }
@@ -288,19 +289,140 @@ function buildBrandScoreNote(status, rawReason, fallback = '') {
     const summary = summarizeBrandScoreReason(status, rawReason, fallback).replace(/[.]+$/g, '');
 
     if (status === 'unavailable') {
-        return `산출 보류: ${summary}`;
+        return summary
+            ? `브랜드 방향 산출에 필요한 근거가 부족해 ${summary} 상태입니다.`
+            : '브랜드 방향 산출에 필요한 근거가 아직 부족합니다.';
     }
     if (status === 'limited') {
-        return `제한 반영: ${summary}`;
+        return summary
+            ? `브랜드 방향 신호는 ${summary} 제약을 반영해 제한적으로 읽습니다.`
+            : '브랜드 방향 신호를 제한적으로 읽습니다.';
     }
     if (status === 'near-core') {
-        return summary.endsWith('단계')
-            ? `${summary}입니다.`
-            : `검증 단계: ${summary}`;
+        return summary
+            ? `브랜드 구조 변화 신호를 ${summary} 기준으로 검증 중입니다.`
+            : '브랜드 구조 변화 신호를 검증 중입니다.';
     }
-    return summary === '운영 참고값 제공'
-        ? '운영 참고용 점수를 제공합니다.'
-        : `운영 참고 기준: ${summary}`;
+    if (status === 'available') {
+        return summary
+            ? `브랜드 구조 반영을 완료했고 ${summary}를 함께 확인합니다.`
+            : '브랜드 구조 반영을 완료했습니다.';
+    }
+    return summary && summary !== '운영 참고값 제공'
+        ? `브랜드 구조 변화 신호를 ${summary}와 함께 읽습니다.`
+        : '브랜드 구조 변화 신호를 읽을 수 있습니다.';
+}
+
+function getBrandDirectionCompareWindowKey(windowKey) {
+    const comparisons = {
+        '1d': '7d',
+        '7d': '30d',
+        '30d': '7d'
+    };
+    return comparisons[windowKey] ?? '7d';
+}
+
+function getBrandDirectionLabel(directionKey) {
+    const labels = {
+        flat: '변화 작음',
+        improving: '브랜드 구조 개선 신호',
+        deteriorating: '브랜드 구조 악화 신호',
+        hold: '브랜드 방향 판단 보류'
+    };
+    return labels[directionKey] ?? '브랜드 방향 판단 보류';
+}
+
+function getBrandDirectionRelativeText(delta) {
+    if (!Number.isFinite(delta)) {
+        return '판단을 보류합니다';
+    }
+    if (Math.abs(delta) < 0.01) {
+        return '변화가 작습니다';
+    }
+    if (delta >= 0.01) {
+        return '더 강하게 유지됩니다';
+    }
+    return '더 약하게 유지됩니다';
+}
+
+function buildBrandDirectionProductContributionNote(contributorRows = []) {
+    const topContributors = [...contributorRows]
+        .sort((left, right) => {
+            return (
+                toNumber(right.contribution_share) - toNumber(left.contribution_share)
+                || toNumber(left.contributor_rank) - toNumber(right.contributor_rank)
+            );
+        })
+        .slice(0, 3)
+        .map((row) => toText(row.product_name || row.product_id))
+        .filter(Boolean);
+
+    if (!topContributors.length) {
+        return '상품 기여 집계 대상은 아직 충분하지 않습니다. 상품 기여는 브랜드 전체 방향을 보조로 설명하며 큐 순위에는 반영하지 않습니다.';
+    }
+
+    return `상품 기여는 ${topContributors.join(', ')} 중심으로 집계합니다. 상품 기여는 브랜드 전체 방향을 보조로 설명하며 큐 순위에는 반영하지 않습니다.`;
+}
+
+function buildBrandDirectionSummary(brandLevelRows, contributorRows) {
+    const operatingWindowKeys = getOperatingWindowDays().map((windowDays) => toWindowKey(windowDays));
+    const brandLevelByWindow = indexBy(brandLevelRows, (row) => row.window_key);
+    const contributorRowsByWindow = groupBy(contributorRows, (row) => row.window_key);
+
+    return operatingWindowKeys.map((windowKey) => {
+        const brandLevelRow = brandLevelByWindow.get(windowKey) ?? {};
+        const periodLabel = toText(brandLevelRow.period_label, getPeriodLabel(windowKey));
+        const comparisonWindowKey = getBrandDirectionCompareWindowKey(windowKey);
+        const comparisonRow = brandLevelByWindow.get(comparisonWindowKey) ?? {};
+        const comparisonPeriodLabel = toText(comparisonRow.period_label, getPeriodLabel(comparisonWindowKey));
+        const currentNumeric = brandLevelRow.brand_score_numeric === '' ? Number.NaN : toNumber(brandLevelRow.brand_score_numeric);
+        const comparisonNumeric = comparisonRow.brand_score_numeric === '' ? Number.NaN : toNumber(comparisonRow.brand_score_numeric);
+        const hasComparisonRow = Boolean(toText(comparisonRow.window_key));
+        const shouldHoldDirection = (
+            !hasComparisonRow
+            || toText(comparisonRow.brand_score_status) === 'unavailable'
+            || toText(brandLevelRow.brand_score_status) === 'unavailable'
+            || !Number.isFinite(currentNumeric)
+            || !Number.isFinite(comparisonNumeric)
+        );
+        const delta = shouldHoldDirection ? Number.NaN : currentNumeric - comparisonNumeric;
+        const directionKey = shouldHoldDirection
+            ? 'hold'
+            : Math.abs(delta) < 0.01
+                ? 'flat'
+                : delta >= 0.01
+                    ? 'improving'
+                    : 'deteriorating';
+        const otherWindowKeys = operatingWindowKeys.filter((candidate) => candidate !== windowKey);
+        const relativeSummary = otherWindowKeys.map((otherWindowKey) => {
+            const otherRow = brandLevelByWindow.get(otherWindowKey) ?? {};
+            const otherNumeric = otherRow.brand_score_numeric === '' ? Number.NaN : toNumber(otherRow.brand_score_numeric);
+            const relativeDelta = Number.isFinite(currentNumeric) && Number.isFinite(otherNumeric)
+                ? currentNumeric - otherNumeric
+                : Number.NaN;
+
+            return `${getPeriodLabel(otherWindowKey)}과는 ${getBrandDirectionRelativeText(relativeDelta)}`;
+        }).join(', ');
+        const statusLabel = toBrandScoreStatusLabel(brandLevelRow.brand_score_status || 'unavailable');
+        const statusNote = toText(
+            brandLevelRow.status_reason,
+            buildBrandScoreNote(brandLevelRow.brand_score_status, brandLevelRow.limitation_reason_detail || brandLevelRow.limitation_reason)
+        );
+
+        return {
+            as_of_date: toText(brandLevelRow.as_of_date, brandLevelRows[0]?.as_of_date ?? ''),
+            window_key: windowKey,
+            period_label: periodLabel,
+            direction_key: directionKey,
+            direction_label: getBrandDirectionLabel(directionKey),
+            direction_note: `${periodLabel} 브랜드 전체 방향은 ${relativeSummary}. 비교 기준 방향 판정은 ${comparisonPeriodLabel} 대비 ${getBrandDirectionLabel(directionKey)}입니다.`,
+            comparison_window_key: comparisonWindowKey,
+            comparison_period_label: comparisonPeriodLabel,
+            status_label: statusLabel,
+            status_note: statusNote,
+            product_contribution_note: buildBrandDirectionProductContributionNote(contributorRowsByWindow.get(windowKey) ?? [])
+        };
+    });
 }
 
 function toConfidenceLabel(score) {
@@ -1240,7 +1362,7 @@ function aggregateRoleRowsByWindow(
             const roleReason = !groupedRows.length
                 ? `${getPeriodLabel(windowKey)} 역할 관측이 없습니다.`
                 : !historyReady
-                    ? `${getPeriodLabel(windowKey)} 역할 관측은 참고용입니다.`
+                    ? `${getPeriodLabel(windowKey)} 역할 관측 범위를 함께 확인합니다.`
                     : finalRole === '관측 없음'
                         ? `${getPeriodLabel(windowKey)} 역할 관측 없음`
                         : `${getPeriodLabel(windowKey)} 주요 신호 ${primaryScore.toFixed(2)}`;
@@ -1771,8 +1893,8 @@ function buildLegacyBrandScoreReconstruction(contributorRows, brandLevelRow) {
         brand_score_note: row.contributor_status === 'unavailable'
             ? '상품별 최종 점수는 아직 산출하지 못했습니다.'
             : row.contributor_status === 'limited'
-                ? buildBrandScoreNote(row.contributor_status, row.limitation_reason_detail || row.limitation_reason, '상품별 기여 신호만 참고용으로 제공합니다.')
-                : '상품별 최종 점수 대신 기여 신호를 참고용으로 제공합니다.'
+                ? buildBrandScoreNote(row.contributor_status, row.limitation_reason_detail || row.limitation_reason, '상품별 기여 신호를 제한 반영합니다.')
+                : '상품별 최종 점수 대신 기여 신호를 함께 보여줍니다.'
     }));
 }
 
@@ -2017,14 +2139,16 @@ function buildPriorityBasis(revenueRows, roleRows, brandScoreRows, freshnessRows
             : '역할 근거 없음';
 
         const brandReason = brand.brand_score_status === 'limited'
-            ? `${row.period_label} 브랜드 점수 참고용`
+            ? `${row.period_label} 브랜드 방향 신호 제한 반영`
             : brand.brand_score_status === 'provisional'
-                ? `${row.period_label} 브랜드 점수 보조 신호`
+                ? `${row.period_label} 브랜드 구조 변화 신호`
                 : brand.brand_score_status === 'unavailable'
-                    ? `${row.period_label} 브랜드 점수 산출 없음`
-                    : brand.brand_score_status === 'near-core'
-                        ? `${row.period_label} 브랜드 점수 검증 후보`
-                        : '브랜드 점수 상태 없음';
+                    ? `${row.period_label} 브랜드 방향 산출 없음`
+                    : brand.brand_score_status === 'available'
+                        ? `${row.period_label} 브랜드 구조 반영 완료`
+                        : brand.brand_score_status === 'near-core'
+                            ? `${row.period_label} 브랜드 구조 변화 신호 검증 중`
+                            : '브랜드 방향 상태 없음';
 
         return {
             as_of_date: asOfDate,
@@ -2191,7 +2315,7 @@ function buildStructureMapCells(segmentRows, queueRows) {
     });
 }
 
-function buildDataHealthOverview(healthRows, brandLevelRow = {}, windowKey = '7d') {
+function buildDataHealthOverview(healthRows, brandLevelRow = {}, brandDirectionRow = {}, windowKey = '7d') {
     const normalRows = healthRows.filter((row) => row.data_state === '정상').length;
     const limitedRows = healthRows.filter((row) => row.data_state !== '정상').length;
     const revenueHealth = healthRows.find((row) => row.source_key === 'product_revenue_daily') ?? {};
@@ -2229,10 +2353,10 @@ function buildDataHealthOverview(healthRows, brandLevelRow = {}, windowKey = '7d
             window_key: windowKey,
             period_label: periodLabel,
             area_key: 'brand_score',
-            area_title: '브랜드 점수 반영 상태',
-            status_label: toText(brandLevelRow.status_label || toBrandScoreStatusLabel(brandLevelRow.brand_score_status), '산출 불가'),
-            summary_value: brandSummaryValue,
-            note: toText(brandLevelRow.status_reason || brandLevelRow.limitation_reason, '브랜드 점수는 아직 안정적으로 반영되지 않았습니다.')
+            area_title: '브랜드 전체 방향 상태',
+            status_label: toText(brandDirectionRow.status_label, toBrandScoreStatusLabel(brandLevelRow.brand_score_status)),
+            summary_value: toText(brandDirectionRow.direction_label, brandSummaryValue),
+            note: `${toText(brandDirectionRow.direction_note, '브랜드 전체 방향을 아직 안정적으로 읽기 어렵습니다.')} ${toText(brandDirectionRow.status_note, toText(brandLevelRow.status_reason || brandLevelRow.limitation_reason, ''))}`.trim()
         },
         {
             window_key: windowKey,
@@ -2393,17 +2517,19 @@ function buildQueueSummary(queueRows) {
     });
 }
 
-function buildProductDetail(priorityRows, revenueRows, roleRows, brandLevelRows, contributorRows) {
+function buildProductDetail(priorityRows, revenueRows, roleRows, brandLevelRows, contributorRows, brandDirectionRows = []) {
     const revenueByProduct = indexBy(revenueRows, (row) => keyOf(row.window_key, row.product_id));
     const roleByProduct = indexBy(roleRows, (row) => keyOf(row.window_key, row.product_id));
     const contributorByProduct = indexBy(contributorRows, (row) => keyOf(row.window_key, row.product_id));
     const brandLevelByWindow = indexBy(brandLevelRows, (row) => row.window_key);
+    const brandDirectionByWindow = indexBy(brandDirectionRows, (row) => row.window_key);
 
     return priorityRows.flatMap((row) => {
         const revenue = revenueByProduct.get(keyOf(row.window_key, row.product_id)) ?? {};
         const role = roleByProduct.get(keyOf(row.window_key, row.product_id)) ?? {};
         const contributor = contributorByProduct.get(keyOf(row.window_key, row.product_id)) ?? {};
         const brandLevelRow = brandLevelByWindow.get(row.window_key) ?? {};
+        const brandDirectionRow = brandDirectionByWindow.get(row.window_key) ?? {};
         const basketTypeLabel = toStructureLabel(contributor.basket_type || 'None');
 
         return [
@@ -2458,9 +2584,9 @@ function buildProductDetail(priorityRows, revenueRows, roleRows, brandLevelRows,
                 window_key: row.window_key,
                 period_label: row.period_label,
                 section: '브랜드 점수',
-                label: '브랜드 반영 상태',
-                value: toText(brandLevelRow.status_label, toBrandScoreStatusLabel(row.brand_score_status)),
-                note: toText(brandLevelRow.status_reason, row.brand_score_reason)
+                label: '브랜드 전체 방향',
+                value: toText(brandDirectionRow.direction_label, '브랜드 방향 판단 보류'),
+                note: `${toText(brandDirectionRow.direction_note, '브랜드 전체 방향을 판단할 비교 row가 아직 부족합니다.')} ${toText(brandDirectionRow.status_note, toText(brandLevelRow.status_reason, ''))}`.trim()
             },
             {
                 product_id: row.product_id,
@@ -2469,9 +2595,9 @@ function buildProductDetail(priorityRows, revenueRows, roleRows, brandLevelRows,
                 window_key: row.window_key,
                 period_label: row.period_label,
                 section: '브랜드 점수',
-                label: '상품 기여 상태',
+                label: '상품 기여',
                 value: toText(contributor.status_label, toBrandScoreStatusLabel(contributor.contribution_status || 'unavailable')),
-                note: toText(contributor.status_reason, '상품 기여 상태를 아직 안정적으로 계산하지 못했습니다.')
+                note: `${toText(contributor.status_reason, '상품 기여를 아직 안정적으로 계산하지 못했습니다.')} ${toText(brandDirectionRow.product_contribution_note, '')}`.trim()
             },
             {
                 product_id: row.product_id,
@@ -2559,8 +2685,24 @@ function buildDefinitionRules() {
             window_key: windowKey,
             period_label: periodLabel,
             rule_group: '브랜드 점수',
+            rule_name: '브랜드 전체 방향 우선',
+            rule_definition: '브랜드 전체 방향을 먼저 읽고, 상품 기여는 그다음 보조 정보로 봅니다.',
+            status_label: '제한적 반영'
+        },
+        {
+            window_key: windowKey,
+            period_label: periodLabel,
+            rule_group: '브랜드 점수',
+            rule_name: '기간 상대 비교 읽기',
+            rule_definition: '브랜드 방향은 현재 시점의 1일·7일·30일 상대 비교로 읽습니다.',
+            status_label: '제한적 반영'
+        },
+        {
+            window_key: windowKey,
+            period_label: periodLabel,
+            rule_group: '브랜드 점수',
             rule_name: '브랜드 단위 운영 계약',
-            rule_definition: '브랜드 점수는 브랜드 단위 값과 상품별 기여도로 나눠 관리하며, 상품별 최종 점수처럼 사용하지 않습니다.',
+            rule_definition: '브랜드 점수는 브랜드 전체 방향과 상품별 기여도로 나눠 관리하며, 상품별 최종 점수처럼 사용하지 않습니다.',
             status_label: '제한적 반영'
         },
         {
@@ -2699,6 +2841,7 @@ function buildIterationLog() {
 export function buildViewModelArtifacts(martArtifacts) {
     const brandLevelRows = martArtifacts.mart_brand_score_brand_level ?? [];
     const contributorRows = martArtifacts.mart_brand_score_product_contributors ?? [];
+    const brandDirectionRows = buildBrandDirectionSummary(brandLevelRows, contributorRows);
     const dataHealthRows = martArtifacts.mart_data_health_snapshot ?? [];
     const segmentRows = martArtifacts.mart_segment_structure_snapshot ?? [];
     const queueRows = martArtifacts.mart_priority_queue_snapshot ?? [];
@@ -2707,6 +2850,7 @@ export function buildViewModelArtifacts(martArtifacts) {
         return buildDataHealthOverview(
             dataHealthRows.filter((row) => row.window_key === windowKey),
             brandLevelRows.find((row) => row.window_key === windowKey) ?? {},
+            brandDirectionRows.find((row) => row.window_key === windowKey) ?? {},
             windowKey
         );
     });
@@ -2721,13 +2865,15 @@ export function buildViewModelArtifacts(martArtifacts) {
             martArtifacts.mart_product_revenue_windows ?? [],
             martArtifacts.mart_product_role_taxonomy_daily ?? [],
             brandLevelRows,
-            contributorRows
+            contributorRows,
+            brandDirectionRows
         ),
         vm_definition_rules: buildDefinitionRules(),
         vm_data_health: dataHealthRows,
         vm_data_health_overview: healthOverviewRows,
         vm_data_health_detail: buildDataHealthDetail(dataHealthRows),
         vm_brand_score_panel: brandLevelRows,
+        vm_brand_direction_summary: brandDirectionRows,
         vm_brand_score_product_contributors: contributorRows,
         vm_reconstruction_registry: martArtifacts.mart_reconstruction_registry ?? [],
         vm_iteration_log: buildIterationLog()
