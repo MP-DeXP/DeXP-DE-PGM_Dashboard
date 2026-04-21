@@ -82,6 +82,8 @@ span {
 .report-overview__eyebrow,
 .report-mobile-bar__eyebrow,
 .slide-card__eyebrow,
+.diagnosis-panel__label,
+.reframe-section__eyebrow,
 .hero-card__eyebrow,
 .axis-card__eyebrow,
 .summary-card__eyebrow,
@@ -121,6 +123,9 @@ span {
 .report-overview__description,
 .slide-card__summary,
 .slide-card__footer,
+.diagnosis-panel__value,
+.prose-block p,
+.reframe-item p,
 .slide-metric-card__note,
 .hero-card p,
 .axis-card p,
@@ -149,6 +154,8 @@ span {
 .report-overview__meta,
 .slide-card__metric-grid,
 .slide-card__footer-row,
+.diagnosis-grid,
+.reframe-list,
 .panel-grid,
 .insight-stat-grid,
 .stack-grid,
@@ -454,7 +461,12 @@ span {
     grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.diagnosis-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .slide-metric-card,
+.diagnosis-panel,
 .hero-card,
 .axis-card,
 .summary-card,
@@ -482,21 +494,93 @@ span {
     padding: 16px 18px;
     display: grid;
     gap: 8px;
-    min-height: 118px;
+    min-height: 108px;
 }
 
 .slide-metric-card__value {
-    font-size: clamp(24px, 2.9vw, 38px);
+    font-size: clamp(22px, 2.6vw, 34px);
     line-height: 1.05;
     color: var(--report-accent-strong);
     letter-spacing: -0.05em;
 }
 
+.diagnosis-panel {
+    padding: 16px 18px;
+    display: grid;
+    gap: 10px;
+    min-height: 132px;
+    background: rgba(255, 253, 249, 0.88);
+}
+
+.diagnosis-panel__value {
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--report-text);
+}
+
 .slide-card__body {
     display: grid;
     align-content: start;
-    gap: 14px;
+    gap: 16px;
     min-height: 0;
+}
+
+.prose-block,
+.reframe-section {
+    padding: 20px 22px;
+    border-radius: var(--report-radius-lg);
+    border: 1px solid var(--report-border);
+    background: rgba(255, 254, 250, 0.84);
+}
+
+.prose-block {
+    display: grid;
+    gap: 14px;
+}
+
+.prose-block p {
+    font-size: 16px;
+    line-height: 1.82;
+    color: var(--report-text);
+}
+
+.reframe-section {
+    display: grid;
+    gap: 14px;
+    background: linear-gradient(180deg, rgba(255, 249, 241, 0.96), rgba(242, 233, 219, 0.94));
+    border-color: rgba(207, 111, 47, 0.18);
+}
+
+.reframe-list {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.reframe-item {
+    display: grid;
+    gap: 10px;
+    align-content: start;
+    padding: 14px 16px;
+    border-radius: var(--report-radius-md);
+    border: 1px solid rgba(87, 60, 34, 0.1);
+    background: rgba(255, 255, 255, 0.72);
+}
+
+.reframe-item__order {
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: rgba(207, 111, 47, 0.12);
+    color: var(--report-accent-strong);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.reframe-item p {
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--report-text);
 }
 
 .panel-grid--2 {
@@ -1069,6 +1153,8 @@ span {
     .report-overview,
     .slide-card__header,
     .slide-card__metric-grid,
+    .diagnosis-grid,
+    .reframe-list,
     .cover-grid,
     .cover-axis-grid,
     .panel-grid--2,
